@@ -20,14 +20,54 @@
  */
 
 #include <common.h>
-#include <asm/arch/omap2420.h>
+#include <asm/arch/cpu.h>
 #include <asm/io.h>
 #include <asm/arch/bits.h>
-#include <asm/arch/mux.h>
 #include <asm/arch/mem.h>
 #include <asm/arch/clocks.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/sys_info.h>
+#include <asm/arch/mux.h>
+
+/****** DATA STRUCTURES ************/
+
+/* Only One NAND/NOR allowed on board at a time.
+ * The GPMC CS Base for the same
+ */
+static u32 nand_cs_base = 0;
+/* Board CS Organization - REV 0.1 */
+static const unsigned char chip_sel[][GPMC_MAX_CS] = {
+	/* GPMC CS Indices */
+/* IDX    CS0,       CS1,      CS2 ..CS7       */
+/* 0 */ {PROC_NOR, DBG_MPDB, 0, 0, 0, 0, 0, 0},
+/* 1 */ {PROC_NAND, DBG_MPDB, 0, 0, 0, 0, 0,0},
+};
+
+/* Values for each of the chips */
+static u32 gpmc_mpdb[GPMC_MAX_REG] = {
+	MPDB_GPMC_CONFIG1,
+	MPDB_GPMC_CONFIG2,
+	MPDB_GPMC_CONFIG3,
+	MPDB_GPMC_CONFIG4,
+	MPDB_GPMC_CONFIG5,
+	MPDB_GPMC_CONFIG6, 0
+};
+static u32 gpmc_stnor[GPMC_MAX_REG] = {
+	STNOR_GPMC_CONFIG1,
+	STNOR_GPMC_CONFIG2,
+	STNOR_GPMC_CONFIG3,
+	STNOR_GPMC_CONFIG4,
+	STNOR_GPMC_CONFIG5,
+	STNOR_GPMC_CONFIG6, 0
+};
+static u32 gpmc_smnand[GPMC_MAX_REG] = {
+	SMNAND_GPMC_CONFIG1,
+	SMNAND_GPMC_CONFIG2,
+	SMNAND_GPMC_CONFIG3,
+	SMNAND_GPMC_CONFIG4,
+	SMNAND_GPMC_CONFIG5,
+	SMNAND_GPMC_CONFIG6, 0
+};
 
 /************************************************************
  * sdelay() - simple spin loop.  Will be constant time as
@@ -48,12 +88,18 @@ void sdelay (unsigned long loops)
  *********************************************************************************/
 void prcm_init(void)
 {
-	u32 div;
+	u32 val, div;
 	void (*f_lock_pll) (u32, u32, u32, u32);
 	extern void *_end_vect, *_start;
 
 	f_lock_pll = (void *)((u32)&_end_vect - (u32)&_start + SRAM_VECT_CODE);
 
+	val = __raw_readl(PRCM_CLKSRC_CTRL) & ~(BIT1|BIT0);
+#if defined(OMAP2430_SQUARE_CLOCK_INPUT)
+	__raw_writel(val, PRCM_CLKSRC_CTRL);
+#else
+	__raw_writel((val | BIT0), PRCM_CLKSRC_CTRL);
+#endif
 	__raw_writel(0, CM_FCLKEN1_CORE);	   /* stop all clocks to reduce ringing */
 	__raw_writel(0, CM_FCLKEN2_CORE);	   /* may not be necessary */
 	__raw_writel(0, CM_ICLKEN1_CORE);
@@ -120,14 +166,16 @@ void make_cs1_contiguous(void)
  *******************************************************/
 u32 mem_ok(void)
 {
-	u32 val1, val2;
+	u32 val1, val2, addr;
 	u32 pattern = 0x12345678;
 
-	__raw_writel(0x0,OMAP2420_SDRC_CS0+0x400);   /* clear pos A */
-	__raw_writel(pattern, OMAP2420_SDRC_CS0);    /* pattern to pos B */
-	__raw_writel(0x0,OMAP2420_SDRC_CS0+4);       /* remove pattern off the bus */
-	val1 = __raw_readl(OMAP2420_SDRC_CS0+0x400); /* get pos A value */
-	val2 = __raw_readl(OMAP2420_SDRC_CS0);       /* get val2 */
+	addr = OMAP24XX_SDRC_CS0;
+
+	__raw_writel(0x0,addr+0x400);   /* clear pos A */
+	__raw_writel(pattern, addr);    /* pattern to pos B */
+	__raw_writel(0x0,addr+4);       /* remove pattern off the bus */
+	val1 = __raw_readl(addr+0x400); /* get pos A value */
+	val2 = __raw_readl(addr);       /* get val2 */
 
 	if ((val1 != 0) || (val2 != pattern))        /* see if pos A value changed*/
 		return(0);
@@ -159,12 +207,14 @@ void sdrc_init(void)
  *   we configure the first chip select.  Later on we come back and
  *   will configure the 2nd chip select if it exists.
  *
+ * For 2422 rev > ES2 only one pass is used as it only has memory on CS1.
  **************************************************************************/
 void do_sdrc_init(u32 offset, u32 early)
 {
-	u32 cpu, dllen=0, rev, common=0, cs0=0, pmask=0, pass_type, mtype;
+	u32 cpu, dllstat, dllctrl=0, rev, common=0, cs0=0, pmask=0, pass_type, mtype;
 	sdrc_data_t *sdata;	 /* do not change type */
-	u32 a, b, r;
+	u32 a, b, r, dllx = 0, mono = 0, dev;
+	void init_dcdl(u32 cpu);
 
 	static const sdrc_data_t sdrc_2422 =
 	{
@@ -184,15 +234,25 @@ void do_sdrc_init(u32 offset, u32 early)
 		cs0 = common = 1;  /* int regs shared between both chip select */
 
 	cpu = get_cpu_type();
+	dev = get_device_type();
 	rev = get_cpu_rev();
 
 	/* warning generated, though code generation is correct. this may bite later,
 	 * but is ok for now. there is only so much C code you can do on stack only
 	 * operation.
 	 */
-	if (cpu == CPU_2422){
+	if ((cpu == CPU_2422) || (cpu == CPU_2423)){
 		sdata = (sdrc_data_t *)&sdrc_2422;
 		pass_type = STACKED;
+		if(rev > CPU_242X_ES2){ /* es2.05 and beyond changed SIP memory */
+			if((!early) && (cpu == CPU_2422)) /* no work for pass 2 on 2422 rev>es2 */
+				return;
+			if (cpu == CPU_2422) {
+				offset = SDRC_CS1_OSET; /* set common access offset to cs1 */
+				cs0 = 0;                /* specify acting on CS1 */
+				mono = 1;		/* flag mono die for 2422 */
+			}
+		}
 	} else{
 		sdata = (sdrc_data_t *)&sdrc_2420;
 		pass_type = IP_DDR;
@@ -209,8 +269,14 @@ void do_sdrc_init(u32 offset, u32 early)
 	if((early) && running_in_flash()){
 		sdata = (sdrc_data_t *)(((u32)sdata & 0x0003FFFF) | get_gpmc0_base());
 		/* NOR internal boot offset is 0x4000 from xloader signature */
-		if(running_from_internal_boot())
-			sdata = (sdrc_data_t *)((u32)sdata + 0x4000);
+		if(running_from_internal_boot()){
+			u32 start_off;
+			if(dev == GP_DEVICE)
+				start_off = 0x8;
+			else
+				start_off = 0x4000;
+			sdata = (sdrc_data_t *)((u32)sdata + start_off); 
+		}
 	}
 
 	if (!early && (((mtype = get_mem_type()) == DDR_COMBO)||(mtype == DDR_STACKED))) {
@@ -219,7 +285,7 @@ void do_sdrc_init(u32 offset, u32 early)
 			pass_type = COMBO_DDR; /* CS1 config */
 			__raw_writel((__raw_readl(SDRC_POWER)) & ~pmask, SDRC_POWER);
 		}
-		if(rev != CPU_2420_2422_ES1)	/* for es2 and above smooth things out */
+		if(rev != CPU_242X_ES1)	/* for es2 and above smooth things out */
 			make_cs1_contiguous();
 	}
 
@@ -228,7 +294,10 @@ next_mem_type:
 		__raw_writel(SOFTRESET, SDRC_SYSCONFIG);	/* reset sdrc */
 		wait_on_value(BIT0, BIT0, SDRC_STATUS, 12000000);/* wait till reset done set */
 		__raw_writel(0, SDRC_SYSCONFIG);		/* clear soft reset */
-		__raw_writel(sdata->sdrc_sharing, SDRC_SHARING);
+		if (cpu != CPU_2423)
+			__raw_writel(sdata->sdrc_sharing, SDRC_SHARING);
+		else
+			__raw_writel(H4_2423_SDRC_SHARING, SDRC_SHARING);
 #ifdef POWER_SAVE
 		__raw_writel(__raw_readl(SMS_SYSCONFIG)|SMART_IDLE, SMS_SYSCONFIG);
 		__raw_writel(sdata->sdrc_sharing|SMART_IDLE, SDRC_SHARING);
@@ -236,9 +305,17 @@ next_mem_type:
 #endif
 	}
 
-	if ((pass_type == IP_DDR) || (pass_type == STACKED)) /* (IP ddr-CS0),(2422-CS0/CS1) */
+	if ((pass_type == IP_DDR) || (pass_type == STACKED)){ /* (IP ddr-CS0),(2422-CS0/CS1) */
 		__raw_writel(sdata->sdrc_mdcfg_0_ddr, SDRC_MCFG_0+offset);
-	else if (pass_type == COMBO_DDR){ /* (combo-CS0/CS1) */
+		if(mono)
+		  __raw_writel(H4_2422_SDRC_MDCFG_MONO_DDR, SDRC_MCFG_0+offset); /* 2422.es2.05-CS1 */
+		if (cpu == CPU_2423) {
+			if (offset == SDRC_CS1_OSET)
+		  		__raw_writel(H4_2423_SDRC_MDCFG_1_DDR, SDRC_MCFG_0+offset); /* 2423 32M-CS1 */
+			else
+		  		__raw_writel(H4_2423_SDRC_MDCFG_0_DDR, SDRC_MCFG_0+offset); /* 2423 64M-CS0 */
+		}
+	}else if (pass_type == COMBO_DDR){ /* (combo-CS0/CS1) */
 		__raw_writel(H4_2420_COMBO_MDCFG_0_DDR,SDRC_MCFG_0+offset);
 	} else if (pass_type == IP_SDR){ /* ip sdr-CS0 */
 		__raw_writel(sdata->sdrc_mdcfg_0_sdr, SDRC_MCFG_0+offset);
@@ -246,10 +323,10 @@ next_mem_type:
 
 	a = sdata->sdrc_actim_ctrla_0;
 	b = sdata->sdrc_actim_ctrlb_0;
-	r = sdata->sdrc_dllab_ctrl;
+	r = sdata->sdrc_rfr_ctrl;
 
 	/* work around ES1 DDR issues */
-	if((pass_type != IP_SDR) && (rev == CPU_2420_2422_ES1)){
+	if((pass_type != IP_SDR) && (rev == CPU_242X_ES1)){
 		a = H4_242x_SDRC_ACTIM_CTRLA_0_ES1;
 		b = H4_242x_SDRC_ACTIM_CTRLB_0_ES1;
 		r = H4_242x_SDRC_RFR_CTRL_ES1;
@@ -283,29 +360,92 @@ next_mem_type:
 		__raw_writel(sdata->sdrc_mr_0_ddr, SDRC_MR_0+offset);
 
 	/* NOTE: ES1 242x _BUG_ DLL + External Bandwidth fix*/
-	if (rev == CPU_2420_2422_ES1){
-		dllen = (BIT0|BIT3); /* es1 clear both bit0 and bit3 */
+	if (rev == CPU_242X_ES1){
+		dllctrl = (BIT0|BIT3); /* es1 clear both bit0 and bit3 */
 		__raw_writel((__raw_readl(SMS_CLASS_ARB0)|BURSTCOMPLETE_GROUP7)
 			,SMS_CLASS_ARB0);/* enable bust complete for lcd */
-	}
-	else
-		dllen = BIT0|BIT1; /* es2, clear bit0, and 1 (set phase to 72) */
+	}else
+
+	 dllctrl = BIT0; /* es2, flag to clear bit0 (90deg for < 133MHz && ES2) */
+
+#ifdef PRCM_CONFIG_I
+		/* es2.1, flag clear bit1 (set phase to 72 for > 150MHz && ES2) */
+		dllctrl |= DLLPHASE; 
+#endif
 
 	/* enable & load up DLL with good value for 75MHz, and set phase to 90
 	 * ES1 recommends 90 phase, ES2 recommends 72 phase.
 	 */
 	if (common && (pass_type != IP_SDR)) {
 		__raw_writel(sdata->sdrc_dllab_ctrl, SDRC_DLLA_CTRL);
-		__raw_writel(sdata->sdrc_dllab_ctrl & ~(BIT2|dllen), SDRC_DLLA_CTRL);
+		__raw_writel(sdata->sdrc_dllab_ctrl & ~(LOADDLL|dllctrl), SDRC_DLLA_CTRL);
 		__raw_writel(sdata->sdrc_dllab_ctrl, SDRC_DLLB_CTRL);
-		__raw_writel(sdata->sdrc_dllab_ctrl & ~(BIT2|dllen) , SDRC_DLLB_CTRL);
+		__raw_writel(sdata->sdrc_dllab_ctrl & ~(LOADDLL|dllctrl) , SDRC_DLLB_CTRL);
+
+		init_dcdl(cpu);  /* fix errata for possible bad init state */
+
+		sdelay(0x2000);  /* give time to lock, at least 1000 L3 */
+
+		if(rev >= CPU_242X_ES2){   /* work around DCDL MOD16 bug */
+			if ((cpu == CPU_2422) && (rev > CPU_242X_ES2))
+				dllx = 8;
+			dllctrl = __raw_readl(SDRC_DLLA_CTRL+dllx); /* get cur ctrl value */
+			dllctrl &= ~(DLL_DELAY_MASK); /* prepare for load new value */
+			dllctrl |= LOADDLL; /* prepare for load + unlock mode */
+			dllstat = (__raw_readl(SDRC_DLLA_STATUS+dllx) & DLL_DELAY_MASK);
+			dllctrl |= dllstat; /* prepare new dll load delay */
+			dllctrl |= DLL_NO_FILTER_MASK;  /* make sure filter is off */
+			__raw_writel(dllctrl, SDRC_DLLA_CTRL); /* go to unlock modeA */
+			__raw_writel(dllctrl, SDRC_DLLB_CTRL); /* go to unlock modeB */
+		}
 	}
-	sdelay(90000);
+	sdelay(0x1000);
+
+	if(mono) /* 2422 ES2.05 and beyound only has 1 pass */
+		make_cs1_contiguous();/* make CS1 appear at CS0 */
 
 	if(mem_ok())
 		return; /* STACKED, other configued type */
 	++pass_type; /* IPDDR->COMBODDR->IPSDR for CS0 */
 	goto next_mem_type;
+}
+
+/*****************************************************
+ * init_dcdl(): Fix errata - unitilized flip-flop.
+ *****************************************************/
+void init_dcdl(u32 cpu)
+{
+	volatile u8 *adqs[4];
+	u8 vdqs[4], idx, i;
+	u32 base = OMAP24XX_CTRL_BASE;
+
+	if((cpu == CPU_2422) || (cpu == CPU_2423)){
+		adqs[0] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_STK_DM1 + 0x1));
+		adqs[1] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_STK_DM1 + 0x2));
+ 		idx = 2;
+	} else {
+		adqs[0] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_STK_DM1 + 0x3));
+		adqs[1] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_DQS1 + 0x0));
+		adqs[2] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_DQS1 + 0x1));
+		adqs[3] = ((volatile u8*)(base + CONTROL_PADCONF_SDRC_DQS1 + 0x2));
+		idx = 4;
+	}
+
+	for(i = 0; i < idx; ++i) /* save origional state */
+		vdqs[i] = *adqs[i];
+
+	for(i = 0; i < idx; ++i)
+		*adqs[i] = ((~0x10 & vdqs[i]) | 0x8); /* enable/activate pull down */
+
+	sdelay(0x400);
+
+	for(i = 0; i < idx; ++i)
+		*adqs[i] = (vdqs[i] | 0x10); /* enable/activate pull up */
+
+	sdelay(0x400);
+
+	for(i = 0; i < idx; ++i) /* restore state */
+		*adqs[i] = vdqs[i];
 }
 
 /*****************************************************
@@ -315,61 +455,75 @@ next_mem_type:
  *****************************************************/
 void gpmc_init(void)
 {
-	u32 mux=0, mtype, mwidth, rev, tval;
+	u32 mux=0, mwidth, rev, tval;
+	u8 idx = 0;
+	u32 *gpmc_config = NULL;
+	u32 gpmc_base = 0;
+	u32 base = 0;
+	u32 size = 0;
+	unsigned char *config_sel =
+	    (unsigned char *)(chip_sel[FLASH_CONFIGURATION_IDX]);
 
 	rev  = get_cpu_rev();
-	if (rev == CPU_2420_2422_ES1)
+	if (rev == CPU_242X_ES1)
 		tval = 1;
 	else
 		tval = 0;  /* disable bit switched meaning */
 
+	/* discover bus connection from sysboot */
+	if (is_gpmc_muxed() == GPMC_MUXED)
+		mux = BIT9;
+
+	mwidth = get_gpmc0_width();
 	/* global settings */
 	__raw_writel(0x10, GPMC_SYSCONFIG);	/* smart idle */
 	__raw_writel(0x0, GPMC_IRQENABLE);	/* isr's sources masked */
 	__raw_writel(tval, GPMC_TIMEOUT_CONTROL);/* timeout disable */
-#ifdef CFG_NAND_BOOT
-	__raw_writel(0x001, GPMC_CONFIG);	/* set nWP, disable limited addr */
-#else
-	__raw_writel(0x111, GPMC_CONFIG);	/* set nWP, disable limited addr */
-#endif
+	/* For Nand based boot only..OneNand?? */
+	if ((config_sel[0] == PROC_NAND)
+	    || (config_sel[0] == PISMO_ONENAND)) {
+		__raw_writel(0x001, GPMC_CONFIG);	/* set nWP, disable limited addr */
+	}
+	for (; idx < GPMC_MAX_CS; idx++) {
+		if (!config_sel[idx]) {
+			continue;
+		}
+		gpmc_base = GPMC_CONFIG_CS0 + (idx * GPMC_CONFIG_WIDTH);
+		__raw_writel(0, GPMC_CONFIG7 + gpmc_base);
+		switch (config_sel[idx]) {
+		case PROC_NOR:
+			gpmc_config = gpmc_stnor;
+			gpmc_config[0] |= mux | TYPE_NOR | mwidth;
+			base = PROC_NOR_BASE;
+			size = PROC_NOR_SIZE;
+			break;
+		case PROC_NAND:
+			base = PROC_NAND_BASE;
+			size = PROC_NAND_SIZE;
+			gpmc_config = gpmc_smnand;
+			gpmc_config[0] |= mux | TYPE_NAND | mwidth;
+			/* Either OneNand or Normal Nand at a time!! */
+			nand_cs_base = gpmc_base;
+			break;
+		case DBG_MPDB:
+			base = DBG_MPDB_BASE;
+			size = DBG_MPDB_SIZE;
+			gpmc_config = gpmc_mpdb;
+			gpmc_config[0] |= mux;
+			break;
+		default:
+			/* Corrupt config- try and recover by putting nor here!!!! */
+			continue;
+		}
+		__raw_writel(gpmc_config[0], GPMC_CONFIG1 + gpmc_base);
+		__raw_writel(gpmc_config[1], GPMC_CONFIG2 + gpmc_base);
+		__raw_writel(gpmc_config[2], GPMC_CONFIG3 + gpmc_base);
+		__raw_writel(gpmc_config[3], GPMC_CONFIG4 + gpmc_base);
+		__raw_writel(gpmc_config[4], GPMC_CONFIG5 + gpmc_base);
+		__raw_writel(gpmc_config[5], GPMC_CONFIG6 + gpmc_base);
+		/* Enable the config */
+		__raw_writel((((size & 0xF) << 8) | ((base >> 24) & 0x3F) |
+			      (1 << 6)), GPMC_CONFIG7 + gpmc_base);
+	}
 
-	/* discover bus connection from sysboot */
-	if (is_gpmc_muxed() == GPMC_MUXED)
-		mux = BIT9;
-	mtype = get_gpmc0_type();
-	mwidth = get_gpmc0_width();
-
-	/* setup cs0 */
-	__raw_writel(0x0, GPMC_CONFIG7_0);	/* disable current map */
-	sdelay(1000);
-
-#ifdef CFG_NAND_BOOT
-	__raw_writel(H4_24XX_GPMC_CONFIG1_0|mtype|mwidth, GPMC_CONFIG1_0);
-#else
-	__raw_writel(H4_24XX_GPMC_CONFIG1_0|mux|mtype|mwidth, GPMC_CONFIG1_0);
-#endif
-
-#ifdef PRCM_CONFIG_III
-	__raw_writel(H4_24XX_GPMC_CONFIG2_0, GPMC_CONFIG2_0);
-#endif
-	__raw_writel(H4_24XX_GPMC_CONFIG3_0, GPMC_CONFIG3_0);
-	__raw_writel(H4_24XX_GPMC_CONFIG4_0, GPMC_CONFIG4_0);
-#ifdef PRCM_CONFIG_III
-	__raw_writel(H4_24XX_GPMC_CONFIG5_0, GPMC_CONFIG5_0);
-	__raw_writel(H4_24XX_GPMC_CONFIG6_0, GPMC_CONFIG6_0);
-#endif
-	__raw_writel(H4_24XX_GPMC_CONFIG7_0, GPMC_CONFIG7_0);/* enable new mapping */
-	sdelay(2000);
-
-	/* setup cs1 */
-	__raw_writel(0, GPMC_CONFIG7_1); /* disable any mapping */
-	sdelay(1000);
-	__raw_writel(H4_24XX_GPMC_CONFIG1_1|mux, GPMC_CONFIG1_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG2_1, GPMC_CONFIG2_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG3_1, GPMC_CONFIG3_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG4_1, GPMC_CONFIG4_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG5_1, GPMC_CONFIG5_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG6_1, GPMC_CONFIG6_1);
-	__raw_writel(H4_24XX_GPMC_CONFIG7_1, GPMC_CONFIG7_1); /* enable mapping */
-	sdelay(2000);
 }

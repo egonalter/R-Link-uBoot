@@ -92,6 +92,8 @@
 
 #if (CONFIG_COMMANDS & CFG_CMD_NET)
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define ARP_TIMEOUT		5		/* Seconds before trying ARP again */
 #ifndef	CONFIG_NET_RETRY_COUNT
 # define ARP_TIMEOUT_COUNT	5		/* # of timeouts before giving up  */
@@ -222,8 +224,10 @@ void ArpRequest (void)
 	    (NetOurIP & NetOurSubnetMask)) {
 		if (NetOurGatewayIP == 0) {
 			puts ("## Warning: gatewayip needed but not set\n");
+			NetArpWaitReplyIP = NetArpWaitPacketIP;
+		} else {
+			NetArpWaitReplyIP = NetOurGatewayIP;
 		}
-		NetArpWaitReplyIP = NetOurGatewayIP;
 	} else {
 		NetArpWaitReplyIP = NetArpWaitPacketIP;
 	}
@@ -264,8 +268,6 @@ void ArpTimeoutCheck(void)
 int
 NetLoop(proto_t protocol)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	bd_t *bd = gd->bd;
 
 #ifdef CONFIG_NET_MULTI
@@ -570,9 +572,6 @@ startAgainHandler(uchar * pkt, unsigned dest, unsigned src, unsigned len)
 
 void NetStartAgain (void)
 {
-#ifdef	CONFIG_NET_MULTI
-	DECLARE_GLOBAL_DATA_PTR;
-#endif
 	char *nretry;
 	int noretry = 0, once = 0;
 

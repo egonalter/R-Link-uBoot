@@ -105,6 +105,8 @@ static uint	i2c_mm_last_alen;
 static uchar i2c_no_probes[] = CFG_I2C_NOPROBES;
 #endif
 
+int select_bus(int, int);
+
 static int
 mod_i2c_mem(cmd_tbl_t *cmdtp, int incrflag, int flag, int argc, char *argv[]);
 extern int cmd_get_data_size(char* arg, int default_size);
@@ -874,6 +876,26 @@ int do_sdram  ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 #endif	/* CFG_CMD_SDRAM */
 
 
+#if defined(CFG_I2C_BUS_SELECT)
+int do_i2c_bus(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+{
+	int bus_idx, bus_spd, res = 0;
+	if (argc < 3) {
+		printf("Usage[%d]:\n%s\n", argc, cmdtp->usage);
+		return 1;
+	}
+	bus_idx = simple_strtoul(argv[1], NULL, 16);
+	bus_spd = simple_strtoul(argv[2], NULL, 16);
+	printf("Setting bus[%d] to Speed[%d]: ", bus_idx, bus_spd);
+	res = select_bus(bus_idx, bus_spd);
+	if (res) {
+		printf("FAILED\n");
+	} else {
+		printf("PASS\n");
+	}
+	return res;
+}
+#endif				/* bus select */
 /***************************************************/
 
 U_BOOT_CMD(
@@ -930,4 +952,12 @@ U_BOOT_CMD(
 	"      (valid chip values 50..57)\n"
 );
 #endif
+
+#if defined(CFG_I2C_BUS_SELECT)
+U_BOOT_CMD(ibus, 3, 1, do_i2c_bus,
+	   "ibus    - Select i2c Bus\n",
+	   "bus_index speed\n    - Selects the bus index and sets the speed (0x64(ST),0x190(FS),0xD48(HS))\n"
+	   "      (reports success/failure)\n");
+#endif
+
 #endif	/* CFG_CMD_I2C */

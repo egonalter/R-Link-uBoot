@@ -90,6 +90,7 @@ extern flash_info_t flash_info[];
 #endif
 
 #include <environment.h>
+
 DECLARE_GLOBAL_DATA_PTR;
 
 #if defined(CFG_ENV_IS_EMBEDDED)
@@ -269,7 +270,8 @@ init_fnc_t *init_sequence[] = {
 
 #if !defined(CONFIG_8xx_CPUCLK_DEFAULT)
 	get_clocks,		/* get CPU and bus clocks (etc.) */
-#if defined(CONFIG_TQM8xxL) && !defined(CONFIG_TQM866M)
+#if defined(CONFIG_TQM8xxL) && !defined(CONFIG_TQM866M) \
+    && !defined(CONFIG_TQM885D)
 	adjust_sdram_tbs_8xx,
 #endif
 	init_timebase,
@@ -609,6 +611,11 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	bd = gd->bd;
 
 	gd->flags |= GD_FLG_RELOC;	/* tell others: relocation done */
+	gd->reloc_off = dest_addr - CFG_MONITOR_BASE;
+
+#ifdef CONFIG_SERIAL_MULTI
+	serial_initialize();
+#endif
 
 	debug ("Now running in RAM - U-Boot at: %08lx\n", dest_addr);
 
@@ -618,13 +625,7 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	board_early_init_r ();
 #endif
 
-	gd->reloc_off = dest_addr - CFG_MONITOR_BASE;
-
 	monitor_flash_len = (ulong)&__init_end - dest_addr;
-
-#ifdef CONFIG_SERIAL_MULTI
-	serial_initialize();
-#endif
 
 	/*
 	 * We have to relocate the command table manually
@@ -670,7 +671,8 @@ void board_init_r (gd_t *id, ulong dest_addr)
 
 	WATCHDOG_RESET();
 
-#if defined(CONFIG_IP860) || defined(CONFIG_PCU_E) || defined (CONFIG_FLAGADM)
+#if defined(CONFIG_IP860) || defined(CONFIG_PCU_E) || \
+	defined (CONFIG_FLAGADM) || defined(CONFIG_MPC83XX)
 	icache_enable ();	/* it's time to enable the instruction cache */
 #endif
 

@@ -25,6 +25,8 @@
 #include <serial.h>
 #include <devices.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #if defined(CONFIG_SERIAL_MULTI)
 
 static struct serial_device *serial_devices = NULL;
@@ -39,8 +41,12 @@ struct serial_device *default_serial_console (void)
    || defined(CONFIG_8xx_CONS_SCC3) || defined(CONFIG_8xx_CONS_SCC4)
 	return &serial_scc_device;
 #elif defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_440) \
-   || defined(CONFIG_405EP)
-	return &serial0_device;
+   || defined(CONFIG_405EP) || defined(CONFIG_MPC5xxx)
+#if defined(CONFIG_UART1_CONSOLE)
+		return &serial1_device;
+#else
+		return &serial0_device;
+#endif
 #else
 #error No default console
 #endif
@@ -49,8 +55,6 @@ struct serial_device *default_serial_console (void)
 
 static int serial_register (struct serial_device *dev)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	dev->init += gd->reloc_off;
 	dev->setbrg += gd->reloc_off;
 	dev->getc += gd->reloc_off;
@@ -75,7 +79,7 @@ void serial_initialize (void)
 #endif
 
 #if defined(CONFIG_405GP) || defined(CONFIG_405CR) || defined(CONFIG_440) \
- || defined(CONFIG_405EP)
+ || defined(CONFIG_405EP) || defined(CONFIG_MPC5xxx)
 	serial_register(&serial0_device);
 	serial_register(&serial1_device);
 #endif
@@ -131,8 +135,6 @@ void serial_reinit_all (void)
 
 int serial_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 
@@ -144,8 +146,6 @@ int serial_init (void)
 
 void serial_setbrg (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 
@@ -158,8 +158,6 @@ void serial_setbrg (void)
 
 int serial_getc (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 
@@ -171,8 +169,6 @@ int serial_getc (void)
 
 int serial_tstc (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 
@@ -184,8 +180,6 @@ int serial_tstc (void)
 
 void serial_putc (const char c)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 
@@ -198,8 +192,6 @@ void serial_putc (const char c)
 
 void serial_puts (const char *s)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (!(gd->flags & GD_FLG_RELOC) || !serial_current) {
 		struct serial_device *dev = default_serial_console ();
 

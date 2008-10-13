@@ -101,6 +101,8 @@
 #define ADD_DOC_CMD             0
 #else
 #define ADD_DOC_CMD             CFG_CMD_DOC
+/* DoC requires legacy NAND for now */
+#define CFG_NAND_LEGACY
 #endif
 
 /*
@@ -200,12 +202,13 @@
  * Flash configuration (8,16 or 32 MB)
  * TEXT base always at 0xFFF00000
  * ENV_ADDR always at  0xFFF40000
- * FLASH_BASE at 0xFC000000 for 32 MB
+ * FLASH_BASE at 0xFA000000 for 64 MB
+ *               0xFC000000 for 32 MB
  *               0xFD000000 for 16 MB
  *               0xFD800000 for  8 MB
  */
-#define CFG_FLASH_BASE		0xfc000000
-#define CFG_FLASH_SIZE		0x02000000
+#define CFG_FLASH_BASE		0xFA000000
+#define CFG_FLASH_SIZE		0x04000000
 #define CFG_BOOTROM_BASE	0xFFF00000
 #define CFG_BOOTROM_SIZE	0x00080000
 #define CFG_ENV_ADDR		(0xFDF00000 + 0x40000)
@@ -214,17 +217,18 @@
  * Flash configuration (8,16 or 32 MB)
  * TEXT base always at 0xFFF00000
  * ENV_ADDR always at  0xFFF40000
- * FLASH_BASE at 0xFE000000 for 32 MB
+ * FLASH_BASE at 0xFC000000 for 64 MB
+ *               0xFE000000 for 32 MB
  *               0xFF000000 for 16 MB
  *               0xFF800000 for  8 MB
  */
-#define CFG_FLASH_BASE		0xfe000000
-#define CFG_FLASH_SIZE		0x02000000
+#define CFG_FLASH_BASE		0xFC000000
+#define CFG_FLASH_SIZE		0x04000000
 #define CFG_ENV_ADDR		(0xFFF00000 + 0x40000)
 #endif
 #define CFG_MAX_FLASH_BANKS	1	/* max num of memory banks      */
 
-#define CFG_MAX_FLASH_SECT	128	/* max num of sects on one chip */
+#define CFG_MAX_FLASH_SECT	256	/* max num of sects on one chip */
 
 #define CFG_FLASH_ERASE_TOUT	240000	/* Flash Erase Timeout (in ms)  */
 #define CFG_FLASH_WRITE_TOUT	500	/* Flash Write Timeout (in ms)  */
@@ -325,11 +329,11 @@
 #define CFG_CS0_SIZE		CFG_BOOTROM_SIZE
 #define CFG_CS1_START		CFG_FLASH_BASE
 #define CFG_CS1_SIZE		CFG_FLASH_SIZE
-#define CFG_CS1_CFG		0x0004fb00
+#define CFG_CS1_CFG		0x0004FF00
 #else
 #define CFG_BOOTCS_START	CFG_FLASH_BASE
 #define CFG_BOOTCS_SIZE		CFG_FLASH_SIZE
-#define CFG_BOOTCS_CFG		0x0004fb00
+#define CFG_BOOTCS_CFG		0x0004FF00
 #define CFG_CS0_START		CFG_FLASH_BASE
 #define CFG_CS0_SIZE		CFG_FLASH_SIZE
 #define CFG_CS1_START		CFG_DOC_BASE

@@ -38,6 +38,7 @@
 #if ((CONFIG_COMMANDS & CFG_CMD_IDE)	|| \
      (CONFIG_COMMANDS & CFG_CMD_SCSI)	|| \
      (CONFIG_COMMANDS & CFG_CMD_USB)	|| \
+     (CONFIG_COMMANDS & CFG_CMD_MMC)    || \
      defined(CONFIG_MMC) || \
      defined(CONFIG_SYSTEMACE) ) && defined(CONFIG_DOS_PARTITION)
 

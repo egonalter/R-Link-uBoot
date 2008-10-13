@@ -2,6 +2,10 @@
  * (C) Copyright 2003
  * Josef Baumgartner <josef.baumgartner@telex.de>
  *
+ * MCF5282 additionals
+ * (C) Copyright 2005
+ * BuS Elektronik GmbH & Co. KG <esw@bus-elektronik.de>
+ *
  * See file CREDITS for list of people who contributed to this
  * project.
  *
@@ -25,19 +29,61 @@
 #include <watchdog.h>
 #include <command.h>
 
+#ifdef  CONFIG_M5271
+#include <asm/immap_5271.h>
+#include <asm/m5271.h>
+#endif
+
 #ifdef	CONFIG_M5272
 #include <asm/immap_5272.h>
 #include <asm/m5272.h>
 #endif
 
 #ifdef	CONFIG_M5282
-
+#include <asm/m5282.h>
+#include <asm/immap_5282.h>
 #endif
 
 #ifdef	CONFIG_M5249
 #include <asm/m5249.h>
 #endif
 
+#ifdef	CONFIG_M5271
+int checkcpu (void)
+{
+	char buf[32];
+
+	printf ("CPU:   Freescale Coldfire MCF5271 at %s MHz\n", strmhz(buf, CFG_CLK));
+	return 0;
+}
+
+int do_reset (cmd_tbl_t *cmdtp, bd_t *bd, int flag, int argc, char *argv[]) {
+	mbar_writeByte(MCF_RCM_RCR,
+			MCF_RCM_RCR_SOFTRST | MCF_RCM_RCR_FRCRSTOUT);
+	return 0;
+};
+
+#if defined(CONFIG_WATCHDOG)
+void watchdog_reset (void)
+{
+	mbar_writeShort(MCF_WTM_WSR, 0x5555);
+	mbar_writeShort(MCF_WTM_WSR, 0xAAAA);
+}
+
+int watchdog_disable (void)
+{
+	mbar_writeShort(MCF_WTM_WCR, 0);
+	return (0);
+}
+
+int watchdog_init (void)
+{
+	mbar_writeShort(MCF_WTM_WCR, MCF_WTM_WCR_EN);
+	return (0);
+}
+#endif /* #ifdef CONFIG_WATCHDOG */
+
+#endif
 
 #ifdef	CONFIG_M5272
 int do_reset (cmd_tbl_t *cmdtp, bd_t *bd, int flag, int argc, char *argv[]) {
@@ -66,15 +112,14 @@ int checkcpu(void) {
 		case 0x4: suf = "3K75N"; break;
 		default:
 			suf = NULL;
-			printf ("MOTOROLA MCF5272 (Mask:%01x)\n", msk);
+			printf ("Freescale MCF5272 (Mask:%01x)\n", msk);
 			break;
 		}
 
 	if (suf)
-		printf ("MOTOROLA MCF5272 %s\n", suf);
+		printf ("Freescale MCF5272 %s\n", suf);
 	return 0;
 };
-
 
 #if defined(CONFIG_WATCHDOG)
 /* Called by macro WATCHDOG_RESET */
@@ -117,11 +162,25 @@ int watchdog_init (void)
 #ifdef	CONFIG_M5282
 int checkcpu (void)
 {
-	puts ("CPU:   MOTOROLA Coldfire MCF5282\n");
+	unsigned char resetsource = MCFRESET_RSR;
+
+	printf ("CPU:   Freescale Coldfire MCF5282 (PIN: %2.2x REV: %2.2x)\n",
+		MCFCCM_CIR>>8,MCFCCM_CIR & MCFCCM_CIR_PRN_MASK);
+	printf ("Reset:%s%s%s%s%s%s%s\n",
+		(resetsource & MCFRESET_RSR_LOL)  ? " Loss of Lock"	: "",
+		(resetsource & MCFRESET_RSR_LOC)  ? " Loss of Clock"	: "",
+		(resetsource & MCFRESET_RSR_EXT)  ? " External"		: "",
+		(resetsource & MCFRESET_RSR_POR)  ? " Power On"		: "",
+		(resetsource & MCFRESET_RSR_WDR)  ? " Watchdog"		: "",
+		(resetsource & MCFRESET_RSR_SOFT) ? " Software"		: "",
+		(resetsource & MCFRESET_RSR_LVD)  ? " Low Voltage"	: ""
+	);
 	return 0;
 }
 
-int do_reset (cmd_tbl_t *cmdtp, bd_t *bd, int flag, int argc, char *argv[]) {
+int do_reset (cmd_tbl_t *cmdtp, bd_t *bd, int flag, int argc, char *argv[])
+{
+	MCFRESET_RCR = MCFRESET_RCR_SOFTRST;
 	return 0;
 };
 #endif
@@ -131,7 +190,7 @@ int checkcpu (void)
 {
 	char buf[32];
 
-	printf ("CPU:   MOTOROLA Coldfire MCF5249 at %s MHz\n", strmhz(buf, CFG_CLK));
+	printf ("CPU:   Freescale Coldfire MCF5249 at %s MHz\n", strmhz(buf, CFG_CLK));
 	return 0;
 }
 

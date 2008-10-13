@@ -34,14 +34,16 @@
 #include <command.h>
 #include <asm/arch/pxa-regs.h>
 
+#ifdef CONFIG_USE_IRQ
+DECLARE_GLOBAL_DATA_PTR;
+#endif
+
 int cpu_init (void)
 {
 	/*
 	 * setup up stacks if necessary
 	 */
 #ifdef CONFIG_USE_IRQ
-	DECLARE_GLOBAL_DATA_PTR;
-
 	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
 #endif
@@ -143,6 +145,7 @@ int dcache_status (void)
 	return 0;					/* always off */
 }
 
+#ifndef CONFIG_CPU_MONAHANS
 void set_GPIO_mode(int gpio_mode)
 {
 	int gpio = gpio_mode & GPIO_MD_MASK_NR;
@@ -160,3 +163,4 @@ void set_GPIO_mode(int gpio_mode)
 	gafr = GAFR(gpio) & ~(0x3 << (((gpio) & 0xf)*2));
 	GAFR(gpio) = gafr |  (fn  << (((gpio) & 0xf)*2));
 }
+#endif /* CONFIG_CPU_MONAHANS */

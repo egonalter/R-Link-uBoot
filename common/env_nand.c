@@ -36,42 +36,41 @@
 #include <command.h>
 #include <environment.h>
 #include <linux/stddef.h>
-#include <linux/mtd/nand.h>
+#include <malloc.h>
+#include <nand.h>
 
 #if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_NAND)) == (CFG_CMD_ENV|CFG_CMD_NAND))
 #define CMD_SAVEENV
+#elif defined(CFG_ENV_OFFSET_REDUND)
+#error Cannot use CFG_ENV_OFFSET_REDUND without CFG_CMD_ENV & CFG_CMD_NAND
 #endif
 
-#if defined(CFG_ENV_SIZE_REDUND)
-#error CFG_ENV_SIZE_REDUND  not supported yet
+#if defined(CFG_ENV_SIZE_REDUND) && (CFG_ENV_SIZE_REDUND != CFG_ENV_SIZE)
+#error CFG_ENV_SIZE_REDUND should be the same as CFG_ENV_SIZE
 #endif
-
-#if defined(CFG_ENV_ADDR_REDUND)
-#error CFG_ENV_ADDR_REDUND and CFG_ENV_IS_IN_NAND not supported yet
-#endif
-
 
 #ifdef CONFIG_INFERNO
 #error CONFIG_INFERNO not supported yet
 #endif
 
-/* references to names in cmd_nand.c */
-#define NANDRW_READ		0x01
-#define NANDRW_WRITE	0x00
-#define NANDRW_JFFS2	0x02
-extern struct nand_chip nand_dev_desc[];
-int nand_rw (struct nand_chip* nand, int cmd,
+int nand_legacy_rw (struct nand_chip* nand, int cmd,
 	    size_t start, size_t len,
 	    size_t * retlen, u_char * buf);
-int nand_erase(struct nand_chip* nand, size_t ofs,
-				size_t len, int clean);
+
+/* info for NAND chips, defined in drivers/nand/nand.c */
+extern nand_info_t nand_info[];
 
 /* references to names in env_common.c */
 extern uchar default_environment[];
 extern int default_environment_size;
 
-char * env_name_spec = "NAND";
+#ifdef ENV_IS_VARIABLE
+char * nand_env_name_spec = "NAND";
+extern env_t *env_ptr;
 
+#else /* !ENV_IS_VARIABLE */
+
+char * env_name_spec = "NAND";
 
 #ifdef ENV_IS_EMBEDDED
 extern uchar environment[];
@@ -80,15 +79,19 @@ env_t *env_ptr = (env_t *)(&environment[0]);
 env_t *env_ptr = 0;
 #endif /* ENV_IS_EMBEDDED */
 
+#endif /* ENV_IS_VARIABLE */
 
 /* local functions */
 static void use_default(void);
 
+DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef ENV_IS_VARIABLE
+uchar nand_env_get_char_spec (int index)
+#else
 uchar env_get_char_spec (int index)
+#endif
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	return ( *((uchar *)(gd->env_addr + index)) );
 }
 
@@ -99,61 +102,256 @@ uchar env_get_char_spec (int index)
  * will call our relocate function which will does
  * the real validation.
  */
+#ifdef ENV_IS_VARIABLE
+int nand_env_init(void)
+#else
 int env_init(void)
+#endif
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
-  	gd->env_addr  = (ulong)&default_environment[0];
+	gd->env_addr  = (ulong)&default_environment[0];
 	gd->env_valid = 1;
 
 	return (0);
 }
 
 #ifdef CMD_SAVEENV
+/*
+ * The legacy NAND code saved the environment in the first NAND device i.e.,
+ * nand_dev_desc + 0. This is also the behaviour using the new NAND code.
+ */
+#ifdef CFG_ENV_OFFSET_REDUND
+#ifdef ENV_IS_VARIABLE
+int nand_saveenv(void)
+#else
 int saveenv(void)
+#endif
 {
-	int	total, ret = 0;
- 	puts ("Erasing Nand...");
- 	if (nand_erase(nand_dev_desc + 0, CFG_ENV_OFFSET, CFG_ENV_SIZE, 0))
- 		return 1;
+	ulong total;
+	int ret = 0;
+	int quiet = 0;
+	const char *quiet_str = getenv("quiet");
+	nand_write_options_t w_opts;
+	nand_erase_options_t e_opts;
 
-	puts ("Writing to Nand... ");
-	ret = nand_rw(nand_dev_desc + 0,
-				  NANDRW_WRITE | NANDRW_JFFS2, CFG_ENV_OFFSET, CFG_ENV_SIZE,
-			      &total, (u_char*)env_ptr);
-  	if (ret || total != CFG_ENV_SIZE)
+	if (quiet_str)
+		quiet = simple_strtoul(quiet_str, NULL, 0) != 0;
+
+	env_ptr->flags++;
+	total = CFG_ENV_SIZE;
+
+	if(gd->env_valid == 1) {
+		puts ("Erasing redundant Nand...");
+		memset(&e_opts, 0, sizeof(e_opts));
+		e_opts.offset = CFG_ENV_OFFSET_REDUND;
+		e_opts.length = CFG_ENV_SIZE;
+		e_opts.jffs2  = 0;
+		e_opts.quiet  = quiet;
+
+		if (nand_erase_opts(&nand_info[0], &e_opts))
+			return 1;
+
+		puts ("Writing to redundant Nand... ");
+		/* write */
+		memset(&w_opts, 0, sizeof(w_opts));
+		w_opts.buffer	= (u_char*) env_ptr;
+		w_opts.length	= total;
+		w_opts.offset	= CFG_ENV_OFFSET_REDUND;
+		/* opts.forcejffs2 = 1; */
+		w_opts.pad	= 0;
+		w_opts.blockalign = 1;
+		w_opts.quiet      = quiet;
+
+		ret = nand_write_opts(&nand_info[0], &w_opts);
+	} else {
+		puts ("Erasing Nand...");
+		memset(&e_opts, 0, sizeof(e_opts));
+		e_opts.offset = CFG_ENV_OFFSET;
+		e_opts.length = CFG_ENV_SIZE;
+		e_opts.jffs2  = 0;
+		e_opts.quiet  = quiet;
+
+		if (nand_erase_opts(&nand_info[0], &e_opts))
+			return 1;
+
+		puts ("Writing to Nand... ");
+		memset(&w_opts, 0, sizeof(w_opts));
+		w_opts.buffer	= (u_char*) env_ptr;
+		w_opts.length	= total;
+		w_opts.offset	= CFG_ENV_OFFSET;
+		/* w_opts.forcejffs2 = 1; */
+		w_opts.pad	= 0;
+		w_opts.blockalign = 1;
+		w_opts.quiet      = quiet;
+
+		ret = nand_write_opts(&nand_info[0], &w_opts);
+	}
+	if (ret || total != CFG_ENV_SIZE)
 		return 1;
 
- 	puts ("done\n");
-  	return ret;
+	puts ("done\n");
+	gd->env_valid = (gd->env_valid == 2 ? 1 : 2);
+	return ret;
 }
+#else /* ! CFG_ENV_OFFSET_REDUND */
+#ifdef ENV_IS_VARIABLE
+int nand_saveenv(void)
+#else
+int saveenv(void)
+#endif
+{
+	ulong total;
+	int ret = 0;
+	int quiet = 0;
+	const char *quiet_str = getenv("quiet");
+	nand_write_options_t w_opts;
+	nand_erase_options_t e_opts;
+
+	if (quiet_str)
+		quiet = simple_strtoul(quiet_str, NULL, 0) != 0;
+
+	puts ("Erasing Nand...");
+	memset(&e_opts, 0, sizeof(e_opts));
+	e_opts.offset = CFG_ENV_OFFSET;
+	e_opts.length = CFG_ENV_SIZE;
+	e_opts.jffs2  = 0;
+	e_opts.quiet  = quiet;
+
+	if (nand_erase_opts(&nand_info[0], &e_opts))
+		return 1;
+
+	puts ("Writing to Nand... ");
+	total = CFG_ENV_SIZE;
+	memset(&w_opts, 0, sizeof(w_opts));
+	w_opts.buffer	= (u_char*) env_ptr;
+	w_opts.length	= total;
+	w_opts.offset	= CFG_ENV_OFFSET;
+	/* w_opts.forcejffs2 = 1; */
+	w_opts.pad	= 0;
+	w_opts.blockalign = 1;
+	w_opts.quiet      = quiet;
+
+	ret = nand_write_opts(&nand_info[0], &w_opts);
+
+	puts ("done\n");
+	return ret;
+}
+#endif /* CFG_ENV_OFFSET_REDUND */
 #endif /* CMD_SAVEENV */
 
-
+#ifdef CFG_ENV_OFFSET_REDUND
+#ifdef ENV_IS_VARIABLE
+void nand_env_relocate_spec (void)
+#else
 void env_relocate_spec (void)
+#endif
 {
 #if !defined(ENV_IS_EMBEDDED)
-	int ret, total;
+	ulong total;
+	int crc1_ok = 0, crc2_ok = 0;
+	env_t *tmp_env1, *tmp_env2;
+	int quiet = 0;
+	const char *quiet_str = getenv("quiet");
+	nand_read_options_t r_opts;
 
-	ret = nand_rw(nand_dev_desc + 0,
-				  NANDRW_READ | NANDRW_JFFS2, CFG_ENV_OFFSET, CFG_ENV_SIZE,
-			      &total, (u_char*)env_ptr);
+	if (quiet_str)
+		quiet = simple_strtoul(quiet_str, NULL, 0) != 0;
+
+	total = CFG_ENV_SIZE;
+
+	tmp_env1 = (env_t *) malloc(CFG_ENV_SIZE);
+	tmp_env2 = (env_t *) malloc(CFG_ENV_SIZE);
+
+	memset(&r_opts, 0, sizeof(r_opts));
+	r_opts.buffer	= (u_char*) tmp_env1;
+	r_opts.length	= total;
+	r_opts.offset	= CFG_ENV_OFFSET;
+	r_opts.quiet      = quiet;
+	nand_read_opts(&nand_info[0], &r_opts);
+
+	memset(&r_opts, 0, sizeof(r_opts));
+	r_opts.buffer	= (u_char*) tmp_env2;
+	r_opts.length	= total;
+	r_opts.offset	= CFG_ENV_OFFSET_REDUND;
+	r_opts.quiet      = quiet;
+	nand_read_opts(&nand_info[0], &r_opts);
+
+	crc1_ok = (crc32(0, tmp_env1->data, ENV_SIZE) == tmp_env1->crc);
+	crc2_ok = (crc32(0, tmp_env2->data, ENV_SIZE) == tmp_env2->crc);
+
+	if(!crc1_ok && !crc2_ok)
+		return use_default();
+	else if(crc1_ok && !crc2_ok)
+		gd->env_valid = 1;
+	else if(!crc1_ok && crc2_ok)
+		gd->env_valid = 2;
+	else {
+		/* both ok - check serial */
+		if(tmp_env1->flags == 255 && tmp_env2->flags == 0)
+			gd->env_valid = 2;
+		else if(tmp_env2->flags == 255 && tmp_env1->flags == 0)
+			gd->env_valid = 1;
+		else if(tmp_env1->flags > tmp_env2->flags)
+			gd->env_valid = 1;
+		else if(tmp_env2->flags > tmp_env1->flags)
+			gd->env_valid = 2;
+		else /* flags are equal - almost impossible */
+			gd->env_valid = 1;
+
+	}
+
+	free(env_ptr);
+	if(gd->env_valid == 1) {
+		env_ptr = tmp_env1;
+		free(tmp_env2);
+	} else {
+		env_ptr = tmp_env2;
+		free(tmp_env1);
+	}
+
+#endif /* ! ENV_IS_EMBEDDED */
+}
+#else /* ! CFG_ENV_OFFSET_REDUND */
+/*
+ * The legacy NAND code saved the environment in the first NAND device i.e.,
+ * nand_dev_desc + 0. This is also the behaviour using the new NAND code.
+ */
+#ifdef ENV_IS_VARIABLE
+void nand_env_relocate_spec (void)
+#else
+void env_relocate_spec (void)
+#endif
+{
+#if !defined(ENV_IS_EMBEDDED)
+	ulong total;
+	int ret;
+	const char *quiet_str = getenv("quiet");
+	int quiet = 0;
+	nand_read_options_t r_opts;
+
+	if (quiet_str)
+		quiet = simple_strtoul(quiet_str, NULL, 0) != 0;
+
+	total = CFG_ENV_SIZE;
+	memset(&r_opts, 0, sizeof(r_opts));
+	r_opts.buffer	= (u_char*) env_ptr;
+	r_opts.length	= total;
+	r_opts.offset	= CFG_ENV_OFFSET;
+	r_opts.quiet      = quiet;
+	ret = nand_read_opts(&nand_info[0], &r_opts);
   	if (ret || total != CFG_ENV_SIZE)
 		return use_default();
 
 	if (crc32(0, env_ptr->data, ENV_SIZE) != env_ptr->crc)
 		return use_default();
 #endif /* ! ENV_IS_EMBEDDED */
-
 }
+#endif /* CFG_ENV_OFFSET_REDUND */
 
 static void use_default()
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	puts ("*** Warning - bad CRC or NAND, using default environment\n\n");
 
-  	if (default_environment_size > CFG_ENV_SIZE){
+	if (default_environment_size > CFG_ENV_SIZE){
 		puts ("*** Error - default environment is too large\n\n");
 		return;
 	}
@@ -163,7 +361,7 @@ static void use_default()
 			default_environment,
 			default_environment_size);
 	env_ptr->crc = crc32(0, env_ptr->data, ENV_SIZE);
- 	gd->env_valid = 1;
+	gd->env_valid = 1;
 
 }
 

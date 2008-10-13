@@ -27,6 +27,8 @@
 #include <at91rm9200_net.h>
 #include <dm9161.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 /* ------------------------------------------------------------------------- */
 /*
  * Miscelaneous platform dependent initialisations
@@ -34,14 +36,12 @@
 
 int board_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	/* Enable Ctrlc */
 	console_init_f ();
 
 	/* Correct IRDA resistor problem */
 	/* Set PA23_TXD in Output */
-	(AT91PS_PIO) AT91C_BASE_PIOA->PIO_OER = AT91C_PA23_TXD2;
+	((AT91PS_PIO) AT91C_BASE_PIOA)->PIO_OER = AT91C_PA23_TXD2;
 
 	/* memory and cpu-speed are setup before relocation */
 	/* so we do _nothing_ here */
@@ -56,8 +56,6 @@ int board_init (void)
 
 int dram_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	gd->bd->bi_dram[0].start = PHYS_SDRAM;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 	return 0;

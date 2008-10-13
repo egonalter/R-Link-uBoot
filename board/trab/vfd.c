@@ -39,6 +39,8 @@
 #include <devices.h>
 #include <s3c2400.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #ifdef CONFIG_VFD
 
 /************************************************************************/
@@ -86,7 +88,6 @@ unsigned char bit_vfd_table[112][18][2][4][2];
  */
 void init_grid_ctrl(void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	ulong adr, grid_cycle;
 	unsigned int bit, display;
 	unsigned char temp, bit_nr;
@@ -172,7 +173,6 @@ void init_grid_ctrl(void)
  */
 void create_vfd_table(void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	unsigned long vfd_table[112][18][2][4][2];
 	unsigned int x, y, color, display, entry, pixel;
 	unsigned int x_abcdef = 0;
@@ -251,19 +251,17 @@ void create_vfd_table(void)
 			    unsigned long adr  = gd->fb_base;
 			    unsigned int bit_nr = 0;
 
-			    if (vfd_table[x][y][color][display][entry]) {
+			    pixel  = vfd_table[x][y][color][display][entry] + frame_buf_offs;
+			    /*
+			     * wrap arround if offset
+			     * (see manual S3C2400)
+			     */
+			    if (pixel>=FRAME_BUF_SIZE*8)
+				    pixel = pixel-(FRAME_BUF_SIZE*8);
+			    adr    = gd->fb_base+(pixel/32)*4+(3-(pixel%32)/8);
+			    bit_nr = pixel%8;
+			    bit_nr = (bit_nr>3)?bit_nr-4:bit_nr+4;
 
-				pixel  = vfd_table[x][y][color][display][entry] + frame_buf_offs;
-				 /*
-				  * wrap arround if offset
-				  * (see manual S3C2400)
-				  */
-				if (pixel>=FRAME_BUF_SIZE*8)
-					pixel = pixel-(FRAME_BUF_SIZE*8);
-				adr    = gd->fb_base+(pixel/32)*4+(3-(pixel%32)/8);
-				bit_nr = pixel%8;
-				bit_nr = (bit_nr>3)?bit_nr-4:bit_nr+4;
-			    }
 			    adr_vfd_table[x][y][color][display][entry] = adr;
 			    bit_vfd_table[x][y][color][display][entry] = bit_nr;
 			}
@@ -280,7 +278,6 @@ void set_vfd_pixel(unsigned char x, unsigned char y,
 		   unsigned char color, unsigned char display,
 		   unsigned char value)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	ulong adr;
 	unsigned char bit_nr, temp;
 
@@ -359,6 +356,8 @@ void transfer_pic(int display, unsigned char *adr, int height, int width)
  */
 int vfd_init_clocks (void)
 {
+	int i;
+
 	S3C24X0_GPIO * const gpio = S3C24X0_GetBase_GPIO();
 	S3C24X0_TIMERS * const timers = S3C24X0_GetBase_TIMERS();
 	S3C24X0_LCD * const lcd = S3C24X0_GetBase_LCD();
@@ -368,7 +367,9 @@ int vfd_init_clocks (void)
 	 */
 	gpio->PCUP = (gpio->PCUP & 0xFFF0);	/* activate  GPC0...GPC3 pullups */
 	gpio->PCCON = (gpio->PCCON & 0xFFFFFF00);	/* configure GPC0...GPC3 as inputs */
-	udelay (10);				/* allow signals to settle */
+	/* allow signals to settle */
+	for (i=0; i<10000; i++)	/* udelay isn't working yet at this point! */
+		__asm("NOP");
 	vfd_board_id = (~gpio->PCDAT) & 0x000F;	/* read GPC0...GPC3 port pins */
 
 	VFD_DISABLE;				/* activate blank for the vfd */
@@ -434,8 +435,6 @@ int drv_vfd_init(void)
 	ulong palette;
 	static int vfd_init_done = 0;
 	int vfd_inv_data = 0;
-
-	DECLARE_GLOBAL_DATA_PTR;
 
 	if (vfd_init_done != 0)
 		return (0);

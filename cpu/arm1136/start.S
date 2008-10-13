@@ -31,7 +31,7 @@
 #include <config.h>
 #include <version.h>
 #if !defined(CONFIG_INTEGRATOR) && ! defined(CONFIG_ARCH_CINTEGRATOR)
-#include <asm/arch/omap2420.h>
+#include <asm/arch/cpu.h>
 #endif
 .globl _start
 _start: b	reset
@@ -111,7 +111,7 @@ reset:
 	orr	r0,r0,#0xd3
 	msr	cpsr,r0
 
-#ifdef CONFIG_OMAP2420H4
+#if (CONFIG_OMAP24XX)
        /* Copy vectors to mask ROM indirect addr */
 	adr	r0, _start		/* r0 <- current position of code   */
  		add     r0, r0, #4				/* skip reset vector			*/
@@ -127,8 +127,13 @@ next:
 	stmia	r1!, {r3-r10}		/* copy to   target address [r1]    */
 	cmp	r0, r2			/* until source end address [r2]    */
 	bne	next			/* loop until equal */
+#if !defined(CFG_NAND_BOOT) && !defined(CFG_ONENAND_BOOT)
+	/* No need to copy/exec the clock code - DPLL adjust already done
+	 * in NAND/oneNAND Boot.
+	 */
 	bl	cpy_clk_code		/* put dpll adjust code behind vectors */
-#endif
+#endif /* NAND Boot */
+#endif	  /* 24xx */
 	/* the mask ROM code should have PLL and others stable */
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl  cpu_init_crit
@@ -162,6 +167,7 @@ stack_setup:
 	sub	r0, r0, #(CONFIG_STACKSIZE_IRQ+CONFIG_STACKSIZE_FIQ)
 #endif
 	sub	sp, r0, #12		/* leave 3 words for abort-stack    */
+	and	sp, sp, #~7		/* 8 byte alinged for (ldr/str)d    */
 
 clear_bss:
 	ldr	r0, _bss_start		/* find start of bss segment	    */
@@ -393,8 +399,8 @@ fiq:
 
 #endif
 	.align 5
-.global arm1136_cache_flush
-arm1136_cache_flush:
+.global arm_cache_flush
+arm_cache_flush:
 		mcr	p15, 0, r1, c7, c5, 0	@ invalidate I cache
 		mov	pc, lr			@ back to caller
 

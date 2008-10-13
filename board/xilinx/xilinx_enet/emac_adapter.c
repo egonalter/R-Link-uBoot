@@ -39,7 +39,6 @@
 
 #include <common.h>
 #include <net.h>
-#include <configs/ml300.h>
 #include "xparameters.h"
 #include "xemac.h"
 
@@ -148,7 +147,7 @@ eth_rx(void)
 	RecvFrameLength = PKTSIZE;
 	Result = XEmac_PollRecv(&Emac, (u8 *) etherrxbuff, &RecvFrameLength);
 	if (Result == XST_SUCCESS) {
-		NetReceive((uchar)etherrxbuff, RecvFrameLength);
+		NetReceive((uchar *)etherrxbuff, RecvFrameLength);
 		return (1);
 	} else {
 		return (0);

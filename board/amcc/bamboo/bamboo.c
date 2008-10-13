@@ -277,7 +277,7 @@ int board_early_init_f(void)
 }
 
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
-#include <linux/mtd/nand.h>
+#include <linux/mtd/nand_legacy.h>
 extern struct nand_chip nand_dev_desc[CFG_MAX_NAND_DEVICE];
 
 /*----------------------------------------------------------------------------+
@@ -435,7 +435,7 @@ long int initdram (int board_type)
 	 */
 	init_spd_array();
 
-	dram_size = spd_sdram (0);
+	dram_size = spd_sdram();
 
 	return dram_size;
 }

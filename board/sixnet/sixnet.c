@@ -34,9 +34,11 @@
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
-#include <linux/mtd/nand.h>
+#include <linux/mtd/nand_legacy.h>
 extern struct nand_chip nand_dev_desc[CFG_MAX_NAND_DEVICE];
 #endif
+
+DECLARE_GLOBAL_DATA_PTR;
 
 #define ORMASK(size) ((-size) & OR_AM_MSK)
 
@@ -256,8 +258,6 @@ int board_postclk_init (void)
 
 int misc_init_r (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	volatile immap_t     *immap = (immap_t *)CFG_IMMR;
 	volatile memctl8xx_t *memctl = &immap->im_memctl;
 	char* s;

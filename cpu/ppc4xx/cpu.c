@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2000-2003
+ * (C) Copyright 2000-2006
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * See file CREDITS for list of people who contributed to this
@@ -36,6 +36,10 @@
 #include <command.h>
 #include <asm/cache.h>
 #include <ppc4xx.h>
+
+#if !defined(CONFIG_405)
+DECLARE_GLOBAL_DATA_PTR;
+#endif
 
 
 #if defined(CONFIG_440)
@@ -78,7 +82,9 @@ int pci_arbiter_enabled(void)
 	return (mfdcr(cpc0_strp1) & CPC0_STRP1_PAE_MASK);
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SP)
+#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
+     defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
+     defined(CONFIG_440SPE)
 	unsigned long val;
 
 	mfsdr(sdr_sdstp1, val);
@@ -87,8 +93,8 @@ int pci_arbiter_enabled(void)
 }
 #endif
 
-#if defined(CONFIG_405EP)|| defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
-	defined(CONFIG_440GX) || defined(CONFIG_440SP)
+#if defined(CONFIG_405EP) || defined(CONFIG_440EP) || defined(CONFIG_440GR) ||  \
+     defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 
 #define I2C_BOOTROM
 
@@ -98,7 +104,9 @@ int i2c_bootrom_enabled(void)
 	return (mfdcr(cpc0_boot) & CPC0_BOOT_SEP);
 #endif
 
-#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SP)
+#if defined(CONFIG_440GX) || defined(CONFIG_440EP) || \
+     defined(CONFIG_440GR) || defined(CONFIG_440SP) || \
+	defined(CONFIG_440SPE)
 	unsigned long val;
 
 	mfsdr(sdr_sdcs, val);
@@ -116,7 +124,6 @@ static int do_chip_reset(unsigned long sys0, unsigned long sys1);
 int checkcpu (void)
 {
 #if !defined(CONFIG_405)	/* not used on Xilinx 405 FPGA implementations */
-	DECLARE_GLOBAL_DATA_PTR;
 	uint pvr = get_pvr();
 	ulong clock = gd->cpu_clk;
 	char buf[32];
@@ -220,11 +227,19 @@ int checkcpu (void)
 	case PVR_440EP_RB: /* 440EP rev B and 440GR rev A have same PVR */
 		puts("EP Rev. B");
 		break;
+
+	case PVR_440EP_RC: /* 440EP rev C and 440GR rev B have same PVR */
+		puts("EP Rev. C");
+		break;
 #endif /*  CONFIG_440EP */
 
 #ifdef CONFIG_440GR
 	case PVR_440GR_RA: /* 440EP rev B and 440GR rev A have same PVR */
 		puts("GR Rev. A");
+		break;
+
+	case PVR_440GR_RB: /* 440EP rev C and 440GR rev B have same PVR */
+		puts("GR Rev. B");
 		break;
 #endif /* CONFIG_440GR */
 #endif /* CONFIG_440 */
@@ -235,6 +250,14 @@ int checkcpu (void)
 
 	case PVR_440SP_RB:
 		puts("SP Rev. B");
+		break;
+
+	case PVR_440SPe_RA:
+		puts("SPe Rev. A");
+		break;
+
+	case PVR_440SPe_RB:
+		puts("SPe Rev. B");
 		break;
 
 	default:

@@ -35,6 +35,8 @@
 #include <linux/stddef.h>
 #include <malloc.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_FLASH)) == (CFG_CMD_ENV|CFG_CMD_FLASH))
 #define CMD_SAVEENV
 #elif defined(CFG_ENV_ADDR_REDUND)
@@ -51,6 +53,22 @@
 # endif
 #endif
 
+#if (defined(CFG_ENV_SECT_SIZE) && (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE)) || defined (ENV_IS_VARIABLE)
+#define SMALL_SECTOR 1
+#endif
+
+#ifdef ENV_IS_VARIABLE
+char * flash_env_name_spec = "Flash";
+/* update these elsewhere */
+extern env_t *env_ptr;
+
+#ifdef CMD_SAVEENV
+/* static env_t *flash_addr = (env_t *)(&environment[0]);-broken on ARM-wd-*/
+env_t *flash_addr = 0;
+#endif
+
+#else /* !ENV_IS_VARIABLE */
+
 char * env_name_spec = "Flash";
 
 #ifdef ENV_IS_EMBEDDED
@@ -61,6 +79,7 @@ env_t *env_ptr = (env_t *)(&environment[0]);
 #ifdef CMD_SAVEENV
 /* static env_t *flash_addr = (env_t *)(&environment[0]);-broken on ARM-wd-*/
 static env_t *flash_addr = (env_t *)CFG_ENV_ADDR;
+
 #endif
 
 #else /* ! ENV_IS_EMBEDDED */
@@ -83,14 +102,18 @@ static ulong end_addr_new = CFG_ENV_ADDR_REDUND + CFG_ENV_SECT_SIZE - 1;
 #define OBSOLETE_FLAG 0
 #endif /* CFG_ENV_ADDR_REDUND */
 
+#endif /* ENV_IS_VARIABLE */
+
 extern uchar default_environment[];
 extern int default_environment_size;
 
 
+#ifdef ENV_IS_VARIABLE
+uchar flash_env_get_char_spec (int index)
+#else
 uchar env_get_char_spec (int index)
+#endif
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	return ( *((uchar *)(gd->env_addr + index)) );
 }
 
@@ -98,7 +121,6 @@ uchar env_get_char_spec (int index)
 
 int  env_init(void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	int crc1_ok = 0, crc2_ok = 0;
 
 	uchar flag1 = flash_addr->flags;
@@ -107,13 +129,6 @@ int  env_init(void)
 	ulong addr_default = (ulong)&default_environment[0];
 	ulong addr1 = (ulong)&(flash_addr->data);
 	ulong addr2 = (ulong)&(flash_addr_new->data);
-
-#ifdef CONFIG_OMAP2420H4
-	int flash_probe(void);
-
-	if(flash_probe() == 0)
-		goto bad_flash;
-#endif
 
 	crc1_ok = (crc32(0, flash_addr->data, ENV_SIZE) == flash_addr->crc);
 	crc2_ok = (crc32(0, flash_addr_new->data, ENV_SIZE) == flash_addr_new->crc);
@@ -144,9 +159,6 @@ int  env_init(void)
 		gd->env_valid = 2;
 	}
 
-#ifdef CONFIG_OMAP2420H4
-bad_flash:
-#endif
 	return (0);
 }
 
@@ -158,6 +170,10 @@ int saveenv(void)
 	char flag = OBSOLETE_FLAG, new_flag = ACTIVE_FLAG;
 #if CFG_ENV_SECT_SIZE > CFG_ENV_SIZE
 	ulong up_data = 0;
+#else
+#if SMALL_SECTOR 
+	ulong up_data = 0;
+#endif
 #endif
 
 	debug ("Protect off %08lX ... %08lX\n",
@@ -174,7 +190,8 @@ int saveenv(void)
 		goto Done;
 	}
 
-#if CFG_ENV_SECT_SIZE > CFG_ENV_SIZE
+#if SMALL_SECTOR
+	if (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE) {
 	up_data = (end_addr_new + 1 - ((long)flash_addr_new + CFG_ENV_SIZE));
 	debug ("Data to save 0x%x\n", up_data);
 	if (up_data) {
@@ -202,7 +219,7 @@ int saveenv(void)
 	debug (" %08lX ... %08lX ...",
 		(ulong)&(flash_addr_new->data),
 		sizeof(env_ptr->data)+(ulong)&(flash_addr_new->data));
-	if ((rc = flash_write((char *)env_ptr->data,
+	if ((rc = flash_write(env_ptr->data,
 			(ulong)&(flash_addr_new->data),
 			sizeof(env_ptr->data))) ||
 	    (rc = flash_write((char *)&(env_ptr->crc),
@@ -220,7 +237,7 @@ int saveenv(void)
 	}
 	puts ("done\n");
 
-#if CFG_ENV_SECT_SIZE > CFG_ENV_SIZE
+#if SMALL_SECTOR
 	if (up_data) { /* restore the rest of sector */
 		debug ("Restoring the rest of data to 0x%x len 0x%x\n",
 			   (long)flash_addr_new + CFG_ENV_SIZE, up_data);
@@ -251,30 +268,25 @@ Done:
 	/* try to re-protect */
 	(void) flash_sect_protect (1, (ulong)flash_addr, end_addr);
 	(void) flash_sect_protect (1, (ulong)flash_addr_new, end_addr_new);
-
 	return rc;
 }
 #endif /* CMD_SAVEENV */
 
 #else /* ! CFG_ENV_ADDR_REDUND */
 
+#ifdef ENV_IS_VARIABLE
+int flash_env_init(void)
+#else
 int  env_init(void)
-{
-	DECLARE_GLOBAL_DATA_PTR;
-#ifdef CONFIG_OMAP2420H4
-	int flash_probe(void);
-
-	if(flash_probe() == 0)
-		goto bad_flash;
 #endif
+{
+
 	if (crc32(0, env_ptr->data, ENV_SIZE) == env_ptr->crc) {
 		gd->env_addr  = (ulong)&(env_ptr->data);
 		gd->env_valid = 1;
 		return(0);
 	}
-#ifdef CONFIG_OMAP2420H4
-bad_flash:
-#endif
+
 	gd->env_addr  = (ulong)&default_environment[0];
 	gd->env_valid = 0;
 	return (0);
@@ -282,20 +294,23 @@ bad_flash:
 
 #ifdef CMD_SAVEENV
 
+#ifdef ENV_IS_VARIABLE
+int flash_saveenv(void)
+#else
 int saveenv(void)
+#endif
 {
 	int	len, rc;
 	ulong	end_addr;
 	ulong	flash_sect_addr;
-#if defined(CFG_ENV_SECT_SIZE) && (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE)
+#if SMALL_SECTOR
 	ulong	flash_offset;
 	uchar	env_buffer[CFG_ENV_SECT_SIZE];
 #else
 	uchar *env_buffer = (uchar *)env_ptr;
 #endif	/* CFG_ENV_SECT_SIZE */
 	int rcode = 0;
-
-#if defined(CFG_ENV_SECT_SIZE) && (CFG_ENV_SECT_SIZE > CFG_ENV_SIZE)
+#if SMALL_SECTOR
 
 	flash_offset    = ((ulong)flash_addr) & (CFG_ENV_SECT_SIZE-1);
 	flash_sect_addr = ((ulong)flash_addr) & ~(CFG_ENV_SECT_SIZE-1);
@@ -354,12 +369,14 @@ int saveenv(void)
 
 #endif /* CFG_ENV_ADDR_REDUND */
 
+#ifdef ENV_IS_VARIABLE
+void flash_env_relocate_spec(void)
+#else
 void env_relocate_spec (void)
+#endif
 {
-#if !defined(ENV_IS_EMBEDDED) || defined(CFG_ENV_ADDR_REDUND)
+#if defined(ENV_IS_VARIABLE) || !defined(ENV_IS_EMBEDDED) || defined(CFG_ENV_ADDR_REDUND)
 #ifdef CFG_ENV_ADDR_REDUND
-	DECLARE_GLOBAL_DATA_PTR;
-
 	if (gd->env_addr != (ulong)&(flash_addr->data)) {
 		env_t * etmp = flash_addr;
 		ulong ltmp = end_addr;

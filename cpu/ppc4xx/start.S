@@ -155,6 +155,11 @@
 
 /**************************************************************************/
 _start_440:
+	/*----------------------------------------------------------------+
+	| Core bug fix.  Clear the esr
+	+-----------------------------------------------------------------*/
+	li	r0,0
+	mtspr	esr,r0
 	/*----------------------------------------------------------------*/
 	/* Clear and set up some registers. */
 	/*----------------------------------------------------------------*/
@@ -166,7 +171,7 @@ _start_440:
 	mtspr	srr1,r0
 	mtspr	csrr0,r0
 	mtspr	csrr1,r0
-#if defined(CONFIG_440GX) || defined(CONFIG_440SP) /* NOTE: 440GX adds machine check status regs */
+#if defined(CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)  /* NOTE: 440GX adds machine check status regs */
 	mtspr	mcsrr0,r0
 	mtspr	mcsrr1,r0
 	mfspr	r1, mcsr
@@ -199,6 +204,31 @@ _start_440:
 	lis	r1,0x0030	/* store gathering & broadcast disable */
 	ori	r1,r1,0x6000	/* cache touch */
 	mtspr	ccr0,r1
+
+#if defined (CONFIG_440SPE)
+	/*----------------------------------------------------------------+
+	| Initialize Core Configuration Reg1.
+	| a. ICDPEI: Record even parity. Normal operation.
+	| b. ICTPEI: Record even parity. Normal operation.
+	| c. DCTPEI: Record even parity. Normal operation.
+	| d. DCDPEI: Record even parity. Normal operation.
+	| e. DCUPEI: Record even parity. Normal operation.
+	| f. DCMPEI: Record even parity. Normal operation.
+	| g. FCOM:   Normal operation
+	| h. MMUPEI: Record even parity. Normal operation.
+	| i. FFF:    Flush only as much data as necessary.
+	| j. TCS:    Timebase increments from CPU clock.
+	+-----------------------------------------------------------------*/
+	li	r0,0
+	mtspr	ccr1, r0
+
+	/*----------------------------------------------------------------+
+	| Reset the timebase.
+	| The previous write to CCR1 sets the timebase source.
+	+-----------------------------------------------------------------*/
+	mtspr	tbl, r0
+	mtspr	tbu, r0
+#endif
 
 	/*----------------------------------------------------------------*/
 	/* Setup interrupt vectors */
@@ -261,15 +291,26 @@ _start_440:
 	mtspr	ivlim,r1
 	mtspr	dvlim,r1
 
+	/*----------------------------------------------------------------+
+	|Initialize MMUCR[STID] = 0.
+	+-----------------------------------------------------------------*/
+	mfspr	r0,mmucr
+	addis	r1,0,0xFFFF
+	ori	r1,r1,0xFF00
+	and	r0,r0,r1
+	mtspr	mmucr,r0
+
 	/*----------------------------------------------------------------*/
 	/* Clear all TLB entries -- TID = 0, TS = 0 */
 	/*----------------------------------------------------------------*/
-	mtspr	mmucr,r0
+	addis	r0,0,0x0000
 	li	r1,0x003f	/* 64 TLB entries */
 	mtctr	r1
-0:	tlbwe	r0,r1,0x0000	/* Invalidate all entries (V=0)*/
+rsttlb:	tlbwe	r0,r1,0x0000	/* Invalidate all entries (V=0)*/
+	tlbwe	r0,r1,0x0001
+	tlbwe	r0,r1,0x0002
 	subi	r1,r1,0x0001
-	bdnz	0b
+	bdnz	rsttlb
 
 	/*----------------------------------------------------------------*/
 	/* TLB entry setup -- step thru tlbtab */
@@ -340,23 +381,6 @@ _start:
 	mtspr	tcr,r0			/* disable all */
 	mtspr	esr,r0			/* clear exception syndrome register */
 	mtxer	r0			/* clear integer exception register */
-#if !defined(CONFIG_440GX)
-	lis	r1,0x0002		/* set CE bit (Critical Exceptions) */
-	ori	r1,r1,0x1000		/* set ME bit (Machine Exceptions) */
-	mtmsr	r1			/* change MSR */
-#elif !defined(CONFIG_440EP) && !defined(CONFIG_440GR)
-	bl	__440gx_msr_set
-	b	__440gx_msr_continue
-
-__440gx_msr_set:
-	lis	r1, 0x0002		/* set CE bit (Critical Exceptions) */
-	ori	r1,r1,0x1000	/* set ME bit (Machine Exceptions) */
-	mtspr	srr1,r1
-	mflr	r1
-	mtspr	srr0,r1
-	rfi
-__440gx_msr_continue:
-#endif
 
 	/*----------------------------------------------------------------*/
 	/* Debug setup -- some (not very good) ice's need an event*/
@@ -394,7 +418,7 @@ __440gx_msr_continue:
 	addi	r3,r3,32
 	bdnz	..d_ag
 #else
-#if defined (CONFIG_440GX) || defined(CONFIG_440SP)
+#if defined (CONFIG_440GX) || defined(CONFIG_440SP) || defined(CONFIG_440SPE)
 	mtdcr	l2_cache_cfg,r0		/* Ensure L2 Cache is off */
 #endif
 	mtdcr	isram0_sb1cr,r0		/* Disable bank 1 */
@@ -420,6 +444,19 @@ __440gx_msr_continue:
 	mtdcr	isram0_sb2cr,r1
 	lis	r1, 0x8003
 	ori	r1,r1, 0x0980		/* fourth 64k */
+	mtdcr	isram0_sb3cr,r1
+#elif defined(CONFIG_440SPE)
+	lis	r1,0x0000		/* BAS = 0000_0000 */
+	ori	r1,r1,0x0984		/* first 64k */
+	mtdcr	isram0_sb0cr,r1
+	lis	r1,0x0001
+	ori	r1,r1,0x0984		/* second 64k */
+	mtdcr	isram0_sb1cr,r1
+	lis	r1, 0x0002
+	ori	r1,r1, 0x0984		/* third 64k */
+	mtdcr	isram0_sb2cr,r1
+	lis	r1, 0x0003
+	ori	r1,r1, 0x0984		/* fourth 64k */
 	mtdcr	isram0_sb3cr,r1
 #else
 	ori	r1,r1,0x0380		/* 8k rw */
@@ -458,9 +495,6 @@ __440gx_msr_continue:
 	mtspr	esr,r0			/* clear Exception Syndrome Reg */
 	mttcr	r0			/* timer control register */
 	mtexier r0			/* disable all interrupts */
-	addi	r4,r0,0x1000		/* set ME bit (Machine Exceptions) */
-	oris	r4,r4,0x2		/* set CE bit (Critical Exceptions) */
-	mtmsr	r4			/* change MSR */
 	addis	r4,r0,0xFFFF		/* set r4 to 0xFFFFFFFF (status in the */
 	ori	r4,r4,0xFFFF		/* dbsr is cleared by setting bits to 1) */
 	mtdbsr	r4			/* clear/reset the dbsr */
@@ -571,9 +605,6 @@ __440gx_msr_continue:
 	mttcr	r4			/* clear Timer Control Reg */
 	mtxer	r4			/* clear Fixed-Point Exception Reg */
 	mtevpr	r4			/* clear Exception Vector Prefix Reg */
-	addi	r4,r0,0x1000		/* set ME bit (Machine Exceptions) */
-	oris	r4,r4,0x0002		/* set CE bit (Critical Exceptions) */
-	mtmsr	r4			/* change MSR */
 	addi	r4,r0,(0xFFFF-0x10000)		/* set r4 to 0xFFFFFFFF (status in the */
 					/* dbsr is cleared by setting bits to 1) */
 	mtdbsr	r4			/* clear/reset the dbsr */
@@ -1220,13 +1251,20 @@ ppcSync:
  */
 	.globl	relocate_code
 relocate_code:
-#if defined(CONFIG_440EP) || defined(CONFIG_440GR)
-	dccci	0,0			    /* Invalidate data cache, now no longer our stack */
+#if defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SPE)
+	/*
+	 * On some 440er platforms the cache is enabled in the first TLB (Boot-CS)
+	 * to speed up the boot process. Now this cache needs to be disabled.
+	 */
+	iccci	0,0			/* Invalidate inst cache */
+	dccci	0,0			/* Invalidate data cache, now no longer our stack */
 	sync
+	isync
 	addi	r1,r0,0x0000		/* TLB entry #0 */
 	tlbre	r0,r1,0x0002		/* Read contents */
 	ori	r0,r0,0x0c00		/* Or in the inhibit, write through bit */
 	tlbwe	r0,r1,0x0002		/* Save it out */
+	sync
 	isync
 #endif
 	mr	r1,  r3		/* Set new stack pointer		*/
@@ -1427,6 +1465,24 @@ trap_init:
 	addi	r7, r7, 0x100		/* next exception vector	*/
 	cmplw	0, r7, r8
 	blt	4b
+
+#if !defined(CONFIG_440GX) && !defined(CONFIG_440SPE)
+	addi	r7,r0,0x1000		/* set ME bit (Machine Exceptions) */
+	oris	r7,r7,0x0002		/* set CE bit (Critical Exceptions) */
+	mtmsr	r7			/* change MSR */
+#else
+	bl	__440gx_msr_set
+	b	__440gx_msr_continue
+
+__440gx_msr_set:
+	addi	r7,r0,0x1000		/* set ME bit (Machine Exceptions) */
+	oris	r7,r7,0x0002		/* set CE bit (Critical Exceptions) */
+	mtspr	srr1,r7
+	mflr	r7
+	mtspr	srr0,r7
+	rfi
+__440gx_msr_continue:
+#endif
 
 	mtlr	r4			/* restore link register	*/
 	blr

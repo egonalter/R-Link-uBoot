@@ -50,6 +50,8 @@
 #include <net.h>
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #if !defined(CFG_ENV_IS_IN_NVRAM)	&& \
     !defined(CFG_ENV_IS_IN_EEPROM)	&& \
     !defined(CFG_ENV_IS_IN_FLASH)	&& \
@@ -152,8 +154,6 @@ int do_printenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 int _do_setenv (int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int   i, len, oldval;
 	int   console = -1;
 	uchar *env, *nxt = NULL;
@@ -532,7 +532,9 @@ int getenv_r (char *name, char *buf, unsigned len)
 
 #if defined(CFG_ENV_IS_IN_NVRAM) || defined(CFG_ENV_IS_IN_EEPROM) || \
     ((CONFIG_COMMANDS & (CFG_CMD_ENV|CFG_CMD_FLASH)) == \
-      (CFG_CMD_ENV|CFG_CMD_FLASH))
+      (CFG_CMD_ENV|CFG_CMD_FLASH)) || \
+    ((CONFIG_COMMANDS & (CFG_CMD_ENV|CFG_CMD_NAND)) == \
+      (CFG_CMD_ENV|CFG_CMD_NAND))
 int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	extern char * env_name_spec;
@@ -588,7 +590,9 @@ U_BOOT_CMD(
 
 #if defined(CFG_ENV_IS_IN_NVRAM) || defined(CFG_ENV_IS_IN_EEPROM) || \
     ((CONFIG_COMMANDS & (CFG_CMD_ENV|CFG_CMD_FLASH)) == \
-      (CFG_CMD_ENV|CFG_CMD_FLASH))
+      (CFG_CMD_ENV|CFG_CMD_FLASH)) || \
+    ((CONFIG_COMMANDS & (CFG_CMD_ENV|CFG_CMD_NAND)) == \
+      (CFG_CMD_ENV|CFG_CMD_NAND))
 U_BOOT_CMD(
 	saveenv, 1, 0,	do_saveenv,
 	"saveenv - save environment variables to persistent storage\n",

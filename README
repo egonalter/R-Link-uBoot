@@ -246,6 +246,7 @@ The following options need to be configured:
 		CONFIG_SA1110
 		CONFIG_ARM7
 		CONFIG_PXA250
+		CONFIG_CPU_MONAHANS
 
 		MicroBlaze based CPUs:
 		----------------------
@@ -261,56 +262,57 @@ The following options need to be configured:
 		PowerPC based boards:
 		---------------------
 
-		CONFIG_ADCIOP		CONFIG_GEN860T		CONFIG_PCIPPC2
-		CONFIG_ADS860		CONFIG_GENIETV		CONFIG_PCIPPC6
-		CONFIG_AMX860		CONFIG_GTH		CONFIG_pcu_e
-		CONFIG_AP1000		CONFIG_gw8260		CONFIG_PIP405
-		CONFIG_AR405		CONFIG_hermes		CONFIG_PM826
-		CONFIG_BAB7xx		CONFIG_hymod		CONFIG_ppmc8260
-		CONFIG_c2mon		CONFIG_IAD210		CONFIG_QS823
-		CONFIG_CANBT		CONFIG_ICU862		CONFIG_QS850
-		CONFIG_CCM		CONFIG_IP860		CONFIG_QS860T
-		CONFIG_CMI		CONFIG_IPHASE4539	CONFIG_RBC823
-		CONFIG_cogent_mpc8260	CONFIG_IVML24		CONFIG_RPXClassic
-		CONFIG_cogent_mpc8xx	CONFIG_IVML24_128	CONFIG_RPXlite
-		CONFIG_CPCI405		CONFIG_IVML24_256	CONFIG_RPXsuper
-		CONFIG_CPCI4052		CONFIG_IVMS8		CONFIG_rsdproto
-		CONFIG_CPCIISER4	CONFIG_IVMS8_128	CONFIG_sacsng
-		CONFIG_CPU86		CONFIG_IVMS8_256	CONFIG_Sandpoint8240
-		CONFIG_CRAYL1		CONFIG_JSE		CONFIG_Sandpoint8245
-		CONFIG_CSB272		CONFIG_LANTEC		CONFIG_sbc8260
-		CONFIG_CU824		CONFIG_lwmon		CONFIG_sbc8560
-		CONFIG_DASA_SIM		CONFIG_MBX		CONFIG_SM850
-		CONFIG_DB64360		CONFIG_MBX860T		CONFIG_SPD823TS
-		CONFIG_DB64460		CONFIG_MHPC		CONFIG_STXGP3
-		CONFIG_DU405		CONFIG_MIP405		CONFIG_SXNI855T
-		CONFIG_DUET_ADS		CONFIG_MOUSSE		CONFIG_TQM823L
-		CONFIG_EBONY		CONFIG_MPC8260ADS	CONFIG_TQM8260
-		CONFIG_ELPPC		CONFIG_MPC8540ADS	CONFIG_TQM850L
-		CONFIG_ELPT860		CONFIG_MPC8540EVAL	CONFIG_TQM855L
-		CONFIG_ep8260		CONFIG_MPC8560ADS	CONFIG_TQM860L
-		CONFIG_ERIC		CONFIG_MUSENKI		CONFIG_TTTech
-		CONFIG_ESTEEM192E	CONFIG_MVS1		CONFIG_UTX8245
-		CONFIG_ETX094		CONFIG_NETPHONE		CONFIG_V37
-		CONFIG_EVB64260		CONFIG_NETTA		CONFIG_W7OLMC
-		CONFIG_FADS823		CONFIG_NETVIA		CONFIG_W7OLMG
-		CONFIG_FADS850SAR	CONFIG_NX823		CONFIG_WALNUT
-		CONFIG_FADS860T		CONFIG_OCRTC		CONFIG_ZPC1900
-		CONFIG_FLAGADM		CONFIG_ORSG		CONFIG_ZUMA
-		CONFIG_FPS850L		CONFIG_OXC
-		CONFIG_FPS860L		CONFIG_PCI405
+		CONFIG_ADCIOP		CONFIG_FPS860L		CONFIG_OXC
+		CONFIG_ADS860		CONFIG_GEN860T		CONFIG_PCI405
+		CONFIG_AMX860		CONFIG_GENIETV		CONFIG_PCIPPC2
+		CONFIG_AP1000		CONFIG_GTH		CONFIG_PCIPPC6
+		CONFIG_AR405		CONFIG_gw8260		CONFIG_pcu_e
+		CONFIG_BAB7xx		CONFIG_hermes		CONFIG_PIP405
+		CONFIG_BC3450		CONFIG_hymod		CONFIG_PM826
+		CONFIG_c2mon		CONFIG_IAD210		CONFIG_ppmc8260
+		CONFIG_CANBT		CONFIG_ICU862		CONFIG_QS823
+		CONFIG_CCM		CONFIG_IP860		CONFIG_QS850
+		CONFIG_CMI		CONFIG_IPHASE4539	CONFIG_QS860T
+		CONFIG_cogent_mpc8260	CONFIG_IVML24		CONFIG_RBC823
+		CONFIG_cogent_mpc8xx	CONFIG_IVML24_128	CONFIG_RPXClassic
+		CONFIG_CPCI405		CONFIG_IVML24_256	CONFIG_RPXlite
+		CONFIG_CPCI4052		CONFIG_IVMS8		CONFIG_RPXsuper
+		CONFIG_CPCIISER4	CONFIG_IVMS8_128	CONFIG_rsdproto
+		CONFIG_CPU86		CONFIG_IVMS8_256	CONFIG_sacsng
+		CONFIG_CRAYL1		CONFIG_JSE		CONFIG_Sandpoint8240
+		CONFIG_CSB272		CONFIG_LANTEC		CONFIG_Sandpoint8245
+		CONFIG_CU824		CONFIG_LITE5200B	CONFIG_sbc8260
+		CONFIG_DASA_SIM		CONFIG_lwmon		CONFIG_sbc8560
+		CONFIG_DB64360		CONFIG_MBX		CONFIG_SM850
+		CONFIG_DB64460		CONFIG_MBX860T		CONFIG_SPD823TS
+		CONFIG_DU405		CONFIG_MHPC		CONFIG_STXGP3
+		CONFIG_DUET_ADS		CONFIG_MIP405		CONFIG_SXNI855T
+		CONFIG_EBONY		CONFIG_MOUSSE		CONFIG_TQM823L
+		CONFIG_ELPPC		CONFIG_MPC8260ADS	CONFIG_TQM8260
+		CONFIG_ELPT860		CONFIG_MPC8540ADS	CONFIG_TQM850L
+		CONFIG_ep8260		CONFIG_MPC8540EVAL	CONFIG_TQM855L
+		CONFIG_ERIC		CONFIG_MPC8560ADS	CONFIG_TQM860L
+		CONFIG_ESTEEM192E	CONFIG_MUSENKI		CONFIG_TTTech
+		CONFIG_ETX094		CONFIG_MVS1		CONFIG_UTX8245
+		CONFIG_EVB64260		CONFIG_NETPHONE		CONFIG_V37
+		CONFIG_FADS823		CONFIG_NETTA		CONFIG_W7OLMC
+		CONFIG_FADS850SAR	CONFIG_NETVIA		CONFIG_W7OLMG
+		CONFIG_FADS860T		CONFIG_NX823		CONFIG_WALNUT
+		CONFIG_FLAGADM		CONFIG_OCRTC		CONFIG_ZPC1900
+		CONFIG_FPS850L		CONFIG_ORSG		CONFIG_ZUMA
 
 		ARM based boards:
 		-----------------
 
 		CONFIG_ARMADILLO,	CONFIG_AT91RM9200DK,	CONFIG_CERF250,
-		CONFIG_CSB637,		CONFIG_DNP1110, 	CONFIG_EP7312,
-		CONFIG_H2_OMAP1610,	CONFIG_HHP_CRADLE,	CONFIG_IMPA7,
-		CONFIG_INNOVATOROMAP1510, CONFIG_INNOVATOROMAP1610, CONFIG_KB9202,
-		CONFIG_LART,		CONFIG_LPD7A400,	CONFIG_LUBBOCK,
-		CONFIG_OSK_OMAP5912,	CONFIG_OMAP2420H4,	CONFIG_SHANNON,
-		CONFIG_P2_OMAP730,	CONFIG_SMDK2400,	CONFIG_SMDK2410,
-		CONFIG_TRAB,		CONFIG_VCMA9
+		CONFIG_CSB637,		CONFIG_DELTA,		CONFIG_DNP1110,
+		CONFIG_EP7312,		CONFIG_H2_OMAP1610,	CONFIG_HHP_CRADLE,
+		CONFIG_IMPA7,	    CONFIG_INNOVATOROMAP1510,	CONFIG_INNOVATOROMAP1610,
+		CONFIG_KB9202,		CONFIG_LART,		CONFIG_LPD7A400,
+		CONFIG_LUBBOCK,		CONFIG_OSK_OMAP5912,	CONFIG_OMAP2420H4,
+		CONFIG_PLEB2,		CONFIG_SHANNON,		CONFIG_P2_OMAP730,
+		CONFIG_SMDK2400,	CONFIG_SMDK2410,	CONFIG_TRAB,
+		CONFIG_VCMA9
 
 		MicroBlaze based boards:
 		------------------------
@@ -321,6 +323,7 @@ The following options need to be configured:
 		------------------------
 
 		CONFIG_PCI5441 CONFIG_PK1C20
+		CONFIG_EP1C20 CONFIG_EP1S10 CONFIG_EP1S40
 
 
 - CPU Module Type: (if CONFIG_COGENT is defined)
@@ -379,6 +382,20 @@ The following options need to be configured:
 		that this requires a (stable) reference clock (32 kHz
 		RTC clock or CFG_8XX_XIN)
 
+- Intel Monahans options:
+		CFG_MONAHANS_RUN_MODE_OSC_RATIO
+
+		Defines the Monahans run mode to oscillator
+		ratio. Valid values are 8, 16, 24, 31. The core
+		frequency is this value multiplied by 13 MHz.
+
+		CFG_MONAHANS_TURBO_RUN_MODE_RATIO
+
+		Defines the Monahans turbo mode to oscillator
+		ratio. Valid values are 1 (default if undefined) and
+		2. The core frequency as calculated above is multiplied
+		by this value.
+
 - Linux Kernel Interface:
 		CONFIG_CLOCKS_IN_MHZ
 
@@ -411,7 +428,24 @@ The following options need to be configured:
 		The maximum size of the constructed OF tree.
 
 		OF_CPU - The proper name of the cpus node.
+		OF_SOC - The proper name of the soc node.
 		OF_TBCLK - The timebase frequency.
+		OF_STDOUT_PATH - The path to the console device
+
+		CONFIG_OF_HAS_BD_T
+
+		The resulting flat device tree will have a copy of the bd_t.
+		Space should be pre-allocated in the dts for the bd_t.
+
+		CONFIG_OF_HAS_UBOOT_ENV
+
+		The resulting flat device tree will have a copy of u-boot's
+		environment variables
+
+		CONFIG_OF_BOARD_SETUP
+
+		Board code has addition modification that it wants to make
+		to the flat device tree before handing it off to the kernel
 
 - Serial Ports:
 		CFG_PL010_SERIAL
@@ -606,7 +640,7 @@ The following options need to be configured:
 		CFG_CMD_DIAG	* Diagnostics
 		CFG_CMD_DOC	* Disk-On-Chip Support
 		CFG_CMD_DTT	* Digital Therm and Thermostat
-		CFG_CMD_ECHO	* echo arguments
+		CFG_CMD_ECHO	  echo arguments
 		CFG_CMD_EEPROM	* EEPROM read/write support
 		CFG_CMD_ELF	* bootelf, bootvx
 		CFG_CMD_ENV	  saveenv
@@ -1456,6 +1490,12 @@ The following options need to be configured:
 		of the backslashes before semicolons and special
 		symbols.
 
+- Commandline Editing and History:
+		CONFIG_CMDLINE_EDITING
+
+		Enable editiong and History functions for interactive
+		commandline input operations
+
 - Default Environment:
 		CONFIG_EXTRA_ENV_SETTINGS
 
@@ -1717,6 +1757,12 @@ Configuration Settings:
 - CFG_MALLOC_LEN:
 		Size of DRAM reserved for malloc() use.
 
+- CFG_BOOTM_LEN:
+		Normally compressed uImages are limited to an
+		uncompressed size of 8 MBytes. If this is not enough,
+		you can define CFG_BOOTM_LEN in your board config file
+		to adjust this setting to your needs.
+
 - CFG_BOOTMAPSZ:
 		Maximum size of memory mapped by the startup code of
 		the Linux kernel; all data that must be processed by
@@ -1945,6 +1991,17 @@ to save the current settings.
 
 	  These two #defines specify the offset and size of the environment
 	  area within the first NAND device.
+
+	- CFG_ENV_OFFSET_REDUND
+
+	  This setting describes a second storage area of CFG_ENV_SIZE
+	  size used to hold a redundant copy of the environment data,
+	  so that there is a valid backup copy in case there is a
+	  power failure during a "saveenv" operation.
+
+	Note: CFG_ENV_OFFSET and CFG_ENV_OFFSET_REDUND must be aligned
+	to a block boundary, and CFG_ENV_SIZE must be a multiple of
+	the NAND devices block size.
 
 - CFG_SPI_INIT_OFFSET
 
@@ -3260,6 +3317,8 @@ On ARM, the following registers are used:
 
     ==> U-Boot will use R8 to hold a pointer to the global data
 
+NOTE: DECLARE_GLOBAL_DATA_PTR must be used with file-global scope,
+or current versions of GCC may "optimize" the code too much.
 
 Memory Management:
 ------------------

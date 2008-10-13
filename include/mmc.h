@@ -26,8 +26,8 @@
 #include <asm/arch/mmc.h>
 
 int mmc_init(int verbose);
-int mmc_read(ulong src, uchar *dst, int size);
-int mmc_write(uchar *src, ulong dst, int size);
-int mmc2info(ulong addr);
+int mmc_read(unsigned int src, unsigned char *dst, int size);
+int mmc_write(unsigned char *src, unsigned long dst, int size);
+int mmc2info(unsigned int addr);
 
 #endif /* _MMC_H_ */

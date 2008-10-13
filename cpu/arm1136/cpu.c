@@ -34,7 +34,11 @@
 #include <common.h>
 #include <command.h>
 #if !defined(CONFIG_INTEGRATOR) && ! defined(CONFIG_ARCH_CINTEGRATOR)
-#include <asm/arch/omap2420.h>
+#include <asm/arch/cpu.h>
+#endif
+
+#ifdef CONFIG_USE_IRQ
+DECLARE_GLOBAL_DATA_PTR;
 #endif
 
 /* read co-processor 15, register #1 (control register) */
@@ -88,8 +92,6 @@ int cpu_init (void)
 	 * setup up stacks if necessary
 	 */
 #ifdef CONFIG_USE_IRQ
-	DECLARE_GLOBAL_DATA_PTR;
-
 	IRQ_STACK_START = _armboot_start - CFG_MALLOC_LEN - CFG_GBL_DATA_SIZE - 4;
 	FIQ_STACK_START = IRQ_STACK_START - CONFIG_STACKSIZE_IRQ;
 #endif

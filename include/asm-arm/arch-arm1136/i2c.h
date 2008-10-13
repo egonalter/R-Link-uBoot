@@ -23,24 +23,26 @@
 #ifndef _OMAP24XX_I2C_H_
 #define _OMAP24XX_I2C_H_
 
-#define I2C_BASE                0x48070000
-#define I2C_BASE2               0x48072000 /* nothing hooked up on h4 */
+/* Get the i2c base addresses */
+#include <asm/arch/cpu.h>
 
-#define I2C_REV                 (I2C_BASE + 0x00)
-#define I2C_IE                  (I2C_BASE + 0x04)
-#define I2C_STAT                (I2C_BASE + 0x08)
-#define I2C_IV                  (I2C_BASE + 0x0c)
-#define I2C_BUF                 (I2C_BASE + 0x14)
-#define I2C_CNT                 (I2C_BASE + 0x18)
-#define I2C_DATA                (I2C_BASE + 0x1c)
-#define I2C_SYSC                (I2C_BASE + 0x20)
-#define I2C_CON                 (I2C_BASE + 0x24)
-#define I2C_OA                  (I2C_BASE + 0x28)
-#define I2C_SA                  (I2C_BASE + 0x2c)
-#define I2C_PSC                 (I2C_BASE + 0x30)
-#define I2C_SCLL                (I2C_BASE + 0x34)
-#define I2C_SCLH                (I2C_BASE + 0x38)
-#define I2C_SYSTEST             (I2C_BASE + 0x3c)
+#define I2C_DEFAULT_BASE I2C_BASE1
+
+#define I2C_REV                 (0x00)
+#define I2C_IE                  (0x04)
+#define I2C_STAT                (0x08)
+#define I2C_IV                  (0x0c)
+#define I2C_BUF                 (0x14)
+#define I2C_CNT                 (0x18)
+#define I2C_DATA                (0x1c)
+#define I2C_SYSC                (0x20) 
+#define I2C_CON                 (0x24)
+#define I2C_OA                  (0x28)
+#define I2C_SA                  (0x2c)
+#define I2C_PSC                 (0x30)
+#define I2C_SCLL                (0x34)
+#define I2C_SCLH                (0x38)
+#define I2C_SYSTEST             (0x3c)
 
 /* I2C masks */
 
@@ -103,5 +105,38 @@
 #define I2C_SYSTEST_SCL_O       (1 << 2)        /* SCL line drive output value */
 #define I2C_SYSTEST_SDA_I       (1 << 1)        /* SDA line sense input value */
 #define I2C_SYSTEST_SDA_O       (1 << 0)        /* SDA line drive output value */
+
+#define I2C_SCLL_SCLL        (0)
+#define I2C_SCLL_SCLL_M      (0xFF)
+#define I2C_SCLL_HSSCLL      (8)
+#define I2C_SCLH_HSSCLL_M    (0xFF)
+#define I2C_SCLH_SCLH        (0)
+#define I2C_SCLH_SCLH_M      (0xFF)
+#define I2C_SCLH_HSSCLH      (8)
+#define I2C_SCLH_HSSCLH_M    (0xFF)
+
+#define OMAP_I2C_STANDARD          100
+#define OMAP_I2C_FAST_MODE         400
+#define OMAP_I2C_HIGH_SPEED        3400
+
+#define SYSTEM_CLOCK_12       12000
+#define SYSTEM_CLOCK_13       13000
+#define SYSTEM_CLOCK_192      19200
+#define SYSTEM_CLOCK_96       96000
+
+#ifdef CONFIG_OMAP243X
+#define I2C_IP_CLK SYSTEM_CLOCK_96
+#define I2C_PSC_MAX          (0x0f)
+#define I2C_PSC_MIN          (0x00)
+#else
+/* 242x */
+#ifdef INPUT_CLK_13MHZ
+#define I2C_IP_CLK SYSTEM_CLOCK_13
+#else
+#define I2C_IP_CLK SYSTEM_CLOCK_12
+#endif
+#define I2C_PSC_MAX          (0xff) 
+#define I2C_PSC_MIN          (0x00)
+#endif
 
 #endif

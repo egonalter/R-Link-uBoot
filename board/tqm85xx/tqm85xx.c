@@ -27,7 +27,6 @@
  * MA 02111-1307 USA
  */
 
-
 #include <common.h>
 #include <pci.h>
 #include <asm/processor.h>
@@ -36,11 +35,17 @@
 #include <spd.h>
 #include <flash.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 extern flash_info_t flash_info[];	/* FLASH chips info */
 
 void local_bus_init (void);
 long int fixed_sdram (void);
 ulong flash_get_size (ulong base, int banknum);
+
+#ifdef CONFIG_PS2MULT
+void ps2mult_early_init(void);
+#endif
 
 #ifdef CONFIG_CPM2
 /*
@@ -257,7 +262,6 @@ int checkboard (void)
 
 int misc_init_r (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	volatile immap_t    *immap = (immap_t *)CFG_IMMR;
 	volatile ccsr_lbc_t *memctl = &immap->im_lbc;
 
@@ -296,7 +300,7 @@ int misc_init_r (void)
 
 		/* Monitor protection ON by default */
 		flash_protect (FLAG_PROTECT_SET,
-			       CFG_MONITOR_BASE, 0xffffffff,
+			       CFG_MONITOR_BASE, CFG_MONITOR_BASE + monitor_flash_len - 1,
 			       &flash_info[CFG_MAX_FLASH_BANKS - 1]);
 
 		/* Environment protection ON by default */
@@ -409,3 +413,13 @@ void pci_init_board (void)
 	pci_mpc85xx_init (&hose);
 #endif /* CONFIG_PCI */
 }
+
+#ifdef CONFIG_BOARD_EARLY_INIT_R
+int board_early_init_r (void)
+{
+#ifdef CONFIG_PS2MULT
+	ps2mult_early_init();
+#endif /* CONFIG_PS2MULT */
+	return (0);
+}
+#endif /* CONFIG_BOARD_EARLY_INIT_R */

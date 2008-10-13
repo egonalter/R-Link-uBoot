@@ -39,6 +39,8 @@
 #include <mpc8xx.h>
 #include <asm/cache.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 static char *cpu_warning = "\n         " \
 	"*** Warning: CPU Core has Silicon Bugs -- Check the Errata ***";
 
@@ -69,14 +71,15 @@ static int check_CPU (long clock, uint pvr, uint immr)
 
 	k = (immr << 16) | *((ushort *) & immap->im_cpm.cp_dparam[0xB0]);
 	m = 0;
+	suf = "";
 
 	/*
 	 * Some boards use sockets so different CPUs can be used.
 	 * We have to check chip version in run time.
 	 */
 	switch (k) {
-	case 0x00020001: pre = 'P'; suf = ""; break;
-	case 0x00030001: suf = ""; break;
+	case 0x00020001: pre = 'P'; break;
+	case 0x00030001: break;
 	case 0x00120003: suf = "A"; break;
 	case 0x00130003: suf = "A3"; break;
 
@@ -93,7 +96,11 @@ static int check_CPU (long clock, uint pvr, uint immr)
 		/* this value is not documented anywhere */
 	case 0x40000000: pre = 'P'; suf = "D"; m = 1; break;
 		/* MPC866P/MPC866T/MPC859T/MPC859DSL/MPC852T */
-	case 0x08000003: pre = 'M'; suf = ""; m = 1;
+	case 0x08010004:		/* Rev. A.0 */
+		suf = "A";
+		/* fall through */
+	case 0x08000003:		/* Rev. 0.3 */
+		pre = 'M'; m = 1;
 		if (id_str == NULL)
 			id_str =
 # if defined(CONFIG_MPC852T)
@@ -344,8 +351,6 @@ static int check_CPU (long clock, uint pvr, uint immr)
 
 int checkcpu (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	ulong clock = gd->cpu_clk;
 	uint immr = get_immr (0);	/* Return full IMMR contents */
 	uint pvr = get_pvr ();
@@ -534,8 +539,6 @@ int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
  */
 unsigned long get_tbclk (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	uint immr = get_immr (0);	/* Return full IMMR contents */
 	volatile immap_t *immap = (volatile immap_t *)(immr & 0xFFFF0000);
 	ulong oscclk, factor, pll;

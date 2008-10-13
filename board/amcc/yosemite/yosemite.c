@@ -24,6 +24,8 @@
 #include <asm/processor.h>
 #include <spd_sdram.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 extern flash_info_t flash_info[CFG_MAX_FLASH_BANKS]; /* info for FLASH chips	*/
 
 int board_early_init_f(void)
@@ -77,8 +79,8 @@ int board_early_init_f(void)
 	out32(GPIO1_ISR2L, in32(GPIO1_ISR2L) | 0x00010000);
 
 	/* external interrupts IRQ0...3 */
-	out32(GPIO1_TCR, in32(GPIO1_TCR) & ~0x0f000000);
-	out32(GPIO1_TSRL, in32(GPIO1_TSRL) & ~0x00005500);
+	out32(GPIO1_TCR, in32(GPIO1_TCR) & ~0x00f00000);
+	out32(GPIO1_TSRL, in32(GPIO1_TSRL) & ~0x0000ff00);
 	out32(GPIO1_ISR1L, in32(GPIO1_ISR1L) | 0x00005500);
 
 	/*setup USB 2.0 */
@@ -132,7 +134,6 @@ int board_early_init_f(void)
 
 int misc_init_r (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	uint pbcr;
 	int size_val = 0;
 
@@ -308,13 +309,13 @@ void sdram_init(void)
 	mtsdram(mem_tr0, 0x410a4012);	/* ?? */
 	mtsdram(mem_rtr, 0x04080000);	/* ?? */
 	mtsdram(mem_cfg1, 0x00000000);	/* Self-refresh exit, disable PM    */
-	mtsdram(mem_cfg0, 0x34000000);	/* Disable EEC */
+	mtsdram(mem_cfg0, 0x30000000);	/* Disable EEC */
 	udelay(400);		/* Delay 200 usecs (min)            */
 
 	/*--------------------------------------------------------------------
 	 * Enable the controller, then wait for DCEN to complete
 	 *------------------------------------------------------------------*/
-	mtsdram(mem_cfg0, 0x84000000);	/* Enable */
+	mtsdram(mem_cfg0, 0x80000000);	/* Enable */
 
 	for (;;) {
 		mfsdram(mem_mcsts, reg);

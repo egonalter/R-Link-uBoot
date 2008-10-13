@@ -33,11 +33,18 @@
 #include <asm/io.h>
 #include <asm/arch/hardware.h>
 #endif
+#ifdef	CONFIG_IXP425			/* only valid for IXP425 */
+#include <asm/arch/ixp425.h>
+#endif
 #include <i2c.h>
 
 #if defined(CONFIG_SOFT_I2C)
 
 /* #define	DEBUG_I2C	*/
+
+#ifdef DEBUG_I2C
+DECLARE_GLOBAL_DATA_PTR;
+#endif
 
 
 /*-----------------------------------------------------------------------
@@ -53,7 +60,6 @@
 
 #ifdef DEBUG_I2C
 #define PRINTD(fmt,args...)	do {	\
-	DECLARE_GLOBAL_DATA_PTR;	\
 	if (gd->have_console)		\
 		printf (fmt ,##args);	\
 	} while (0)
@@ -164,13 +170,10 @@ static void send_ack(int ack)
 	volatile immap_t *immr = (immap_t *)CFG_IMMR;
 #endif
 
-	I2C_ACTIVE;
 	I2C_SCL(0);
 	I2C_DELAY;
-
-	I2C_SDA(ack);
-
 	I2C_ACTIVE;
+	I2C_SDA(ack);
 	I2C_DELAY;
 	I2C_SCL(1);
 	I2C_DELAY;
@@ -288,7 +291,10 @@ int i2c_probe(uchar addr)
 {
 	int rc;
 
-	/* perform 1 byte read transaction */
+	/*
+	 * perform 1 byte write transaction with just address byte
+	 * (fake write)
+	 */
 	send_start();
 	rc = write_byte ((addr << 1) | 0);
 	send_stop();

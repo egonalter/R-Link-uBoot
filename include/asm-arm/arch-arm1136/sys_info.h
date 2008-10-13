@@ -53,30 +53,89 @@ typedef struct  h4_system_data {
 #define CPU_2420          0x2420
 #define CPU_2422          0x2422 /* 2420 + 64M stacked */
 #define CPU_2423          0x2423 /* 2420 + 96M stacked */
+#define CPU_2430          0x2430
 
+/* 242x real hardware:
+ *  ES1     = rev 0
+ *  ES2     = rev 1
+ *  ES2.05  = rev 2
+ *  ES2.1   = rev 3
+ *  ES2.1.1 = rev 4
+ *  ES2.2   = rev 5
+ */
+
+/* 242x code defines:
+ * ES1     = 0+1 = 1
+ * ES2     = 1+1 = 2
+ * ES2.05  = 2+1 = 3
+ * ES2.1   = 3+1 = 4
+ * ES2.1.1 = 4+1 = 5
+ * ES2.2   = 5+1 = 6
+ */
 #define CPU_2422_ES1      1
 #define CPU_2422_ES2      2
+#define CPU_2422_ES2_05   3
+#define CPU_2422_ES2_1    4
+#define CPU_2422_ES2_1_1  5
+#define CPU_2422_ES2_2    6
+
 #define CPU_2420_ES1      1
 #define CPU_2420_ES2      2
-#define CPU_2420_2422_ES1 1
+#define CPU_2420_ES2_05   3
+#define CPU_2420_ES2_1    4
+#define CPU_2420_ES2_1_1  5
+#define CPU_2420_ES2_2    6
+
+#define CPU_242X_ES1      1
+#define CPU_242X_ES2      2
+#define CPU_242X_ES2_05   3
+#define CPU_242X_ES2_1    4
+#define CPU_242X_ES2_1_1  5
+#define CPU_242X_ES2_2    6
+
+/* 243x real hardware:
+ *  ES1     = rev 0
+ *  ES2     = rev 1
+ *
+ * 243x code defines:
+ * ES1     = 0+1 = 1
+ * ES2     = 1+1 = 2
+ * ES2.1.0 = 2+1 = 3
+ */
+#define CPU_2430_ES1     1
+#define CPU_2430_ES2     2
+#define CPU_2430_ES2_1_0 3
 
 #define CPU_2420_CHIPID   0x0B5D9000
+#define CPU_2430_CHIPID   0x0B68A000
 #define CPU_24XX_ID_MASK  0x0FFFF000
 #define CPU_242X_REV_MASK 0xF0000000
 #define CPU_242X_PID_MASK 0x000F0000
 
-#define BOARD_H4_MENELAUS 1
-#define BOARD_H4_SDP      2
+#define BOARD_H4_MENELAUS     1
+#define BOARD_H4_SDP          2
+#define BOARD_H4_MENELAUS_HRP 3
+#define BOARD_SDP_2430_M1     4  /* pre-T2 platform */
+#define BOARD_SDP_2430_T2     5  /* Triton2 companion chip */
+#define BOARD_GDP_2430_T2     6  /* 2430 GDP Variant */
+
+/* Various SDP Variants */
+#define BOARD_SDP_2430_0_1 0x01
+#define BOARD_SDP_2430_1_0 0x10
+#define BOARD_SDP_2430_1_1 0x11
+#define BOARD_SDP_2430_2_1 0x20
 
 #define GPMC_MUXED        1
 #define GPMC_NONMUXED     0
 
 #define TYPE_NAND         0x800   /* bit pos for nand in gpmc reg */
 #define TYPE_NOR          0x000
+#define TYPE_ONENAND      0x800
 
 #define WIDTH_8BIT        0x0000
 #define WIDTH_16BIT       0x1000  /* bit pos for 16 bit in gpmc */
 
 #define I2C_MENELAUS 0x72	/* i2c id for companion chip */
+#define I2C_TRITON2  0x4B   /* addres of power group */
 
 #endif

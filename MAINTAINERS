@@ -197,6 +197,7 @@ Brad Kemp <Brad.Kemp@seranoa.com>
 Sangmoon Kim <dogoil@etinsys.com>
 
 	debris			MPC8245
+	KVME080			MPC8245
 
 Thomas Lange <thomas@corelatus.se>
 
@@ -283,6 +284,7 @@ Stefan Roese <sr@denx.de>
 	ebony			PPC440GP
 	ocotea			PPC440GX
 	p3p440			PPC440GP
+	pcs440ep		PPC440EP
 	sycamore		PPC405GPr
 	walnut			PPC405GP
 	yellowstone		PPC440GR
@@ -434,6 +436,11 @@ Dave Peverley <dpeverley@mpc-data.co.uk>
 
 	omap730p2		ARM926EJS
 
+Stefan Roese <sr@denx.de>
+
+	ixdpg425		xscale
+	pdnb3			xscale
+
 Robert Schwebel <r.schwebel@pengutronix.de>
 
 	csb226			xscale
@@ -483,6 +490,7 @@ Wolfgang Denk <wd@denx.de>
 
 Thomas Lange <thomas@corelatus.se>
 	dbau1x00		MIPS32 Au1000
+	gth2			MIPS32 Au1000
 
 #########################################################################
 # Nios-32 Systems:							#
@@ -511,6 +519,9 @@ Scott McNutt <smcnutt@psyent.com>
 
 	PCI5441			Nios-II
 	PK1C20			Nios-II
+	EP1C20			Nios-II
+	EP1S10			Nios-II
+	EP1S40			Nios-II
 
 #########################################################################
 # MicroBlaze Systems:							#
@@ -533,6 +544,10 @@ Yasushi Shoji <yashi@atmark-techno.com>
 Matthias Fuchs <matthias.fuchs@esd-electronics.com>
 
 	TASREG			MCF5249
+
+Zachary P. Landau <zachary.landau@labxtechnologies.com>
+
+	r5200			mcf52x2
 
 #########################################################################
 # End of MAINTAINERS list						#

@@ -419,14 +419,14 @@ int memory_post_tests (unsigned long start, unsigned long size)
 	int ret = 0;
 
 	if (ret == 0)
-		ret = memory_post_dataline ((long long *)start);
+		ret = memory_post_dataline ((unsigned long long *)start);
 	WATCHDOG_RESET ();
 	if (ret == 0)
-		ret = memory_post_addrline ((long *)start, (long *)start, size);
+		ret = memory_post_addrline ((ulong *)start, (ulong *)start, size);
 	WATCHDOG_RESET ();
 	if (ret == 0)
-		ret = memory_post_addrline ((long *)(start + size - 8),
-					    (long *)start, size);
+		ret = memory_post_addrline ((ulong *)(start + size - 8),
+					    (ulong *)start, size);
 	WATCHDOG_RESET ();
 	if (ret == 0)
 		ret = memory_post_test1 (start, size, 0x00000000);
@@ -454,10 +454,11 @@ int memory_post_tests (unsigned long start, unsigned long size)
 }
 
 #if 0
+DECLARE_GLOBAL_DATA_PTR;
+
 int memory_post_test (int flags)
 {
 	int ret = 0;
-	DECLARE_GLOBAL_DATA_PTR;
 	bd_t *bd = gd->bd;
 	unsigned long memsize = (bd->bi_memsize >= 256 << 20 ?
 				 256 << 20 : bd->bi_memsize) - (1 << 20);

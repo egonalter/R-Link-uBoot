@@ -31,7 +31,11 @@
 #ifdef CONFIG_STATUS_LED
 #include <status_led.h>
 #endif
+#if defined(CFG_NIOS_EPCSBASE)
+#include <nios2-epcs.h>
+#endif
 
+DECLARE_GLOBAL_DATA_PTR;
 
 /*
  * All attempts to come up with a "common" initialization sequence
@@ -92,6 +96,9 @@ init_fnc_t *init_sequence[] = {
 #if defined(CONFIG_BOARD_EARLY_INIT_F)
 	board_early_init_f,	/* Call board-specific init code early.*/
 #endif
+#if defined(CFG_NIOS_EPCSBASE)
+	epcs_reset,
+#endif
 
 	env_init,
 	serial_init,
@@ -106,8 +113,6 @@ init_fnc_t *init_sequence[] = {
 /***********************************************************************/
 void board_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	bd_t *bd;
 	init_fnc_t **init_fnc_ptr;
 	char *s, *e;
@@ -165,6 +170,10 @@ void board_init (void)
 
 	WATCHDOG_RESET ();
 	interrupt_init ();
+
+#if defined(CONFIG_BOARD_LATE_INIT)
+	board_late_init ();
+#endif
 
 	/* main_loop */
 	for (;;) {

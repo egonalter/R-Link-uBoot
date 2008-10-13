@@ -23,6 +23,8 @@
 #include "tsec.h"
 #include "miiphy.h"
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #define TX_BUF_CNT		2
 
 static uint rxIdx;	/* index of the current RX buffer */
@@ -940,6 +942,56 @@ static struct phy_info phy_info_lxt971 = {
 	},
 };
 
+/* Parse the DP83865's link and auto-neg status register for speed and duplex
+ * information */
+uint mii_parse_dp83865_lanr(uint mii_reg, struct tsec_private *priv)
+{
+	switch (mii_reg & MIIM_DP83865_SPD_MASK) {
+
+	case MIIM_DP83865_SPD_1000:
+		priv->speed = 1000;
+		break;
+
+	case MIIM_DP83865_SPD_100:
+		priv->speed = 100;
+		break;
+
+	default:
+		priv->speed = 10;
+		break;
+
+	}
+
+	if (mii_reg & MIIM_DP83865_DPX_FULL)
+		priv->duplexity = 1;
+	else
+		priv->duplexity = 0;
+
+	return 0;
+}
+
+struct phy_info phy_info_dp83865 = {
+	0x20005c7,
+	"NatSemi DP83865",
+	4,
+	(struct phy_cmd[]) { /* config */
+		{MIIM_CONTROL, MIIM_DP83865_CR_INIT, NULL},
+		{miim_end,}
+	},
+	(struct phy_cmd[]) { /* startup */
+		/* Status is read once to clear old link state */
+		{MIIM_STATUS, miim_read, NULL},
+		/* Auto-negotiate */
+		{MIIM_STATUS, miim_read, &mii_parse_sr},
+		/* Read the link and auto-neg status */
+		{MIIM_DP83865_LANR, miim_read, &mii_parse_dp83865_lanr},
+		{miim_end,}
+	},
+	(struct phy_cmd[]) { /* shutdown */
+		{miim_end,}
+	},
+};
+
 struct phy_info *phy_info[] = {
 #if 0
 	&phy_info_cis8201,
@@ -949,6 +1001,7 @@ struct phy_info *phy_info[] = {
 	&phy_info_M88E1111S,
 	&phy_info_dm9161,
 	&phy_info_lxt971,
+	&phy_info_dp83865,
 	NULL
 };
 
@@ -1031,7 +1084,6 @@ static void relocate_cmds(void)
 	struct phy_cmd **cmdlistptr;
 	struct phy_cmd *cmd;
 	int i,j,k;
-	DECLARE_GLOBAL_DATA_PTR;
 
 	for(i=0; phy_info[i]; i++) {
 		/* First thing's first: relocate the pointers to the

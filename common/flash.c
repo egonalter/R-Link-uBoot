@@ -103,7 +103,6 @@ addr2info (ulong addr)
 #ifndef CONFIG_SPD823TS
 	flash_info_t *info;
 	int i;
-
 	for (i=0, info=&flash_info[0]; i<CFG_MAX_FLASH_BANKS; ++i, ++info) {
 		if (info->flash_id != FLASH_UNKNOWN &&
 		    addr >= info->start[0] &&
@@ -117,7 +116,6 @@ addr2info (ulong addr)
 		}
 	}
 #endif /* CONFIG_SPD823TS */
-
 	return (NULL);
 }
 

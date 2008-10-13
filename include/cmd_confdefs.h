@@ -94,6 +94,7 @@
 #define CFG_CMD_EXT2	0x1000000000000000ULL	/* EXT2 Support			*/
 #define CFG_CMD_SNTP	0x2000000000000000ULL	/* SNTP support			*/
 #define CFG_CMD_DISPLAY	0x4000000000000000ULL	/* Display support		*/
+#define CFG_CMD_ONENAND 0x8000000000000000ULL   /* OneNAND support               */
 
 #define CFG_CMD_ALL	0xFFFFFFFFFFFFFFFFULL	/* ALL commands			*/
 
@@ -112,7 +113,6 @@
 			CFG_CMD_DISPLAY	| \
 			CFG_CMD_DOC	| \
 			CFG_CMD_DTT	| \
-			CFG_CMD_ECHO	| \
 			CFG_CMD_EEPROM	| \
 			CFG_CMD_ELF	| \
 			CFG_CMD_EXT2	| \
@@ -142,6 +142,7 @@
 			CFG_CMD_SPI	| \
 			CFG_CMD_UNIVERSE | \
 			CFG_CMD_USB	| \
+			CFG_CMD_ONENAND | \
 			CFG_CMD_VFD	)
 
 /* Default configuration

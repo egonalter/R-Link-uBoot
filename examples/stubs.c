@@ -92,7 +92,7 @@ gd_t *global_data;
 #x ":\n"				\
 "	movhi	r8, %%hi(%0)\n"		\
 "	ori	r8, r0, %%lo(%0)\n"	\
-"	add	r8, r0, r15\n"		\
+"	add	r8, r8, r15\n"		\
 "	ldw	r8, 0(r8)\n"		\
 "	ldw	r8, %1(r8)\n"		\
 "	jmp	r8\n"			\
@@ -125,6 +125,19 @@ gd_t *global_data;
 "	lwi	r5, r5, %1\n"			\
 "	bra	r5\n"				\
 	: : "i"(offsetof(gd_t, jt)), "i"(XF_ ## x * sizeof(void *)) : "r5");
+#elif defined(CONFIG_BLACKFIN)
+/*
+ * P5 holds the pointer to the global_data, P0 is a call-clobbered
+ * register
+ */
+#define EXPORT_FUNC(x)			\
+	asm volatile (			\
+"       .globl " #x "\n"		\
+#x ":\n"				\
+"	P0 = [P5 + %0]\n"		\
+"	P0 = [P0 + %1]\n"		\
+"	JUMP (P0)\n"			\
+	: : "i"(offsetof(gd_t, jt)), "i"(XF_ ## x * sizeof(void *)) : "P0");
 #else
 #error stubs definition missing for this architecture
 #endif
@@ -148,10 +161,10 @@ extern unsigned long __bss_start, _end;
 
 void app_startup(char **argv)
 {
-	unsigned long * cp = &__bss_start;
+	unsigned char * cp = (unsigned char *)&__bss_start;
 
 	/* Zero out BSS */
-	while (cp < &_end) {
+	while (cp < (unsigned char *)&_end) {
 		*cp++ = 0;
 	}
 

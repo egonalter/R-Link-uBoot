@@ -23,8 +23,13 @@
 
 #include <common.h>
 #include <command.h>
+#include <watchdog.h>
 
 #include <asm/mcfuart.h>
+
+#ifdef CONFIG_M5271
+#include <asm/m5271.h>
+#endif
 
 #ifdef CONFIG_M5272
 #include <asm/m5272.h>
@@ -38,7 +43,9 @@
 #include <asm/m5249.h>
 #endif
 
-#ifdef CONFIG_M5249
+DECLARE_GLOBAL_DATA_PTR;
+
+#if defined(CONFIG_M5249) || defined(CONFIG_M5271)
 #define DoubleClock(a) ((double)(CFG_CLK/2) / 32.0 / (double)(a))
 #else
 #define DoubleClock(a) ((double)(CFG_CLK) / 32.0 / (double)(a))
@@ -46,41 +53,77 @@
 
 void rs_serial_setbaudrate(int port,int baudrate)
 {
-#if defined(CONFIG_M5272) || defined(CONFIG_M5249)
+#if defined(CONFIG_M5272) || defined(CONFIG_M5249) || defined(CONFIG_M5271)
 	volatile unsigned char	*uartp;
-	double clock, fraction;
+# ifndef CONFIG_M5271
+	double fraction;
+# endif
+	double clock;
 
-	if (port == 0)
-	  uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE1);
-	else
-	  uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE2);
-
-	clock = DoubleClock(baudrate);      /* Set baud above */
-
-	fraction = ((clock - (int)clock) * 16.0) + 0.5;
-
-	uartp[MCFUART_UBG1] = (((int)clock >> 8) & 0xff);  /* set msb baud */
-	uartp[MCFUART_UBG2] = ((int)clock & 0xff);  /* set lsb baud */
-	uartp[MCFUART_UFPD] = ((int)fraction & 0xf);  /* set baud fraction adjust */
-#endif
-};
-
-void rs_serial_init(int port,int baudrate)
-{
-	volatile unsigned char	*uartp;
-
-	/*
-	 *	Reset UART, get it into known state...
-	 */
 	if (port == 0)
 		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE1);
 	else
 		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE2);
 
-	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETRX;  /* reset RX */
-	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETTX;  /* reset TX */
-	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETMRPTR;  /* reset MR pointer */
-	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETERR;  /* reset Error pointer */
+	clock = DoubleClock(baudrate);	/* Set baud above */
+
+	uartp[MCFUART_UBG1] = (((int)clock >> 8) & 0xff);	/* set msb baud */
+	uartp[MCFUART_UBG2] = ((int)clock & 0xff);		/* set lsb baud */
+
+# ifndef CONFIG_M5271
+	fraction = ((clock - (int)clock) * 16.0) + 0.5;
+	uartp[MCFUART_UFPD] = ((int)fraction & 0xf);	/* set baud fraction adjust */
+# endif
+#endif
+
+#if  defined(CONFIG_M5282)
+	volatile unsigned char	*uartp;
+	long clock;
+
+	switch (port) {
+	case 1:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE2);
+		break;
+	case 2:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE3);
+		break;
+	default:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE1);
+	}
+
+	clock = (long) CFG_CLK / ((long) 32 * baudrate);	/* Set baud above */
+
+	uartp[MCFUART_UBG1] = (((int)clock >> 8) & 0xff);	/* set msb baud */
+	uartp[MCFUART_UBG2] = ((int) clock & 0xff);		/* set lsb baud */
+
+#endif
+};
+
+void rs_serial_init (int port, int baudrate)
+{
+	volatile unsigned char *uartp;
+
+	/*
+	 *      Reset UART, get it into known state...
+	 */
+	switch (port) {
+	case 1:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE2);
+		break;
+#if  defined(CONFIG_M5282)
+	case 2:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE3);
+		break;
+#endif
+	default:
+		uartp = (volatile unsigned char *) (CFG_MBAR + MCFUART_BASE1);
+	}
+
+	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETTX;	/* reset TX */
+	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETRX;	/* reset RX */
+
+	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETMRPTR;	/* reset MR pointer */
+	uartp[MCFUART_UCR] = MCFUART_UCR_CMDRESETERR;	/* reset Error pointer */
 
 	/*
 	 * Set port for CONSOLE_BAUD_RATE, 8 data bits, 1 stop bit, no parity.
@@ -88,9 +131,15 @@ void rs_serial_init(int port,int baudrate)
 	uartp[MCFUART_UMR] = MCFUART_MR1_PARITYNONE | MCFUART_MR1_CS8;
 	uartp[MCFUART_UMR] = MCFUART_MR2_STOP1;
 
-	rs_serial_setbaudrate(port,baudrate);
+	/* Mask UART interrupts */
+	uartp[MCFUART_UIMR] = 0;
 
+	/* Set clock Select Register: Tx/Rx clock is timer */
 	uartp[MCFUART_UCSR] = MCFUART_UCSR_RXCLKTIMER | MCFUART_UCSR_TXCLKTIMER;
+
+	rs_serial_setbaudrate (port, baudrate);
+
+	/* Enable Tx/Rx */
 	uartp[MCFUART_UCR] = MCFUART_UCR_RXENABLE | MCFUART_UCR_TXENABLE;
 
 	return;
@@ -134,12 +183,10 @@ int rs_get_char(void)
 }
 
 void serial_setbrg(void) {
-	DECLARE_GLOBAL_DATA_PTR;
 	rs_serial_setbaudrate(0,gd->bd->bi_baudrate);
 }
 
 int serial_init(void) {
-	DECLARE_GLOBAL_DATA_PTR;
 	rs_serial_init(0,gd->baudrate);
 	return 0;
 }
@@ -152,13 +199,14 @@ void serial_putc(const char c) {
 }
 
 void serial_puts (const char *s) {
-	while (*s) {
+	while (*s)
 		serial_putc(*s++);
-	}
 }
 
 int serial_getc(void) {
-	while(!rs_is_char());
+	while(!rs_is_char())
+		WATCHDOG_RESET();
+
 	return rs_get_char();
 }
 

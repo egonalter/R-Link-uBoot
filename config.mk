@@ -53,6 +53,10 @@ PLATFORM_CPPFLAGS+= -D__ARM__
 endif
 endif
 
+ifeq ($(ARCH),blackfin)
+PLATFORM_CPPFLAGS+= -D__BLACKFIN__ -mno-underscore
+endif
+
 ifdef	ARCH
 sinclude $(TOPDIR)/$(ARCH)_config.mk	# include architecture dependend rules
 endif
@@ -108,7 +112,7 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 RANLIB	= $(CROSS_COMPILE)RANLIB
 
 RELFLAGS= $(PLATFORM_RELFLAGS)
-DBGFLAGS= -g #-DDEBUG
+DBGFLAGS= -g # -DDEBUG
 OPTFLAGS= -Os #-fomit-frame-pointer
 ifndef LDSCRIPT
 #LDSCRIPT := $(TOPDIR)/board/$(BOARDDIR)/u-boot.lds.debug
@@ -140,6 +144,14 @@ endif
 endif
 
 AFLAGS_DEBUG := -Wa,-gstabs
+
+# turn jbsr into jsr for m68k
+ifeq ($(ARCH),m68k)
+ifeq ($(findstring 3.4,$(shell $(CC) --version)),3.4)
+AFLAGS_DEBUG := -Wa,-gstabs,-S
+endif
+endif
+
 AFLAGS := $(AFLAGS_DEBUG) -D__ASSEMBLY__ $(CPPFLAGS)
 
 LDFLAGS += -Bstatic -T $(LDSCRIPT) -Ttext $(TEXT_BASE) $(PLATFORM_LDFLAGS)

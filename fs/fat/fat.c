@@ -51,7 +51,8 @@ static int cur_part = 1;
 
 #define DOS_PART_TBL_OFFSET	0x1be
 #define DOS_PART_MAGIC_OFFSET	0x1fe
-#define DOS_FS_TYPE_OFFSET	0x36
+//#define DOS_FS_TYPE_OFFSET	0x36
+#define DOS_FS_TYPE_OFFSET	0x52
 
 int disk_read (__u32 startblock, __u32 getsize, __u8 * bufptr)
 {
@@ -90,7 +91,8 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 	}
 	else {
 #if (CONFIG_COMMANDS & CFG_CMD_IDE) || (CONFIG_COMMANDS & CFG_CMD_SCSI) || \
-    (CONFIG_COMMANDS & CFG_CMD_USB) || defined(CONFIG_SYSTEMACE)
+    (CONFIG_COMMANDS & CFG_CMD_USB) || (CONFIG_COMMANDS & CFG_CMD_MMC) || \
+    defined(CONFIG_SYSTEMACE)
 		disk_partition_t info;
 		if(!get_partition_info(dev_desc, part_no, &info)) {
 			part_offset = info.start;
@@ -106,7 +108,8 @@ fat_register_device(block_dev_desc_t *dev_desc, int part_no)
 		 * by using the get_partition_info routine. For this
 		 * purpose the libpart must be included.
 		 */
-		part_offset=32;
+		//part_offset=32;
+		part_offset=63;
 		cur_part = 1;
 #endif
 	}
@@ -213,7 +216,7 @@ get_fatent(fsdata *mydata, __u32 entry)
 	/* Read a new block of FAT entries into the cache. */
 	if (bufnum != mydata->fatbufnum) {
 		int getsize = FATBUFSIZE/FS_BLOCK_SIZE;
-		__u8 *bufptr = mydata->fatbuf;
+		__u8 *bufptr = (__u8 *)mydata->fatbuf;
 		__u32 fatlength = mydata->fatlength;
 		__u32 startblock = bufnum * FATBUFBLOCKS;
 
@@ -299,7 +302,7 @@ get_cluster(fsdata *mydata, __u32 clustnum, __u8 *buffer, unsigned long size)
 	if(size % FS_BLOCK_SIZE) {
 		__u8 tmpbuf[FS_BLOCK_SIZE];
 		idx= size/FS_BLOCK_SIZE;
-		if (disk_read(startsect + idx, 1, tmpbuf) < 0) {
+		if (disk_read((startsect + idx), 1, tmpbuf) < 0) {
 			FAT_DPRINT("Error reading data\n");
 			return -1;
 		}
@@ -1008,8 +1011,11 @@ file_fat_ls(const char *dir)
 long
 file_fat_read(const char *filename, void *buffer, unsigned long maxsize)
 {
-	printf("reading %s\n",filename);
-	return do_fat_read(filename, buffer, maxsize, LS_NO);
+	//printf("reading %s\n",filename);
+	//return do_fat_read(filename, buffer, maxsize, LS_NO);
+	long ret;
+	ret = do_fat_read(filename, buffer, maxsize, LS_NO);
+	return ret;
 }
 
 #endif /* #if (CONFIG_COMMANDS & CFG_CMD_FAT) */

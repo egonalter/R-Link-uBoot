@@ -35,6 +35,8 @@
 #include <mpc83xx.h>
 #include <asm/processor.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 struct irq_action {
 	interrupt_handler_t *handler;
 	void *arg;
@@ -43,6 +45,14 @@ struct irq_action {
 
 int interrupt_init_cpu (unsigned *decrementer_count)
 {
+	volatile immap_t *immr = (immap_t *) CFG_IMMRBAR;
+
+	*decrementer_count = (gd->bus_clk / 4) / CFG_HZ;
+
+	/* Enable e300 time base */
+
+	immr->sysconf.spcr |= 0x00400000;
+
 	return 0;
 }
 

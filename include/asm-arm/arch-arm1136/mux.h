@@ -55,6 +55,9 @@ void muxSetupHDQ(void);
 #define CONTROL_PADCONF_GPMC_NCS0_BYTE3	((volatile unsigned char *)0x4800008F)
 
 /* Pin Muxing registers used for SDRC */
+#define CONTROL_PADCONF_SDRC_STK_DM1        0xAC
+#define CONTROL_PADCONF_SDRC_DQS1           0xB0
+
 #define CONTROL_PADCONF_SDRC_NCS0_BYTE0 ((volatile unsigned char *)0x480000A0)
 #define CONTROL_PADCONF_SDRC_NCS0_BYTE1 ((volatile unsigned char *)0x480000A1)
 #define CONTROL_PADCONF_SDRC_NCS0_BYTE2 ((volatile unsigned char *)0x480000A2)

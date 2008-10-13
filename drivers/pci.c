@@ -163,7 +163,7 @@ pci_dev_t pci_find_devices(struct pci_device_id *ids, int index)
 		for (bus = hose->first_busno; bus <= hose->last_busno; bus++)
 #endif
 			for (bdf = PCI_BDF(bus,0,0);
-#ifdef CONFIG_ELPPC
+#if defined(CONFIG_ELPPC) || defined(CONFIG_PPMC7XX)
 			     bdf < PCI_BDF(bus,PCI_MAX_PCI_DEVICES-1,PCI_MAX_PCI_FUNCTIONS-1);
 #else
 			     bdf < PCI_BDF(bus+1,0,0);
@@ -459,6 +459,7 @@ int pci_hose_scan_bus(struct pci_controller *hose, int bus)
 					      PCI_BUS(dev), PCI_DEV(dev), PCI_FUNC(dev));
 			if (cfg) {
 				cfg->config_device(hose, dev, cfg);
+				sub_bus = max(sub_bus, hose->current_busno);
 #ifdef CONFIG_PCI_PNP
 			} else {
 				int n = pciauto_config_device(hose, dev);

@@ -26,13 +26,14 @@
 
 #include <config.h>
 #include <version.h>
-#include <asm/arch/omap2420.h>
+#include <asm/arch/cpu.h>
 #include <asm/arch/mem.h>
 #include <asm/arch/clocks.h>
 
 _TEXT_BASE:
 	.word	TEXT_BASE	/* sdram load addr from config.mk */
 
+#ifndef CFG_NAND_BOOT
 /**************************************************************************
  * cpy_clk_code: relocates clock code into SRAM where its safer to execute
  * R1 = SRAM destination address.
@@ -82,16 +83,17 @@ block:
 
 	/* now prepare GPMC (flash) for new dpll speed */
 	/* flash needs to be stable when we jump back to it */
-	ldr	r4, cfg3_0_addr
-	ldr	r8, cfg3_0_val
-	str	r8, [r4]
-	ldr	r4, cfg4_0_addr
-	ldr	r8, cfg4_0_val
-	str	r8, [r4]
-	ldr	r4, cfg1_0_addr
+        ldr     r4, flash_cfg3_addr
+        ldr     r8, flash_cfg3_val
+        str     r8, [r4]
+        ldr     r4, flash_cfg4_addr
+        ldr     r8, flash_cfg4_val
+        str     r8, [r4]
+        ldr     r4, flash_cfg1_addr
 	ldr	r8, [r4]
 	orr	r8, r8, #0x3	 /* up gpmc divider */
 	str	r8, [r4]
+
 
 	/* setup to 2x loop though code.  The first loop pre-loads the
 	 * icache, the 2nd commits the prcm config, and locks the dpll
@@ -139,16 +141,17 @@ lloop2:
 _go_to_speed: .word go_to_speed
 
 /* these constants need to be close for PIC code */
-cfg3_0_addr:
-    .word  GPMC_CONFIG3_0
-cfg3_0_val:
-    .word  H4_24XX_GPMC_CONFIG3_0
-cfg4_0_addr:
-    .word  GPMC_CONFIG4_0
-cfg4_0_val:
-    .word  H4_24XX_GPMC_CONFIG4_0
-cfg1_0_addr:
-    .word  GPMC_CONFIG1_0
+/* The Nor has to be in the Flash Base CS0 for this condition to happen */
+flash_cfg3_addr:
+    .word  (GPMC_CONFIG_CS0 + GPMC_CONFIG3)
+flash_cfg3_val: 
+    .word  STNOR_GPMC_CONFIG3
+flash_cfg4_addr:
+    .word (GPMC_CONFIG_CS0 + GPMC_CONFIG4)
+flash_cfg4_val:
+    .word  STNOR_GPMC_CONFIG4
+flash_cfg1_addr:
+    .word (GPMC_CONFIG_CS0 + GPMC_CONFIG1)
 pll_ctl_add:
     .word CM_CLKEN_PLL
 pll_stat:
@@ -157,6 +160,8 @@ pll_div_add:
     .word CM_CLKSEL1_PLL
 pll_div_val:
     .word DPLL_VAL	/* DPLL setting (300MHz default) */
+
+#endif
 
 .globl lowlevel_init
 lowlevel_init:

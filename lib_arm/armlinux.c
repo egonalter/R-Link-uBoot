@@ -30,6 +30,8 @@
 #include <dataflash.h>
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
+
 /*cmd_boot.c*/
 extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
@@ -77,8 +79,6 @@ extern image_header_t header;	/* from cmd_bootm.c */
 void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 		     ulong addr, ulong *len_ptr, int verify)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	ulong len = 0, checksum;
 	ulong initrd_start, initrd_end;
 	ulong data;
@@ -124,7 +124,7 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 		checksum = ntohl (hdr->ih_hcrc);
 		hdr->ih_hcrc = 0;
 
-		if (crc32 (0, (char *) data, len) != checksum) {
+		if (crc32 (0, (unsigned char *) data, len) != checksum) {
 			printf ("Bad Header Checksum\n");
 			SHOW_BOOT_PROGRESS (-11);
 			do_reset (cmdtp, flag, argc, argv);
@@ -148,7 +148,7 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 			ulong csum = 0;
 
 			printf ("   Verifying Checksum ... ");
-			csum = crc32 (0, (char *) data, len);
+			csum = crc32 (0, (unsigned char *) data, len);
 			if (csum != ntohl (hdr->ih_dcrc)) {
 				printf ("Bad Data CRC\n");
 				SHOW_BOOT_PROGRESS (-12);

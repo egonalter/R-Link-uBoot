@@ -48,7 +48,7 @@
 # if defined(CFG_ENV_ADDR_REDUND) && !defined(CFG_ENV_SIZE_REDUND)
 #  define CFG_ENV_SIZE_REDUND	CFG_ENV_SIZE
 # endif
-# if (CFG_ENV_ADDR >= CFG_MONITOR_BASE) && \
+# if ((!defined (ENV_IS_VARIABLE)) || !ENV_IS_VARIABLE) && (CFG_ENV_ADDR >= CFG_MONITOR_BASE) && \
      ((CFG_ENV_ADDR + CFG_ENV_SIZE) <= (CFG_MONITOR_BASE + CFG_MONITOR_LEN))
 #  define ENV_IS_EMBEDDED	1
 # endif

@@ -436,6 +436,7 @@
 /****************************************************************/
 
 /* NAND */
+#define CFG_NAND_LEGACY
 #define CFG_NAND_BASE		NAND_BASE
 #define CONFIG_MTD_NAND_ECC_JFFS2
 #define CONFIG_MTD_NAND_VERIFY_WRITE
@@ -584,5 +585,7 @@ typedef unsigned int led_id_t;
 
 #define OF_CPU			"PowerPC,MPC870@0"
 #define OF_TBCLK		(MPC8XX_HZ / 16)
+#define CONFIG_OF_HAS_BD_T	1
+#define CONFIG_OF_HAS_UBOOT_ENV	1
 
 #endif	/* __CONFIG_H */

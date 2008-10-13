@@ -25,6 +25,8 @@
 #include <mpc8260.h>
 #include <asm/processor.h>
 
+DECLARE_GLOBAL_DATA_PTR;
+
 /* ------------------------------------------------------------------------- */
 
 /* Bus-to-Core Multiplier */
@@ -101,8 +103,6 @@ corecnf_t corecnf_tab[] = {
 
 int get_clocks (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	volatile immap_t *immap = (immap_t *) CFG_IMMR;
 	ulong clkin;
 	ulong sccr, dfbrg;
@@ -159,11 +159,9 @@ int get_clocks (void)
 
 int prt_8260_clks (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	volatile immap_t *immap = (immap_t *) CFG_IMMR;
 	ulong sccr, dfbrg;
-	ulong scmr, corecnf, busdf, cpmdf, plldf, pllmf;
+	ulong scmr, corecnf, busdf, cpmdf, plldf, pllmf, pcidf;
 	corecnf_t *cp;
 
 	sccr = immap->im_clkrst.car_sccr;
@@ -175,6 +173,7 @@ int prt_8260_clks (void)
 	cpmdf = (scmr & SCMR_CPMDF_MSK) >> SCMR_CPMDF_SHIFT;
 	plldf = (scmr & SCMR_PLLDF) ? 1 : 0;
 	pllmf = (scmr & SCMR_PLLMF_MSK) >> SCMR_PLLMF_SHIFT;
+	pcidf = (sccr & SCCR_PCIDF_MSK) >> SCCR_PCIDF_SHIFT;
 
 	cp = &corecnf_tab[corecnf];
 
@@ -204,8 +203,9 @@ int prt_8260_clks (void)
 			cp->vco_div, cp->freq_60x, cp->freq_core);
 
 	printf (" - dfbrg %ld, corecnf 0x%02lx, busdf %ld, cpmdf %ld, "
-			"plldf %ld, pllmf %ld\n", dfbrg, corecnf, busdf, cpmdf, plldf,
-			pllmf);
+		"plldf %ld, pllmf %ld, pcidf %ld\n",
+			dfbrg, corecnf, busdf, cpmdf,
+			plldf, pllmf, pcidf);
 
 	printf (" - vco_out %10ld, scc_clk %10ld, brg_clk %10ld\n",
 			gd->vco_out, gd->scc_clk, gd->brg_clk);
@@ -215,9 +215,20 @@ int prt_8260_clks (void)
 
 	if (sccr & SCCR_PCI_MODE) {
 		uint pci_div;
+		uint pcidf = (sccr & SCCR_PCIDF_MSK) >> SCCR_PCIDF_SHIFT;
 
-		pci_div = ( (sccr & SCCR_PCI_MODCK) ? 2 : 1) *
-			( ( (sccr & SCCR_PCIDF_MSK) >> SCCR_PCIDF_SHIFT) + 1);
+		if (sccr & SCCR_PCI_MODCK) {
+			pci_div = 2;
+			if (pcidf == 9) {
+				pci_div *= 5;
+			} else if (pcidf == 0xB) {
+				pci_div *= 6;
+			} else {
+				pci_div *= (pcidf + 1);
+			}
+		} else {
+			pci_div = pcidf + 1;
+		}
 
 		printf (" - pci_clk %10ld\n", (gd->cpm_clk * 2) / pci_div);
 	}
@@ -225,5 +236,3 @@ int prt_8260_clks (void)
 
 	return (0);
 }
-
-/* ------------------------------------------------------------------------- */

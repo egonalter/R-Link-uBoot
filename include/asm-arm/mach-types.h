@@ -736,6 +736,10 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_LN2410SBC            725
 #define MACH_TYPE_CB3RUFC              726
 #define MACH_TYPE_MP2USB               727
+#define MACH_TYPE_OMAP_2430SDP         900
+#define MACH_TYPE_PDNB3               1002
+#define MACH_TYPE_OMAP_3430SDP        1138
+#define MACH_TYPE_OMAP_3430LABRADOR   1639
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type
@@ -6819,6 +6823,30 @@ extern unsigned int __machine_arch_type;
 # define machine_is_omap_h4()	(machine_arch_type == MACH_TYPE_OMAP_H4)
 #else
 # define machine_is_omap_h4()	(0)
+#endif
+
+#ifdef CONFIG_MACH_OMAP_2430SDP
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_OMAP_2430SDP
+# endif
+# define machine_is_omap_2430SDP()	(machine_arch_type == MACH_TYPE_OMAP_2430SDP)
+#else
+# define machine_is_omap_2430SDP()	(0)
+#endif
+
+#ifdef CONFIG_MACH_OMAP_3430SDP
+# ifdef machine_arch_type
+#  undef machine_arch_type
+#  define machine_arch_type	__machine_arch_type
+# else
+#  define machine_arch_type	MACH_TYPE_OMAP_3430SDP
+# endif
+# define machine_is_omap_3430SDP()	(machine_arch_type == MACH_TYPE_OMAP_3430SDP)
+#else
+# define machine_is_omap_3430SDP()	(0)
 #endif
 
 #ifdef CONFIG_MACH_N10

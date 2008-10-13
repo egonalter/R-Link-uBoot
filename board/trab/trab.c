@@ -28,7 +28,7 @@
 #include <s3c2400.h>
 #include <command.h>
 
-/* ------------------------------------------------------------------------- */
+DECLARE_GLOBAL_DATA_PTR;
 
 #ifdef CFG_BRIGHTNESS
 static void spi_init(void);
@@ -52,8 +52,6 @@ extern int do_mdm_init; /* defined in common/main.c */
 #define KBD_MDELAY	5000
 static void udelay_no_timer (int usec)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	int delay = usec * 3;
 
@@ -70,7 +68,6 @@ int board_init ()
 #if defined(CONFIG_VFD)
 	extern int vfd_init_clocks(void);
 #endif
-	DECLARE_GLOBAL_DATA_PTR;
 	S3C24X0_CLOCK_POWER * const clk_power = S3C24X0_GetBase_CLOCK_POWER();
 	S3C24X0_GPIO * const gpio = S3C24X0_GetBase_GPIO();
 
@@ -141,8 +138,6 @@ int board_init ()
 
 int dram_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	gd->bd->bi_dram[0].size = PHYS_SDRAM_1_SIZE;
 	return 0;
@@ -157,14 +152,27 @@ int dram_init (void)
 
 #define KBD_DATA	(((*(volatile ulong *)0x04020000) >> 16) & 0xF)
 
-static uchar *key_match (ulong);
+static char *key_match (ulong);
 
 int misc_init_r (void)
 {
 	ulong kbd_data = KBD_DATA;
-	uchar keybd_env[KEYBD_KEY_NUM + 1];
-	uchar *str;
+	char *str;
+	char keybd_env[KEYBD_KEY_NUM + 1];
 	int i;
+
+#ifdef CONFIG_VERSION_VARIABLE
+	{
+		/* Set version variable. Please note, that this variable is
+		 * also set in main_loop() later in the boot process. The
+		 * version variable has to be set this early, because so it
+		 * could be used in script files on an usb stick, which
+		 * might be called during do_auto_update() */
+		extern char version_string[];
+
+		setenv ("ver", version_string);
+	}
+#endif /* CONFIG_VERSION_VARIABLE */
 
 #ifdef CONFIG_AUTO_UPDATE
 	extern int do_auto_update(void);
@@ -200,7 +208,7 @@ int misc_init_r (void)
 static uchar kbd_magic_prefix[] = "key_magic";
 static uchar kbd_command_prefix[] = "key_cmd";
 
-static int compare_magic (ulong kbd_data, uchar *str)
+static int compare_magic (ulong kbd_data, char *str)
 {
 	uchar key_mask;
 
@@ -246,12 +254,12 @@ static int compare_magic (ulong kbd_data, uchar *str)
  * Note: the string points to static environment data and must be
  * saved before you call any function that modifies the environment.
  */
-static uchar *key_match (ulong kbd_data)
+static char *key_match (ulong kbd_data)
 {
-	uchar magic[sizeof (kbd_magic_prefix) + 1];
-	uchar cmd_name[sizeof (kbd_command_prefix) + 1];
-	uchar *suffix;
-	uchar *kbd_magic_keys;
+	char magic[sizeof (kbd_magic_prefix) + 1];
+	char cmd_name[sizeof (kbd_command_prefix) + 1];
+	char *suffix;
+	char *kbd_magic_keys;
 
 	/*
 	 * The following string defines the characters that can pe appended
@@ -296,7 +304,7 @@ static uchar *key_match (ulong kbd_data)
 int do_kbd (cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 {
 	ulong kbd_data = KBD_DATA;
-	uchar keybd_env[KEYBD_KEY_NUM + 1];
+	char keybd_env[KEYBD_KEY_NUM + 1];
 	int i;
 
 	puts ("Keys:");
@@ -396,7 +404,7 @@ static void tsc2000_write(unsigned int page, unsigned int reg,
 
 static void tsc2000_set_brightness(void)
 {
-	uchar tmp[10];
+	char tmp[10];
 	int i, br;
 
 	spi_init();

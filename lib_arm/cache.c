@@ -27,10 +27,10 @@
 
 void  flush_cache (unsigned long dummy1, unsigned long dummy2)
 {
-#ifdef CONFIG_OMAP2420
-	void arm1136_cache_flush(void);
+#if defined(CONFIG_OMAP24XX) || defined(CONFIG_OMAP34XX)
+	void arm_cache_flush(void);
 
-	arm1136_cache_flush();
+	arm_cache_flush();
 #endif
 	return;
 }

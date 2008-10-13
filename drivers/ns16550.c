@@ -1,4 +1,9 @@
 /*
+ * This file is licensed under
+ * the terms of the GNU General Public License version 2.  This program
+ * is licensed "as is" without any warranty of any kind, whether express
+ * or implied.
+ *  
  * COM1 NS16550 support
  * originally from linux source (arch/ppc/boot/ns16550.c)
  * modified to use CFG_ISA_MEM and new defines

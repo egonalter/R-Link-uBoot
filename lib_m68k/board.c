@@ -60,6 +60,8 @@
 #include <i2c.h>
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
+
 static char *failed = "*** failed ***\n";
 
 #ifdef	CONFIG_PCU_E
@@ -111,8 +113,6 @@ static	ulong	mem_malloc_brk	 = 0;
  */
 static void mem_malloc_init (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	ulong dest_addr = CFG_MONITOR_BASE + gd->reloc_off;
 
 	mem_malloc_end = dest_addr;
@@ -177,8 +177,6 @@ typedef int (init_fnc_t) (void);
 
 static int init_baudrate (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	uchar tmp[64];	/* long enough for environment variables */
 	int i = getenv_r ("baudrate", tmp, sizeof (tmp));
 
@@ -192,8 +190,6 @@ static int init_baudrate (void)
 
 static int init_func_ram (void)
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int board_type = 0;	/* use dummy arg */
 	puts ("DRAM:  ");
 
@@ -263,10 +259,9 @@ init_fnc_t *init_sequence[] = {
 void
 board_init_f (ulong bootflag)
 {
-    DECLARE_GLOBAL_DATA_PTR;
-
 	bd_t *bd;
 	ulong len, addr, addr_sp;
+	ulong *paddr;
 	gd_t *id;
 	init_fnc_t **init_fnc_ptr;
 #ifdef CONFIG_PRAM
@@ -363,8 +358,12 @@ board_init_f (ulong bootflag)
 	 */
 	addr_sp -= 16;
 	addr_sp &= ~0xF;
-	*((ulong *) addr_sp)-- = 0;
-	*((ulong *) addr_sp)-- = 0;
+
+	paddr = (ulong *)addr_sp;
+	*paddr-- = 0;
+	*paddr-- = 0;
+	addr_sp = (ulong)paddr;
+
 	debug ("Stack Pointer at: %08lx\n", addr_sp);
 
 	/*
@@ -414,7 +413,6 @@ board_init_f (ulong bootflag)
  */
 void board_init_r (gd_t *id, ulong dest_addr)
 {
-	DECLARE_GLOBAL_DATA_PTR;
 	cmd_tbl_t *cmdtp;
 	char *s, *e;
 	bd_t *bd;
@@ -638,7 +636,7 @@ void board_init_r (gd_t *id, ulong dest_addr)
 
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
 	WATCHDOG_RESET ();
-	puts ("NAND:");
+	puts ("NAND:  ");
 	nand_init();		/* go init the NAND */
 #endif
 

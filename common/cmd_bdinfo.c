@@ -28,6 +28,7 @@
 #include <command.h>
 #include <net.h>		/* for print_IPaddr */
 
+DECLARE_GLOBAL_DATA_PTR;
 
 #if (CONFIG_COMMANDS & CFG_CMD_BDI)
 static void print_num(const char *, ulong);
@@ -39,8 +40,6 @@ static void print_str(const char *, const char *);
 
 int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	bd_t *bd = gd->bd;
 	char buf[32];
@@ -62,11 +61,12 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	print_num ("bootflags",	    bd->bi_bootflags	);
 #if defined(CONFIG_405GP) || defined(CONFIG_405CR) || \
     defined(CONFIG_405EP) || defined(CONFIG_XILINX_ML300) || \
-    defined(CONFIG_440EP) || defined(CONFIG_440GR)
+    defined(CONFIG_440EP) || defined(CONFIG_440GR) || \
+	defined(CONFIG_440SP)
 	print_str ("procfreq",	    strmhz(buf, bd->bi_procfreq));
 	print_str ("plb_busfreq",   strmhz(buf, bd->bi_plb_busfreq));
 #if defined(CONFIG_405GP) || defined(CONFIG_405EP) || defined(CONFIG_XILINX_ML300) || \
-    defined(CONFIG_440EP) || defined(CONFIG_440GR)
+    defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SPE)
 	print_str ("pci_busfreq",   strmhz(buf, bd->bi_pci_busfreq));
 #endif
 #else	/* ! CONFIG_405GP, CONFIG_405CR, CONFIG_405EP, CONFIG_XILINX_ML300, CONFIG_440EP CONFIG_440GR */
@@ -127,8 +127,6 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	bd_t *bd = gd->bd;
 
@@ -153,8 +151,6 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	bd_t *bd = gd->bd;
 
@@ -187,8 +183,6 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	bd_t *bd = gd->bd;
 
@@ -215,8 +209,6 @@ int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 int do_bdinfo ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	DECLARE_GLOBAL_DATA_PTR;
-
 	int i;
 	bd_t *bd = gd->bd;
 

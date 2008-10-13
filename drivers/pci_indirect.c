@@ -36,6 +36,10 @@ static int								 \
 indirect_##rw##_config_##size(struct pci_controller *hose, 		 \
 			      pci_dev_t dev, int offset, type val)	 \
 {									 \
+	u32 b, d,f;							 \
+	b = PCI_BUS(dev); d = PCI_DEV(dev); f = PCI_FUNC(dev);		 \
+	b = b - hose->first_busno;					 \
+	dev = PCI_BDF(b, d, f);						 \
 	out_le32(hose->cfg_addr, dev | (offset & 0xfc) | 0x80000000); 	 \
 	sync();								 \
 	cfg_##rw(val, hose->cfg_data + (offset & mask), type, op);	 \
@@ -47,17 +51,25 @@ static int                                                               \
 indirect_##rw##_config_##size(struct pci_controller *hose,               \
 			      pci_dev_t dev, int offset, type val)       \
 {                                                                        \
+	u32 b, d,f;							 \
+	b = PCI_BUS(dev); d = PCI_DEV(dev); f = PCI_FUNC(dev);		 \
+	b = b - hose->first_busno;					 \
+	dev = PCI_BDF(b, d, f);						 \
 	*(hose->cfg_addr) = dev | (offset & 0xfc) | 0x80000000;          \
 	sync();                                                          \
 	cfg_##rw(val, hose->cfg_data + (offset & mask), type, op);       \
 	return 0;                                                        \
 }
-#elif defined(CONFIG_440GX) || defined(CONFIG_440EP) || defined(CONFIG_440GR)
+#elif defined(CONFIG_440GX) || defined(CONFIG_440EP) || defined(CONFIG_440GR) || defined(CONFIG_440SPE)
 #define INDIRECT_PCI_OP(rw, size, type, op, mask)			 \
 static int								 \
 indirect_##rw##_config_##size(struct pci_controller *hose, 		 \
 			      pci_dev_t dev, int offset, type val)	 \
 {									 \
+	u32 b, d,f;							 \
+	b = PCI_BUS(dev); d = PCI_DEV(dev); f = PCI_FUNC(dev);		 \
+	b = b - hose->first_busno;					 \
+	dev = PCI_BDF(b, d, f);						 \
 	if (PCI_BUS(dev) > 0)                                            \
 		out_le32(hose->cfg_addr, dev | (offset & 0xfc) | 0x80000001); \
 	else                                                             \
@@ -71,6 +83,10 @@ static int								 \
 indirect_##rw##_config_##size(struct pci_controller *hose, 		 \
 			      pci_dev_t dev, int offset, type val)	 \
 {									 \
+	u32 b, d,f;							 \
+	b = PCI_BUS(dev); d = PCI_DEV(dev); f = PCI_FUNC(dev);		 \
+	b = b - hose->first_busno;					 \
+	dev = PCI_BDF(b, d, f);						 \
 	out_le32(hose->cfg_addr, dev | (offset & 0xfc) | 0x80000000); 	 \
 	cfg_##rw(val, hose->cfg_data + (offset & mask), type, op);	 \
 	return 0;    					 		 \

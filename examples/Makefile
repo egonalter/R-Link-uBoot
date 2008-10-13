@@ -30,7 +30,11 @@ LOAD_ADDR = 0x40000
 endif
 
 ifeq ($(ARCH),arm)
+ifeq ($(CPU),omap3)	
+LOAD_ADDR = 0x80300000
+else
 LOAD_ADDR = 0xc100000
+endif
 endif
 
 ifeq ($(ARCH),mips)
@@ -42,7 +46,7 @@ LOAD_ADDR = 0x00800000 -L $(gcclibdir)/m32 -T nios.lds
 endif
 
 ifeq ($(ARCH),nios2)
-LOAD_ADDR = 0x00800000 -L $(gcclibdir) -T nios2.lds
+LOAD_ADDR = 0x02000000 -L $(gcclibdir) -T nios2.lds
 endif
 
 ifeq ($(ARCH),m68k)
@@ -51,6 +55,10 @@ endif
 
 ifeq ($(ARCH),microblaze)
 LOAD_ADDR = 0x80F00000
+endif
+
+ifeq ($(ARCH),blackfin)
+LOAD_ADDR = 0x1000
 endif
 
 include $(TOPDIR)/config.mk
@@ -71,6 +79,11 @@ endif
 ifeq ($(ARCH),ppc)
 SREC   += sched.srec
 BIN    += sched.bin sched
+endif
+
+ifeq ($(ARCH),blackfin)
+SREC	+= smc91111_eeprom.srec
+BIN 	+= smc91111_eeprom.bin smc91111_eeprom
 endif
 
 # The following example is pretty 8xx specific...
@@ -123,9 +136,11 @@ $(LIB): .depend $(LIBOBJS)
 	$(LD) -g $(EX_LDFLAGS) -Ttext $(LOAD_ADDR) \
 		-o $@ -e $(<:.o=) $< $(LIB) \
 		-L$(gcclibdir) -lgcc
+$(SREC):
 %.srec:	%
 	$(OBJCOPY) -O srec $< $@ 2>/dev/null
 
+$(BIN):
 %.bin:	%
 	$(OBJCOPY) -O binary $< $@ 2>/dev/null
 

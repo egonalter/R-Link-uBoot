@@ -93,6 +93,7 @@ table_entry_t arch_name[] = {
     {	IH_CPU_SH,		"sh",		"SuperH",	},
     {	IH_CPU_SPARC,		"sparc",	"SPARC",	},
     {	IH_CPU_SPARC64,		"sparc64",	"SPARC 64 Bit",	},
+    {	IH_CPU_BLACKFIN,	"blackfin",	"Blackfin",	},
     {	-1,			"",		"",		},
 };
 
@@ -276,7 +277,8 @@ NXTARG:		;
 	 */
 	if (xflag) {
 		if (ep != addr + sizeof(image_header_t)) {
-			fprintf (stderr, "%s: For XIP, the entry point must be the load addr + %lu\n",
+			fprintf (stderr,
+				"%s: For XIP, the entry point must be the load addr + %lu\n",
 				cmdname,
 				(unsigned long)sizeof(image_header_t));
 			exit (EXIT_FAILURE);
@@ -346,8 +348,9 @@ NXTARG:		;
 
 		if (crc32 (0, data, len) != checksum) {
 			fprintf (stderr,
-				"*** Warning: \"%s\" has bad header checksum!\n",
-				imagefile);
+				"%s: ERROR: \"%s\" has bad header checksum!\n",
+				cmdname, imagefile);
+			exit (EXIT_FAILURE);
 		}
 
 		data = (char *)(ptr + sizeof(image_header_t));
@@ -355,8 +358,9 @@ NXTARG:		;
 
 		if (crc32 (0, data, len) != ntohl(hdr->ih_dcrc)) {
 			fprintf (stderr,
-				"*** Warning: \"%s\" has corrupted data!\n",
-				imagefile);
+				"%s: ERROR: \"%s\" has corrupted data!\n",
+				cmdname, imagefile);
+			exit (EXIT_FAILURE);
 		}
 
 		/* for multi-file images we need the data part, too */
@@ -383,7 +387,7 @@ NXTARG:		;
 
 	if (opt_type == IH_TYPE_MULTI || opt_type == IH_TYPE_SCRIPT) {
 		char *file = datafile;
-		unsigned long size;
+		uint32_t size;
 
 		for (;;) {
 			char *sep = NULL;

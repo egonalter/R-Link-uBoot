@@ -34,10 +34,6 @@
 #include <environment.h>
 #include <asm/byteorder.h>
 
-#ifdef CONFIG_OF_FLAT_TREE
-#include <ft_build.h>
-#endif
-
  /*cmd_boot.c*/
  extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
@@ -88,7 +84,7 @@ static int image_info (unsigned long addr);
 
 #if (CONFIG_COMMANDS & CFG_CMD_IMLS)
 #include <flash.h>
-extern flash_info_t flash_info[]; /* info for FLASH chips */
+extern flash_info_t flash_info[CFG_MAX_FLASH_BANKS]; /* info for FLASH chips */
 static int do_imls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 #endif
 
@@ -144,13 +140,17 @@ image_header_t header;
 
 ulong load_addr = CFG_LOAD_ADDR;		/* Default Load Address */
 
+#ifndef CFG_BOOTM_LEN
+#define CFG_BOOTM_LEN	0x800000	/* use 8MByte as default max gunzip size */
+#endif
+
 int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	ulong	iflag;
 	ulong	addr;
 	ulong	data, len, checksum;
 	ulong  *len_ptr;
-	uint	unc_len = 0x400000;
+	uint	unc_len = CFG_BOOTM_LEN;
 	int	i, verify;
 	char	*name, *s;
 	int	(*appl)(int, char *[]);
@@ -201,21 +201,12 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	checksum = ntohl(hdr->ih_hcrc);
 	hdr->ih_hcrc = 0;
 
-	if (crc32 (0, (uchar *)data, len) != checksum) {
+	if (crc32 (0, (unsigned char *)data, len) != checksum) {
 		puts ("Bad Header Checksum\n");
 		SHOW_BOOT_PROGRESS (-2);
 		return 1;
 	}
 	SHOW_BOOT_PROGRESS (3);
-
-#ifdef CONFIG_HAS_DATAFLASH
-	if (addr_dataflash(addr)){
-		len  = ntohl(hdr->ih_size) + sizeof(image_header_t);
-		read_dataflash(addr, len, (char *)CFG_LOAD_ADDR);
-		addr = CFG_LOAD_ADDR;
-	}
-#endif
-
 
 	/* for multi-file images we need the data part, too */
 	print_image_hdr ((image_header_t *)addr);
@@ -223,9 +214,16 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	data = addr + sizeof(image_header_t);
 	len  = ntohl(hdr->ih_size);
 
+#ifdef CONFIG_HAS_DATAFLASH
+	if (addr_dataflash(addr)){
+		read_dataflash(data, len, (char *)CFG_LOAD_ADDR);
+		data = CFG_LOAD_ADDR;
+	}
+#endif
+
 	if (verify) {
 		puts ("   Verifying Checksum ... ");
-		if (crc32 (0, (uchar *)data, len) != ntohl(hdr->ih_dcrc)) {
+		if (crc32 (0, (unsigned char *)data, len) != ntohl(hdr->ih_dcrc)) {
 			printf ("Bad Data CRC\n");
 			SHOW_BOOT_PROGRESS (-3);
 			return 1;
@@ -267,7 +265,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		name = "Standalone Application";
 		/* A second argument overwrites the load address */
 		if (argc > 2) {
-			hdr->ih_load = htonl(simple_strtoul(argv[2], NULL, 16));
+			hdr->ih_load = simple_strtoul(argv[2], NULL, 16);
 		}
 		break;
 	case IH_TYPE_KERNEL:
@@ -493,11 +491,6 @@ fixup_silent_linux ()
 }
 #endif /* CONFIG_SILENT_CONSOLE */
 
-#ifdef CONFIG_OF_FLAT_TREE
-extern const unsigned char oftree_dtb[];
-extern const unsigned int oftree_dtb_len;
-#endif
-
 #ifdef CONFIG_PPC
 static void
 do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
@@ -520,9 +513,6 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	bd_t	*kbd;
 	void	(*kernel)(bd_t *, ulong, ulong, ulong, ulong);
 	image_header_t *hdr = &header;
-#ifdef CONFIG_OF_FLAT_TREE
-	char	*of_flat_tree;
-#endif
 
 	if ((s = getenv ("initrd_high")) != NULL) {
 		/* a value of "no" or a similar string will act like 0,
@@ -594,12 +584,12 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	kbd->bi_flbfreq /= 1000000L;
 	kbd->bi_vcofreq /= 1000000L;
 #endif
-#if defined(CONFIG_CPM2)
+#if defined(CONFIG_8260) || defined(CONFIG_MPC8560)
 		kbd->bi_cpmfreq /= 1000000L;
 		kbd->bi_brgfreq /= 1000000L;
 		kbd->bi_sccfreq /= 1000000L;
 		kbd->bi_vco     /= 1000000L;
-#endif
+#endif /* CONFIG_8260 */
 #if defined(CONFIG_MPC5xxx)
 		kbd->bi_ipbfreq /= 1000000L;
 		kbd->bi_pcifreq /= 1000000L;
@@ -633,7 +623,7 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		checksum = hdr->ih_hcrc;
 		hdr->ih_hcrc = 0;
 
-		if (crc32 (0, (uchar *)data, len) != checksum) {
+		if (crc32 (0, (char *)data, len) != checksum) {
 			puts ("Bad Header Checksum\n");
 			SHOW_BOOT_PROGRESS (-11);
 			do_reset (cmdtp, flag, argc, argv);
@@ -661,13 +651,13 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 
 				if (chunk > CHUNKSZ)
 					chunk = CHUNKSZ;
-				csum = crc32 (csum, (uchar *)cdata, chunk);
+				csum = crc32 (csum, (char *)cdata, chunk);
 				cdata += chunk;
 
 				WATCHDOG_RESET();
 			}
 #else	/* !(CONFIG_HW_WATCHDOG || CONFIG_WATCHDOG) */
-			csum = crc32 (0, (uchar *)data, len);
+			csum = crc32 (0, (char *)data, len);
 #endif	/* CONFIG_HW_WATCHDOG || CONFIG_WATCHDOG */
 
 			if (csum != hdr->ih_dcrc) {
@@ -788,26 +778,15 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 		initrd_end = 0;
 	}
 
-#ifdef CONFIG_OF_FLAT_TREE
-	if (initrd_start == 0)
-		of_flat_tree = (char *)(((ulong)kbd - OF_FLAT_TREE_MAX_SIZE -
-					sizeof(bd_t)) & ~0xF);
-	else
-		of_flat_tree = (char *)((initrd_start - OF_FLAT_TREE_MAX_SIZE -
-					sizeof(bd_t)) & ~0xF);
-#endif
 
 	debug ("## Transferring control to Linux (at address %08lx) ...\n",
 		(ulong)kernel);
 
 	SHOW_BOOT_PROGRESS (15);
 
-#ifndef CONFIG_OF_FLAT_TREE
-
 #if defined(CFG_INIT_RAM_LOCK) && !defined(CONFIG_E500)
 	unlock_ram_in_cache();
 #endif
-
 	/*
 	 * Linux Kernel Parameters:
 	 *   r3: ptr to board info data
@@ -817,25 +796,6 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	 *   r7: End   of command line string
 	 */
 	(*kernel) (kbd, initrd_start, initrd_end, cmd_start, cmd_end);
-
-#else
-	ft_setup(of_flat_tree, OF_FLAT_TREE_MAX_SIZE, kbd);
-	/* ft_dump_blob(of_flat_tree); */
-
-#if defined(CFG_INIT_RAM_LOCK) && !defined(CONFIG_E500)
-	unlock_ram_in_cache();
-#endif
-	/*
-	 * Linux Kernel Parameters:
-	 *   r3: ptr to OF flat tree, followed by the board info data
-	 *   r4: initrd_start or 0 if no initrd
-	 *   r5: initrd_end - unused if r4 is 0
-	 *   r6: Start of command line string
-	 *   r7: End   of command line string
-	 */
-	(*kernel) ((bd_t *)of_flat_tree, initrd_start, initrd_end, cmd_start, cmd_end);
-
-#endif
 }
 #endif /* CONFIG_PPC */
 
@@ -1079,7 +1039,7 @@ static int image_info (ulong addr)
 	checksum = ntohl(hdr->ih_hcrc);
 	hdr->ih_hcrc = 0;
 
-	if (crc32 (0, (uchar *)data, len) != checksum) {
+	if (crc32 (0, (unsigned char *)data, len) != checksum) {
 		puts ("   Bad Header Checksum\n");
 		return 1;
 	}
@@ -1091,7 +1051,7 @@ static int image_info (ulong addr)
 	len  = ntohl(hdr->ih_size);
 
 	puts ("   Verifying Checksum ... ");
-	if (crc32 (0, (uchar *)data, len) != ntohl(hdr->ih_dcrc)) {
+	if (crc32 (0, (unsigned char *)data, len) != ntohl(hdr->ih_dcrc)) {
 		puts ("   Bad Data CRC\n");
 		return 1;
 	}
@@ -1124,7 +1084,7 @@ int do_imls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	for (i=0, info=&flash_info[0]; i<CFG_MAX_FLASH_BANKS; ++i, ++info) {
 		if (info->flash_id == FLASH_UNKNOWN)
 			goto next_bank;
-		for (j=0; j<info->sector_count; ++j) {
+		for (j=0; j<CFG_MAX_FLASH_SECT; ++j) {
 
 			if (!(hdr=(image_header_t *)info->start[j]) ||
 			    (ntohl(hdr->ih_magic) != IH_MAGIC))
@@ -1136,7 +1096,7 @@ int do_imls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			checksum = ntohl(header.ih_hcrc);
 			header.ih_hcrc = 0;
 
-			if (crc32 (0, (uchar *)&header, sizeof(image_header_t))
+			if (crc32 (0, (unsigned char *)&header, sizeof(image_header_t))
 			    != checksum)
 				goto next_sector;
 
@@ -1147,7 +1107,7 @@ int do_imls (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			len  = ntohl(hdr->ih_size);
 
 			puts ("   Verifying Checksum ... ");
-			if (crc32 (0, (uchar *)data, len) != ntohl(hdr->ih_dcrc)) {
+			if (crc32 (0, (unsigned char *)data, len) != ntohl(hdr->ih_dcrc)) {
 				puts ("   Bad Data CRC\n");
 			}
 			puts ("OK\n");
@@ -1241,8 +1201,6 @@ print_type (image_header_t *hdr)
 	case IH_CPU_SPARC64:	arch = "SPARC 64 Bit";		break;
 	case IH_CPU_M68K:	arch = "M68K"; 			break;
 	case IH_CPU_MICROBLAZE:	arch = "Microblaze"; 		break;
-	case IH_CPU_NIOS:	arch = "Nios";			break;
-	case IH_CPU_NIOS2:	arch = "Nios-II";		break;
 	default:		arch = "Unknown Architecture";	break;
 	}
 

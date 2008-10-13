@@ -50,13 +50,13 @@ u32 get_cpu_type(void)
 {
 	u32 v;
 
-	switch(get_prod_id()){
-		case 1:;/* 2420 */
-		case 2: return(CPU_2420); break; /* 2420 pop */
-		case 4: return(CPU_2422); break;
-		case 8: return(CPU_2423); break;
-		default: break;  /* early 2420/2422's unmarked */
-	}
+	v = get_prod_id();
+	if((v == 1) || (v == 2))
+		return CPU_2420;
+	else if (v == 4)
+		return CPU_2422;
+	else if (v == 8)
+		return CPU_2423;
 
 	v = __raw_readl(TAP_IDCODE_REG);
 	v &= CPU_24XX_ID_MASK;
@@ -168,7 +168,7 @@ u32 get_gpmc0_base(void)
 {
 	u32 b;
 
-	b = __raw_readl(GPMC_CONFIG7_0);
+	b = __raw_readl(GPMC_CONFIG_CS0 + GPMC_CONFIG7);
 	b &= 0x1F;	 /* keep base [5:0] */
 	b = b << 24; /* ret 0x0b000000 */
 	return(b);
