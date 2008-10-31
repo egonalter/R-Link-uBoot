@@ -120,6 +120,7 @@ struct rxQue {
 #define 	ID_REV_CHIP_118   		(0x01180000)
 #define 	ID_REV_CHIP_218   		(0x118A0000)
 #define 	ID_REV_CHIP_211   		(0x92110000)
+#define 	ID_REV_CHIP_221   		(0x92210000)
 #define		ID_REV_REV_MASK			(0x0000FFFF)
 
 #define IRQ_CFG 					(volatile ulong *)(SMSC9118_BASE + 0x54)

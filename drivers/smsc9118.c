@@ -366,7 +366,8 @@ lan9118_open(bd_t *bis)
 	  // check the ID_REV in little endian, the reset default.
 	  if (((*ID_REV & ID_REV_ID_MASK) == ID_REV_CHIP_118) ||
 	  	  ((*ID_REV & ID_REV_ID_MASK) == ID_REV_CHIP_218) ||
-		  ((*ID_REV & ID_REV_ID_MASK) == ID_REV_CHIP_211))
+		  ((*ID_REV & ID_REV_ID_MASK) == ID_REV_CHIP_211) ||
+		  ((*ID_REV & ID_REV_ID_MASK) == ID_REV_CHIP_221))
 	  {
 			printf("LAN9x18 (0x%08x) detected.\n", *ID_REV);
 	  }
