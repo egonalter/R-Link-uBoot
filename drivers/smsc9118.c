@@ -409,8 +409,8 @@ lan9118_open(bd_t *bis)
 	  // The receive buffers are allocated and aligned by upper layer
 	  // software.
 	 for (i = 0; i < PKTBUFSRX; i++) {
-			rxbp[i] = (char *)&NetRxPackets[i];
-			rxAvlQue[i].index = 0;
+			rxbp[i] = NetRxPackets[i];
+			rxAvlQue[i].index = -1;
 	  }
 
 	  rxNdx = 0;
