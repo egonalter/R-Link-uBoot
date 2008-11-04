@@ -29,4 +29,7 @@
 
 #define CONFIG_3430ZOOM2     1
 
+#undef V_PROMPT
+#define V_PROMPT	"OMAP34XX ZOOM2 # "
+
 #endif
