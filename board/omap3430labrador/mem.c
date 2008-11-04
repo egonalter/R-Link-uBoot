@@ -379,9 +379,16 @@ void gpmc_init(void)
 	env_ptr = 0;	/* This gets filled elsewhere!! */
 	env_name_spec = nand_env_name_spec;
 #endif
-	/* CS 1 */
+
+#ifdef CONFIG_3430ZOOM2
+	/* LAN9221 is on CS 7 on Zoom2 */
+	gpmc_config = gpmc_enet;
+	gpmc_base = GPMC_CONFIG_CS0 + (7 * GPMC_CONFIG_WIDTH);	
+#else
+	/* LAN9x18 is on CS 1 on Zoom1 */
 	gpmc_config = gpmc_enet;
 	gpmc_base = GPMC_CONFIG_CS0 + (1 * GPMC_CONFIG_WIDTH);	
+#endif
 	enable_gpmc_config(gpmc_config, gpmc_base, DEBUG_BASE, DBG_MPDB_SIZE);
 
 #ifdef OPTIONAL_NOR

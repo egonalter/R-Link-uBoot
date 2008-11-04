@@ -759,6 +759,12 @@ void set_muxconf_regs(void)
 	if(get_cpu_rev() == CPU_3430_ES2) {
 		MUX_DEFAULT_ES2();
 	}
+
+	/* Set ZOOM2 specific mux */
+#ifdef CONFIG_3430ZOOM2
+	MUX_VAL(CP(GPMC_nCS7),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS7 lab*/
+	MUX_VAL(CP(McBSP1_DX),      (IEN  | PTD | DIS | M4)) /*gpio_158 lab: for LAN9221 on zoom2*/
+#endif
 }
 
 /******************************************************************************

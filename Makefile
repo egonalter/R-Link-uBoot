@@ -1827,6 +1827,8 @@ omap3430sdp_config :    unconfig
 omap3430labrador_config :    unconfig
 	@./mkconfig $(@:_config=) arm omap3 omap3430labrador
 
+omap3430zoom2_config :    unconfig
+	@./mkconfig $(@:_config=) arm omap3 omap3430zoom2
 #========================================================================
 # i386
 #========================================================================
