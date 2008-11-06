@@ -345,7 +345,7 @@ lan9118_open(bd_t *bis)
 	  int RetVal = TRUE;
 	  int timeout;
 	  int i;
-	  unsigned mac_addrh = 0, mac_addrl = 0;
+	  static unsigned mac_addrh = 0, mac_addrl = 0;
 
 #ifdef		DEBUG
 	  TotalInts = 0;
@@ -442,7 +442,7 @@ lan9118_open(bd_t *bis)
 
 	  // Set MAC address, if octet 0 is non-null assume it's all good.
 	  memcpy(macAddr, bis->bi_enetaddr, ENET_ADDR_LENGTH);
-	  if (!(mac_addrh == 0 && mac_addrl == 0)) {
+	  if (mac_addrh != 0 || mac_addrl != 0) {
 		printf("Setting mac address: %02x:%02x:%02x:%02x:%02x:%02x\n",
 			macAddr[0], macAddr[1], macAddr[2],
 			macAddr[3], macAddr[4], macAddr[5]);
@@ -454,14 +454,29 @@ lan9118_open(bd_t *bis)
 	  } else {
 		char s_env_mac[64];
 
-		*((unsigned int *)macAddr) = GetMacReg(MAC_ADDRL);
-		*((unsigned int *)macAddr + 1) = GetMacReg(MAC_ADDRH);
-	  	memcpy(bis->bi_enetaddr, macAddr, ENET_ADDR_LENGTH);
+		mac_addrl = *((unsigned int *)macAddr) = GetMacReg(MAC_ADDRL);
+		mac_addrh = *((unsigned int *)macAddr + 1) = GetMacReg(MAC_ADDRH);
+
+		if ( (GetMacReg(MAC_ADDRL) == 0xffffffff) && (GetMacReg(MAC_ADDRH) == 0xffff) ) {
+
+			printf("\nWarning: Mac id is not programmed in EEPROM:"
+				" put default 00:08:ee:02:53:fc\n\n");
+
+			//Format 00:08:ee:02:53:fc
+			macAddr[0] = 0x00;
+			macAddr[1] = 0x08;
+			macAddr[2] = 0xee;
+			macAddr[3] = 0x02;
+			macAddr[4] = 0x53;
+			macAddr[5] = 0xFC;
+		}
+
 		sprintf (s_env_mac, "%02X:%02X:%02X:%02X:%02X:%02X",
 			 macAddr[0], macAddr[1], macAddr[2], macAddr[3],
-			 macAddr[4], macAddr[5]);
+			macAddr[4], macAddr[5]);
 		printf("Read mac address: %s\n", s_env_mac);
 		setenv ("ethaddr", s_env_mac);
+	  	memcpy(bis->bi_enetaddr, macAddr, ENET_ADDR_LENGTH);
 	  }
 
 	  // Dump old status and data
