@@ -740,6 +740,7 @@ extern unsigned int __machine_arch_type;
 #define MACH_TYPE_PDNB3               1002
 #define MACH_TYPE_OMAP_3430SDP        1138
 #define MACH_TYPE_OMAP_3430LABRADOR   1639
+#define MACH_TYPE_OMAP_ZOOM2          1967
 
 #ifdef CONFIG_ARCH_EBSA110
 # ifdef machine_arch_type

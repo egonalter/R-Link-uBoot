@@ -59,7 +59,11 @@ int board_init(void)
 	DECLARE_GLOBAL_DATA_PTR;
 
 	gpmc_init();		/* in SRAM or SDRAM, finish GPMC */
+#ifdef CONFIG_3430ZOOM2
+	gd->bd->bi_arch_number = MACH_TYPE_OMAP_ZOOM2; /* Linux mach id*/
+#else
 	gd->bd->bi_arch_number = MACH_TYPE_OMAP_3430LABRADOR; /* Linux mach id*/
+#endif
 	gd->bd->bi_boot_params = (OMAP34XX_SDRC_CS0 + 0x100); /* boot param addr */
 
 	return 0;
