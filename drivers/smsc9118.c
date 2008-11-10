@@ -453,22 +453,58 @@ lan9118_open(bd_t *bis)
 		SetMacReg(MAC_ADDRL, mac_addrl);
 	  } else {
 		char s_env_mac[64];
+		char *env_var;
 
 		mac_addrl = *((unsigned int *)macAddr) = GetMacReg(MAC_ADDRL);
 		mac_addrh = *((unsigned int *)macAddr + 1) = GetMacReg(MAC_ADDRH);
 
 		if ( (GetMacReg(MAC_ADDRL) == 0xffffffff) && (GetMacReg(MAC_ADDRH) == 0xffff) ) {
 
-			printf("\nWarning: Mac id is not programmed in EEPROM:"
-				" put default 00:08:ee:02:53:fc\n\n");
+			/* Case: No Mac id in EEPROM : Bad case */
+			env_var = getenv("ethaddr");
 
-			//Format 00:08:ee:02:53:fc
-			macAddr[0] = 0x00;
-			macAddr[1] = 0x08;
-			macAddr[2] = 0xee;
-			macAddr[3] = 0x02;
-			macAddr[4] = 0x53;
-			macAddr[5] = 0xFC;
+			if (env_var == NULL) {
+				/* No ethaddr env */
+				printf("\n*** ERROR: Mac id is not programmed in EEPROM\n");
+				printf("\tsetenv ethaddr 'xx:xx:xx:xx:xx:xx';saveenv");
+				printf("\n Then reboot u-boot for NFS to work\n\n");
+				RetVal = -1;
+				goto done;
+			}
+			else {
+				/* Get env var and populate macAddr */
+				unsigned char len, i;
+
+				len = strlen(env_var);
+				strcpy(s_env_mac,env_var);
+				// Format xx:xx:xx:xx:xx:xx
+				// Convert to digits: back to school days
+				for(i=0; i<len; i++)
+				{
+					if (s_env_mac[i] == ':')
+						continue;
+					if ( (s_env_mac[i] >= 'A') && (s_env_mac[i] <= 'F') ) {
+						s_env_mac[i] -= 'A';
+						s_env_mac[i] += 0xa;
+					} else if ( (s_env_mac[i] >= 'a') && (s_env_mac[i] <= 'f') ){
+						s_env_mac[i] -= 'a';
+						s_env_mac[i] += 0xa;
+					} else if ( (s_env_mac[i] >= '0') && (s_env_mac[i] <= '9') ){
+						s_env_mac[i] -= '0';
+					} else {
+						printf("\n wrong hex digit %c\n", s_env_mac[i]);
+						RetVal = -1;
+						goto done;
+					}
+				}
+
+				macAddr[0] = 16*s_env_mac[0] + s_env_mac[1];
+				macAddr[1] = 16*s_env_mac[3] + s_env_mac[4];
+				macAddr[2] = 16*s_env_mac[6] + s_env_mac[7];
+				macAddr[3] = 16*s_env_mac[9] + s_env_mac[10];
+				macAddr[4] = 16*s_env_mac[12] + s_env_mac[13];
+				macAddr[5] = 16*(s_env_mac[15]) + s_env_mac[16];
+			}
 		}
 
 		sprintf (s_env_mac, "%02X:%02X:%02X:%02X:%02X:%02X",
