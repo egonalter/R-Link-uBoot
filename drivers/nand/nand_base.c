@@ -2310,6 +2310,12 @@ int nand_scan (struct mtd_info *mtd, int maxchips)
 	/* Select the device */
 	this->select_chip(mtd, 0);
 
+	/*
+	 * Reset the chip, required by some chips
+	 * (e.g. Micron MT29FxGxxxxx) after power-up
+	 */
+	this->cmdfunc(mtd, NAND_CMD_RESET, -1, -1);
+
 	/* Send the command for reading device ID */
 	this->cmdfunc (mtd, NAND_CMD_READID, 0x00, -1);
 
