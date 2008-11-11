@@ -508,9 +508,11 @@ unsigned char configure_mmc(mmc_card_data *mmc_card_cur)
 
 unsigned long mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 {
-	omap_mmc_read_sect(blknr, (blkcnt * MMCSD_SECTOR_SIZE), &cur_card_data,
+	unsigned int ret;
+
+	ret = omap_mmc_read_sect(blknr, (blkcnt * MMCSD_SECTOR_SIZE), &cur_card_data,
 				(unsigned int *)dst); 
-	return 0;
+	return ret;
 }
 
 int mmc_init(int verbose)
