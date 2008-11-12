@@ -542,7 +542,7 @@ int dram_init(void)
 	MUX_VAL(CP(CAM_D10),        (IEN  | PTD | DIS | M4)) /*GPIO_109*/\
 	MUX_VAL(CP(CAM_D11),        (IEN  | PTD | DIS | M7)) /*CAM_D11*/\
 	MUX_VAL(CP(CAM_XCLKB),      (IEN  | PTD | DIS | M0)) /*CAM_XCLKB*/\
-	MUX_VAL(CP(CAM_WEN),        (IEN  | PTD | DIS | M4)) /*GPIO_167*/\
+	MUX_VAL(CP(CAM_WEN),        (IDIS | PTD | DIS | M4)) /*GPIO_167*/\
 	MUX_VAL(CP(CAM_STROBE),     (IEN  | PTD | DIS | M4)) /*GPIO_126 - lab*/\
 	MUX_VAL(CP(CSI2_DX0),       (IEN  | PTD | DIS | M0)) /*CSI2_DX0*/\
 	MUX_VAL(CP(CSI2_DY0),       (IEN  | PTD | DIS | M0)) /*CSI2_DY0*/\
@@ -768,6 +768,7 @@ void set_muxconf_regs(void)
 #ifdef CONFIG_3430ZOOM2
 	MUX_VAL(CP(GPMC_nCS7),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS7 lab*/
 	MUX_VAL(CP(McBSP1_DX),      (IEN  | PTD | DIS | M4)) /*gpio_158 lab: for LAN9221 on zoom2*/
+	MUX_VAL(CP(McSPI1_CS2),     (IEN  | PTD | EN  | M0)) /*mcspi1_cs2 zoom2*/
 #endif
 }
 
