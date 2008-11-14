@@ -94,6 +94,7 @@
 # define NAND_BASE		0x30000000  /* NAND addr (actual size small port)*/
 # define PISMO2_BASE		0x18000000  /* PISMO2 CS1/2 */
 # define ONENAND_MAP		0x20000000  /* OneNand addr (actual size small port */
+# define SERIAL_TL16CP754C_BASE	0x10000000  /* Zoom2 Serial chip address */
 
 /* SMS */
 #define SMS_SYSCONFIG		(OMAP34XX_SMS_BASE+0x10)

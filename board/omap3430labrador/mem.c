@@ -95,6 +95,15 @@ static u32 gpmc_enet[GPMC_MAX_REG] = {
 	LAB_ENET_GPMC_CONFIG6, 0
 };
 
+static u32 gpmc_serial_TL16CP754C[GPMC_MAX_REG] = {
+	0x00011000,
+	0x001F1F01,
+	0x00080803,
+	0x1D091D09,
+	0x041D1F1F,
+	0x1D0904C4, 0
+};
+
 static u32 gpmc_m_nand[GPMC_MAX_REG] = {
 	M_NAND_GPMC_CONFIG1,
 	M_NAND_GPMC_CONFIG2,
@@ -390,6 +399,16 @@ void gpmc_init(void)
 	gpmc_base = GPMC_CONFIG_CS0 + (1 * GPMC_CONFIG_WIDTH);	
 #endif
 	enable_gpmc_config(gpmc_config, gpmc_base, DEBUG_BASE, DBG_MPDB_SIZE);
+
+#ifdef CONFIG_3430ZOOM2
+	/* Configure UART4 console support on zoom2 */
+	gpmc_config = gpmc_serial_TL16CP754C;
+	gpmc_base = GPMC_CONFIG_CS0 + (3 * GPMC_CONFIG_WIDTH);
+	enable_gpmc_config(gpmc_config,
+				gpmc_base,
+				SERIAL_TL16CP754C_BASE,
+				SERIAL_TL16CP754C_SIZE);
+#endif
 
 #ifdef OPTIONAL_NOR
 	/* CS 2 (fixme -- sizes for optional s-nor)*/

@@ -766,9 +766,17 @@ void set_muxconf_regs(void)
 
 	/* Set ZOOM2 specific mux */
 #ifdef CONFIG_3430ZOOM2
+		/* GPMC CS7 has LAN9211 device */
 	MUX_VAL(CP(GPMC_nCS7),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS7 lab*/
 	MUX_VAL(CP(McBSP1_DX),      (IEN  | PTD | DIS | M4)) /*gpio_158 lab: for LAN9221 on zoom2*/
 	MUX_VAL(CP(McSPI1_CS2),     (IEN  | PTD | EN  | M0)) /*mcspi1_cs2 zoom2*/
+
+		/* GPMC CS3 has Serial TL16CP754C device */
+	MUX_VAL(CP(GPMC_nCS3),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS3 lab*/
+		/* Toggle Reset pin of TL16CP754C device */
+	MUX_VAL(CP(McBSP4_CLKX),    (IEN  | PTU | EN  | M4)) /*gpio_152 lab*/
+	udelay (10);
+	MUX_VAL(CP(McBSP4_CLKX),    (IEN  | PTD | EN  | M4)) /*gpio_152 lab*/
 #endif
 }
 

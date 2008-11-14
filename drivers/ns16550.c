@@ -21,9 +21,20 @@
 
 void NS16550_init (NS16550_t com_port, int baud_divisor)
 {
+	unsigned char tmp;
 	com_port->ier = 0x00;
-#ifdef CONFIG_OMAP
+#if defined(CONFIG_OMAP) && !defined(CONFIG_3430ZOOM2)
 	com_port->mdr1 = 0x7;	/* mode select reset TL16C750*/
+#endif
+
+#if defined(CONFIG_3430ZOOM2)
+	/* On Zoom2 board Set pre-scalar to 1
+	 * CLKSEL is GND => MCR[7] is 1 => preslr is 4
+	 * So change the prescl to 1
+	 */
+	com_port->lcr = 0xBF;
+	com_port->fcr |= 0x10;
+	com_port->mcr &= 0x7F;
 #endif
 	com_port->lcr = LCR_BKSE | LCRVAL;
 	com_port->dll = baud_divisor & 0xff;
@@ -31,7 +42,8 @@ void NS16550_init (NS16550_t com_port, int baud_divisor)
 	com_port->lcr = LCRVAL;
 	com_port->mcr = MCRVAL;
 	com_port->fcr = FCRVAL;
-#if defined(CONFIG_OMAP)
+
+#if defined(CONFIG_OMAP) && !defined(CONFIG_3430ZOOM2)
 #if defined(CONFIG_APTIX)
 	com_port->mdr1 = 3;	/* /13 mode so Aptix 6MHz can hit 115200 */
 #else

@@ -62,6 +62,25 @@ struct NS16550 {
 	unsigned long msr;		/* 6 r  */
 	unsigned long scr;		/* 7 rw */
 }; /* No need to pack an already aligned struct */
+#elif (CFG_NS16550_REG_SIZE == -2)
+struct NS16550 {
+	unsigned char rbr;		/* 0 r  */
+	int pad1:8;
+	unsigned char ier;		/* 1 rw */
+	int pad2:8;
+	unsigned char fcr;		/* 2 w  */
+	int pad3:8;
+	unsigned char lcr;		/* 3 rw */
+	int pad4:8;
+	unsigned char mcr;		/* 4 rw */
+	int pad5:8;
+	unsigned char lsr;		/* 5 r  */
+	int pad6:8;
+	unsigned char msr;		/* 6 r  */
+	int pad7:8;
+	unsigned char scr;		/* 7 rw */
+	int pad8:8;
+}; /* No need to pack an already aligned struct */
 #elif (CFG_NS16550_REG_SIZE == -4)
 struct NS16550 {
 	unsigned char rbr;		/* 0 */
