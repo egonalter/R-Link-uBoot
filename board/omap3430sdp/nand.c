@@ -257,7 +257,7 @@ static void omap_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
 		prefetch_status = gpmc_prefetch_status();
 		while (len) {
 			bytes_to_read  = (prefetch_status >> 24) & 0x7F;
-			for (i = 0; (i < bytes_to_read) && (len); i++ , len--)
+			for (i = 0; (i < bytes_to_read) && (len); i++, len--)
 				*buf++ = *(volatile uint8_t *)(nand_fifo_add);
 			prefetch_status = gpmc_prefetch_status();
 		}

@@ -88,7 +88,7 @@ extern void free( void * ); // <stdlib.h>
 static const char date_code[] = BUILD_NUMBER;
 
 static char * txbp; 				// TX buffer pointer (only 1 buffer)
-static volatile char * rxbp[PKTBUFSRX];   // Receiver buffer queue (IP layers)
+static volatile uchar * rxbp[PKTBUFSRX];   // Receiver buffer queue (IP layers)
 static struct rxQue rxAvlQue[PKTBUFSRX]; // Receive buffer available queue
 static int rxNdx = 0;				// Current receive buffer index
 static int rxNdxIn = 0; 			// Used for input

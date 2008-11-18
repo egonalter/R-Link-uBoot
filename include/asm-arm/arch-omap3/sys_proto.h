@@ -37,7 +37,7 @@ u32 get_cpu_type(void);
 u32 get_cpu_rev(void);
 u32 cpu_is_3410(void);
 u32 get_mem_type(void);
-u32 get_sysboot_value(void);
+inline u32 get_sysboot_value(void);
 u32 get_gpmc0_base(void);
 u32 is_gpmc_muxed(void);
 u32 get_gpmc0_type(void);

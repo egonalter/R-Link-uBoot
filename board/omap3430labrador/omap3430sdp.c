@@ -199,7 +199,7 @@ void s_init(void)
 
 	try_unlock_memory();
 
-#ifdef config_3430_as_3410
+#ifdef CONFIG_3430_AS_3410
 	/* setup the scalability control register for
 	 * 3430 to work in 3410 mode
 	 */
