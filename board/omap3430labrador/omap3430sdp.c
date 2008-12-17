@@ -561,10 +561,10 @@ int dram_init(void)
 	MUX_VAL(CP(MMC1_DAT2),      (IEN  | PTU | EN  | M0)) /*MMC1_DAT2*/\
 	MUX_VAL(CP(MMC1_DAT3),      (IEN  | PTU | EN  | M0)) /*MMC1_DAT3*/\
 	/* sim lab */\
-	MUX_VAL(CP(MMC1_DAT4),      (IEN  | PTD | EN | M4)) /*sim_io lab*/\
-	MUX_VAL(CP(MMC1_DAT5),      (IEN  | PTD | EN | M4)) /*sim_ck lab*/\
-	MUX_VAL(CP(MMC1_DAT6),      (IDIS | PTU | EN | M2)) /*sim_pwctrl lab*/\
-	MUX_VAL(CP(MMC1_DAT7),      (IDIS | PTU | EN | M2)) /*sim_rst lab*/\
+	MUX_VAL(CP(MMC1_DAT4),      (IDIS | PTU | EN | M0)) /*MMC1_DAT4*/\
+	MUX_VAL(CP(MMC1_DAT5),      (IDIS | PTU | EN | M0)) /*MMC1_DAT5*/\
+	MUX_VAL(CP(MMC1_DAT6),      (IDIS | PTU | EN | M0)) /*MMC1_DAT6*/\
+	MUX_VAL(CP(MMC1_DAT7),      (IEN  | PTU | EN | M0)) /*MMC1_DAT7*/\
 	/*uP_spi lab */\
 	MUX_VAL(CP(MMC2_CLK),       (IEN  | PTD | DIS | M1)) /*mcspi3_ck lab*/\
 	MUX_VAL(CP(MMC2_CMD),       (IEN  | PTD | DIS | M1)) /*mcspi3_simo lab*/\
