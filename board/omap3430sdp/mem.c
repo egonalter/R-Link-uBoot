@@ -350,7 +350,7 @@ next_mem_type:
 		__raw_writel(SDP_SDRC_ACTIM_CTRLA_0, SDRC_ACTIM_CTRLA_1);
 		__raw_writel(SDP_SDRC_ACTIM_CTRLB_0, SDRC_ACTIM_CTRLB_1);
 	}
-	__raw_writel(SDP_SDRC_RFR_CTRL, SDRC_RFR_CTRL + offset);
+	__raw_writel(SDP_SDRC_RFR_CTRL, SDRC_RFR_CTRL_0 + offset);
 
 	/* init sequence for mDDR/mSDR using manual commands (DDR is different) */
 	__raw_writel(CMD_NOP, SDRC_MANUAL_0 + offset);
