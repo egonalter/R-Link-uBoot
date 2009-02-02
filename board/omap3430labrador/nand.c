@@ -33,6 +33,10 @@
 
 #include <nand.h>
 
+#if (CONFIG_FASTBOOT)
+#include <fastboot.h>
+#endif
+
 unsigned char cs;
 volatile unsigned long gpmc_cs_base_add;
 
@@ -432,6 +436,62 @@ void board_nand_init(struct nand_chip *nand)
 	nand->waitfunc		= omap_nand_wait;
 	nand->chip_delay        = 50;
 #endif
+
+#if (CONFIG_FASTBOOT)
+	/* Initialize the name of fastboot flash name mappings */
+	fastboot_ptentry ptn[5] = {
+		{
+			.name   = "xloader",
+			.start  = 0x0000000,
+			.length = 0x0020000,
+			/* Written into the first 4 0x20000 blocks 
+			   Use HW ECC */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_REPEAT(4) | 
+			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC, 
+		},
+
+		{
+			.name   = "bootloader",
+			.start  = 0x0080000,
+			.length = 0x0080000,
+			/* Skip bad blocks on write 
+			   Use SW ECC */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK |
+			          FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
+		},
+		{
+			.name   = "environment",
+			.start  = SMNAND_ENV_OFFSET,  /* set in board config file */
+			.length = 0x0040000,
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
+		},
+
+		{
+			.name   = "kernel",
+			/* Test with start close to bad block
+			   The is dependent on the individual board. 
+			   Change to what is required */
+			/* .start  = 0x0a00000, */
+
+			/* The real start */
+			.start  = 0x0140000, 
+			.length = 0x0400000,
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK,
+		},
+		{
+			.name   = "system",
+			.start  = 0x0540000,
+			.length = 0x7AC0000,
+			.flags  = 0,
+		},
+		
+	};
+	int i;
+	for (i = 0; i < 5; i++) 
+		fastboot_flash_add_ptn (&ptn[i]);
+	
+#endif
+
 }
 
 

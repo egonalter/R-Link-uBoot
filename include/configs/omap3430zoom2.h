@@ -33,6 +33,7 @@
 #define CONFIG_OMAP34XX		1    /* which is a 34XX */
 #define CONFIG_OMAP3430		1    /* which is in a 3430 */
 #define CONFIG_3430ZOOM2	1    /* working on Zoom2 board */
+#define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
 //#define CONFIG_3430_AS_3410	1    /* true for 3430 in 3410 mode */
 
 #include <asm/arch/cpu.h>        /* get chip and board defs */
@@ -173,7 +174,7 @@
 /*
  * Miscellaneous configurable options
  */
-#define V_PROMPT                 "OMAP34XX ZOOM2 # "
+#define V_PROMPT                 "USB OMAP34XX ZOOM2 # "
 
 #define CFG_LONGHELP             /* undef to save memory */
 #define CFG_PROMPT               V_PROMPT
@@ -265,7 +266,7 @@
 # define CFG_ENV_IS_IN_FLASH	1
 #endif
 
-#define SMNAND_ENV_OFFSET	0xc0000 /* environment starts here  */
+#define SMNAND_ENV_OFFSET	0x0c0000 /* environment starts here  */
 
 #define CFG_ENV_SECT_SIZE	boot_flash_sec
 #define CFG_ENV_OFFSET		boot_flash_off
@@ -280,7 +281,11 @@
 #else
 #define CFG_FLASH_CFI		1    /* Flash memory is CFI compliant */
 #define CFG_FLASH_CFI_DRIVER	1    /* Use drivers/cfi_flash.c */
+#if (!ENV_IS_VARIABLE)
+/* saveenv fails when this variable is defined. 
+   If env is variable, do not use buffered writes */
 #define CFG_FLASH_USE_BUFFER_WRITE 1    /* Use buffered writes (~10x faster) */
+#endif
 #define CFG_FLASH_PROTECTION	1    /* Use hardware sector protection */
 #define CFG_FLASH_QUIET_TEST	1    /* Dont crib abt missing chips */
 #define CFG_FLASH_CFI_WIDTH	0x02
@@ -317,5 +322,9 @@ extern unsigned int boot_flash_type;
 #define NAND_DISABLE_CE(nand)
 #define NAND_ENABLE_CE(nand)
 #define NAND_WAIT_READY(nand)	udelay(10)
+
+/* Fastboot variables */
+#define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_1M)
+#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE SZ_32M
 
 #endif                           /* __CONFIG_H */
