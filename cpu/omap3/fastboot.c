@@ -38,21 +38,21 @@
 #define CONFUSED() printf ("How did we get here %s %d ? \n", __FILE__, __LINE__)
 
 /* memory mapped registers */
-static volatile	u8  *pwr        = (u8  *) OMAP34XX_USB_POWER;
-static volatile u16 *csr0       = (u16 *) OMAP34XX_USB_CSR0;
-static volatile u8  *index      = (u8  *) OMAP34XX_USB_INDEX;
-static volatile u8  *txfifosz   = (u8  *) OMAP34XX_USB_TXFIFOSZ;
-static volatile u8  *rxfifosz   = (u8  *) OMAP34XX_USB_RXFIFOSZ;
-static volatile u16 *txfifoadd  = (u16 *) OMAP34XX_USB_TXFIFOADD;
-static volatile u16 *rxfifoadd  = (u16 *) OMAP34XX_USB_RXFIFOADD;
+static volatile	u8  *pwr        = (volatile u8  *) OMAP34XX_USB_POWER;
+static volatile u16 *csr0       = (volatile u16 *) OMAP34XX_USB_CSR0;
+static volatile u8  *index      = (volatile u8  *) OMAP34XX_USB_INDEX;
+static volatile u8  *txfifosz   = (volatile u8  *) OMAP34XX_USB_TXFIFOSZ;
+static volatile u8  *rxfifosz   = (volatile u8  *) OMAP34XX_USB_RXFIFOSZ;
+static volatile u16 *txfifoadd  = (volatile u16 *) OMAP34XX_USB_TXFIFOADD;
+static volatile u16 *rxfifoadd  = (volatile u16 *) OMAP34XX_USB_RXFIFOADD;
 
 #define BULK_ENDPOINT 1
-static volatile u16 *peri_rxcsr = (u16 *) OMAP34XX_USB_RXCSR(BULK_ENDPOINT);
-static volatile u16 *rxmaxp     = (u16 *) OMAP34XX_USB_RXMAXP(BULK_ENDPOINT);
-static volatile u16 *rxcount    = (u16 *) OMAP34XX_USB_RXCOUNT(BULK_ENDPOINT);
-static volatile u16 *peri_txcsr = (u16 *) OMAP34XX_USB_TXCSR(BULK_ENDPOINT);
-static volatile u16 *txmaxp     = (u16 *) OMAP34XX_USB_TXMAXP(BULK_ENDPOINT);
-static volatile u8  *bulk_fifo  = (u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOINT);
+static volatile u16 *peri_rxcsr = (volatile u16 *) OMAP34XX_USB_RXCSR(BULK_ENDPOINT);
+static volatile u16 *rxmaxp     = (volatile u16 *) OMAP34XX_USB_RXMAXP(BULK_ENDPOINT);
+static volatile u16 *rxcount    = (volatile u16 *) OMAP34XX_USB_RXCOUNT(BULK_ENDPOINT);
+static volatile u16 *peri_txcsr = (volatile u16 *) OMAP34XX_USB_TXCSR(BULK_ENDPOINT);
+static volatile u16 *txmaxp     = (volatile u16 *) OMAP34XX_USB_TXMAXP(BULK_ENDPOINT);
+static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOINT);
 
 /* This is the TI USB vendor id */
 #define DEVICE_VENDOR_ID  0x0451
