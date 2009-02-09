@@ -28,6 +28,7 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/sys_info.h>
 #include <asm/arch/usb34xx.h>
+#include <asm/arch/led.h>
 #include <environment.h>
 #include <command.h>
 #include <usbdcore.h>
@@ -113,6 +114,8 @@ static u8 fastboot_bulk_fifo[0x0200];
 static char *device_strings[DEVICE_STRING_MANUFACTURER_INDEX+1];
 
 static struct cmd_fastboot_interface *fastboot_interface = NULL;
+
+
 
 static void fastboot_db_regs(void) 
 {
@@ -209,9 +212,13 @@ static void fastboot_bulk_endpoint_reset (void)
 
 static void fastboot_reset (void)
 {
+	OMAP3_LED_ERROR_ON ();
+
 	/* Kill the power */
 	*pwr = 0;
 	udelay (500000); /* 1/2 sec */
+
+	OMAP3_LED_ERROR_OFF ();
 
 	/* Reset */
 #ifdef CONFIG_USB_1_1_DEVICE
@@ -229,6 +236,8 @@ static void fastboot_reset (void)
 	/* Start off with a stall.. */
 	NAK_REQ();
 	udelay (2 * 500000); /* 1 sec */
+
+	OMAP3_LED_ERROR_ON ();
 
 	/* fastboot_db_regs(); */
 }
@@ -565,6 +574,7 @@ static int fastboot_poll_h (void)
 
 		if (count0 != 8) 
 		{
+			OMAP3_LED_ERROR_ON ();
 			CONFUSED();
 			ret = 1;
 		}
@@ -709,6 +719,9 @@ static int fastboot_resume (void)
 	{
 		outb (faddr, OMAP34XX_USB_FADDR);
 		set_address = 0;
+
+		/* If you have gotten here you are mostly ok */
+		OMAP3_LED_OK_ON ();
 	}
   
 	return fastboot_poll_h();
@@ -767,6 +780,7 @@ static int fastboot_rx (void)
 			/* If the interface did not handle the command */
 			if (err)
 			{
+				OMAP3_LED_ERROR_ON ();
 				CONFUSED();
 			}
 		}

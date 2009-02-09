@@ -34,6 +34,7 @@
 #define CONFIG_OMAP3430		1    /* which is in a 3430 */
 #define CONFIG_3430ZOOM2	1    /* working on Zoom2 board */
 #define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
+#define CONFIG_ZOOM2_LED	1    /* Using Zoom2 LED's */
 //#define CONFIG_3430_AS_3410	1    /* true for 3430 in 3410 mode */
 
 #include <asm/arch/cpu.h>        /* get chip and board defs */
