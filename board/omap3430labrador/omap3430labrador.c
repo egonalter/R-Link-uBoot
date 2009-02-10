@@ -765,6 +765,10 @@ void set_muxconf_regs(void)
 
 	/* Set ZOOM2 specific mux */
 #ifdef CONFIG_3430ZOOM2
+		/* IDCC modem Power On */
+	MUX_VAL(CP(CAM_D11),        (IEN  | PTU | EN | M4)) /*gpio_110*/
+	MUX_VAL(CP(CAM_D4),         (IEN  | PTU | EN | M4)) /*GPIO_103 */
+
 		/* GPMC CS7 has LAN9211 device */
 	MUX_VAL(CP(GPMC_nCS7),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS7 lab*/
 	MUX_VAL(CP(McBSP1_DX),      (IEN  | PTD | DIS | M4)) /*gpio_158 lab: for LAN9221 on zoom2*/
