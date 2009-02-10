@@ -34,6 +34,8 @@
 #include <usbdcore.h>
 #include <fastboot.h>
 
+#if defined(CONFIG_FASTBOOT)
+
 #include "usb_debug_macros.h"
 
 #define CONFUSED() printf ("How did we get here %s %d ? \n", __FILE__, __LINE__)
@@ -979,7 +981,9 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 #elif defined (CONFIG_3430LABRADOR)
 	device_strings[DEVICE_STRING_PRODUCT_INDEX]       = "Zoom";
 #else
+	/* Default, An error message to prompt user */
 #error "Need a product name for fastboot"
+
 #endif
 	/* These are just made up */
 	device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] = "00123";
@@ -1011,3 +1015,4 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 	return ret;
 }
 
+#endif /* CONFIG_FASTBOOT */

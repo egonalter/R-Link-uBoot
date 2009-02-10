@@ -243,12 +243,12 @@ extern int fastboot_flash_write(fastboot_ptentry *ptn, unsigned extra_per_page,
 #else
 
 /* Stubs for when CONFIG_FASTBOOT is not defined */
-#define fastboot_init() 1
+#define fastboot_init(a) 1
 #define fastboot_shutdown() 
 #define fastboot_poll() 1
 #define fastboot_is_highspeed() 0
 #define fastboot_fifo_size() 0
-#define fastboot_tx_reply(a,b) 1
+#define fastboot_tx_status(a, b) 1
 #define fastboot_getvar(a,b) 1
 
 #define fastboot_flash_add_ptn(a) 
