@@ -14,6 +14,7 @@
 
 #include <common.h>
 #include <i2c.h>
+#include <asm/arch/led.h>
 
 /* I2C chip addresses */
 
@@ -444,12 +445,35 @@ static int twl4030_get_usb_charger_voltage(void)
 /*
  * Battery charging main function called from board-specific file
  */
+
 int twl4030_init_battery_charging(void)
 {
 	u8 batstsmchg, batstspchg, hwsts;
 	int battery_volt = 0, charger_present = 0;
 	int ret = 0;
 	
+
+#ifdef CONFIG_3430ZOOM2
+	/* For Zoom2 enable Main charge Automatic mode:
+	 * by enabling MADC clocks
+	 */
+
+	/* Red LED - on  */
+	omap3_zoom2_led_red_on();
+
+	/* Enable AC charging */
+	ret = clear_n_set(TWL4030_CHIP_INTBR, 0,
+		(MADC_HFCLK_EN | DEFAULT_MADC_CLK_EN), REG_GPBR1);
+
+	udelay(100);
+
+	/* Red LED - off  */
+	omap3_zoom2_led_red_off();
+
+	/* Done for Zoom2 */
+	return 0;
+#endif
+
 	/* check for battery presence */
 	ret = twl4030_i2c_read_u8(TWL4030_CHIP_MAIN_CHARGE, &batstsmchg,
 				  REG_BCIMFSTS3);
