@@ -467,8 +467,16 @@ int twl4030_init_battery_charging(void)
 
 	udelay(100);
 
+
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0xE7,
+			REG_BCIMFKEY);
+	/* set MAX charging current */
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0xFF,
+			REG_BCIIREF1);
+
 	/* Red LED - off  */
 	omap3_zoom2_led_red_off();
+
 
 	/* Done for Zoom2 */
 	return 0;
