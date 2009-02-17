@@ -32,7 +32,8 @@ OBJS	:= ../omap3430labrador/omap3430labrador.o \
 	../omap3430labrador/nand.o \
 	../omap3430labrador/twl4030_bci.o \
 	led.o \
-	zoom2_serial.o
+	zoom2_serial.o \
+	debug_board.o
 
 SOBJS	:= ../omap3430labrador/lowlevel_init.o
 

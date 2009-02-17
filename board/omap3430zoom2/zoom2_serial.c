@@ -24,53 +24,74 @@
 
 #include "zoom2_serial.h"
 
+int zoom2_debug_board_connected(void);
+
 int quad_init_dev(unsigned long base)
 {
-	NS16550_t port = (NS16550_t) base;
-	int clock_divisor = CFG_NS16550_CLK / 16 / CONFIG_BAUDRATE;
+	/* The Quad UART is on the debug board.
+	   Check if the debug board is attached before using the UART */
+	if (zoom2_debug_board_connected()) {
+		NS16550_t port = (NS16550_t) base;
+		int clock_divisor = CFG_NS16550_CLK / 16 / CONFIG_BAUDRATE;
 
-	NS16550_init(port, clock_divisor);
-
+		NS16550_init(port, clock_divisor);
+	}
+	/* We have to lie here, otherwise the board init code will hang
+	   on the check */
 	return 0;
 }
 
 void quad_putc_dev(unsigned long base, const char c)
 {
-	NS16550_t port = (NS16550_t) base;
+	if (zoom2_debug_board_connected()) {
+		NS16550_t port = (NS16550_t) base;
 
-	if (c == '\n')
-		quad_putc_dev(base, '\r');
+		if (c == '\n')
+			quad_putc_dev(base, '\r');
 
-	NS16550_putc(port, c);
+		NS16550_putc(port, c);
+	}
 }
 
 void quad_puts_dev(unsigned long base, const char *s)
 {
-	while (*s)
-		quad_putc_dev(base, *s++);
+	if (zoom2_debug_board_connected()) {
+		while (*s)
+			quad_putc_dev(base, *s++);
+	}
 }
 
 int quad_getc_dev(unsigned long base)
 {
-	NS16550_t port = (NS16550_t) base;
+	if (zoom2_debug_board_connected()) {
+		NS16550_t port = (NS16550_t) base;
 
-	return NS16550_getc(port);
+		return NS16550_getc(port);
+	} else {
+		return 0;
+	}
 }
 
 int quad_tstc_dev(unsigned long base)
 {
-	NS16550_t port = (NS16550_t) base;
+	if (zoom2_debug_board_connected()) {
+		NS16550_t port = (NS16550_t) base;
 
-	return NS16550_tstc(port);
+		return NS16550_tstc(port);
+	} else {
+		return 0;
+	}
 }
 
 void quad_setbrg_dev(unsigned long base)
 {
-	NS16550_t port = (NS16550_t) base;
+	if (zoom2_debug_board_connected()) {
+		NS16550_t port = (NS16550_t) base;
 
-	int clock_divisor = CFG_NS16550_CLK / 16 / CONFIG_BAUDRATE;
+		int clock_divisor = CFG_NS16550_CLK / 16 / CONFIG_BAUDRATE;
 
-	NS16550_reinit(port, clock_divisor);
+		NS16550_reinit(port, clock_divisor);
+	}
 }
 
 QUAD_INIT(0)

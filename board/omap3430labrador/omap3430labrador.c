@@ -286,20 +286,24 @@ int misc_init_r(void)
 		/* GPIO LEDs
 		   154 blue , bank 5, index 26
 		   173 red  , bank 6, index 13
-		    61 blue2, bank 2, index 29 */
+		    61 blue2, bank 2, index 29
+
+		   GPIO to query for debug board
+		   158 db board query, bank 5, index 30
+		   This is an input only, no additional setup is needed */
 
 		gpio_t *gpio2_base = (gpio_t *)OMAP34XX_GPIO2_BASE;
 		gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
 		gpio_t *gpio6_base = (gpio_t *)OMAP34XX_GPIO6_BASE;
 
 		/* Configure GPIOs to output */
-		sr32(&gpio2_base->oe, 29, 1, 0);
-		sr32(&gpio5_base->oe, 26, 1, 0);
-		sr32(&gpio6_base->oe, 13, 1, 0);
+		sr32((u32)&gpio2_base->oe, 29, 1, 0);
+		sr32((u32)&gpio5_base->oe, 26, 1, 0);
+		sr32((u32)&gpio6_base->oe, 13, 1, 0);
 
-		sr32(&gpio6_base->cleardataout, 13, 1, 1); /* red off */
-		sr32(&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
-		sr32(&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
+		sr32((u32)&gpio6_base->cleardataout, 13, 1, 1); /* red off */
+		sr32((u32)&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
+		sr32((u32)&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
 	}
 #endif
 	ether_init();	/* better done here so timers are init'ed */
