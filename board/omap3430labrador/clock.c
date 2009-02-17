@@ -313,6 +313,20 @@ void per_clocks_enable(void)
 	sr32(CM_ICLKEN_PER, 11, 1, 0x1);
 #endif
 
+#ifdef CONFIG_3430ZOOM2
+	/* Zoom2 uses GPIO to control LED's and to detect if
+	   the debug board is present */
+	/* GPIO2 */
+	sr32(CM_FCLKEN_PER, CLKEN_PER_EN_GPIO2_BIT, 1, 1);
+	sr32(CM_ICLKEN_PER, CLKEN_PER_EN_GPIO2_BIT, 1, 1);
+	/* GPIO5 */
+	sr32(CM_FCLKEN_PER, CLKEN_PER_EN_GPIO5_BIT, 1, 1);
+	sr32(CM_ICLKEN_PER, CLKEN_PER_EN_GPIO5_BIT, 1, 1);
+	/* GPIO6 */
+	sr32(CM_FCLKEN_PER, CLKEN_PER_EN_GPIO6_BIT, 1, 1);
+	sr32(CM_ICLKEN_PER, CLKEN_PER_EN_GPIO6_BIT, 1, 1);
+#endif
+
 #ifdef CONFIG_DRIVER_OMAP34XX_I2C
 	/* Turn on all 3 I2C clocks*/
 	sr32(CM_FCLKEN1_CORE, 15, 3, 0x7);

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008
+ * (C) Copyright 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
  *
@@ -21,35 +21,51 @@
 #include <common.h>
 #include <asm/arch/cpu.h>
 #include <asm/io.h>
-#include <asm/arch/mux.h>
+#include <asm/arch/sys_proto.h>
 
-#define 	MUX_VAL(OFFSET,VALUE)\
-		__raw_writew((VALUE), OMAP34XX_CTRL_BASE + (OFFSET));
+/* GPIO LEDs
+   173 red  , bank 6, index 13
+   154 blue , bank 5, index 26
+   61 blue2, bank 2, index 29 */
 
-#define		CP(x)	(CONTROL_PADCONF_##x)
 
 #if defined (CONFIG_ZOOM2_LED)
 
-void omap3_zoom2_led_red_on ()
+void omap3_zoom2_led_red_off(void)
 {
-  	MUX_VAL(CP(McBSP4_DX),    (IEN  | PTD | EN | M4))  /* gpio_154 blue */
-	MUX_VAL(CP(McSPI1_SOMI),  (IEN  | PTU | EN | M4))  /* gpio_172 red */
+	gpio_t *gpio6_base = (gpio_t *)OMAP34XX_GPIO6_BASE;
+
+	sr32((u32)&gpio6_base->cleardataout, 13, 1, 1); /* red off */
 }
 
-void omap3_zoom2_led_red_off ()
+void omap3_zoom2_led_blue_off(void)
 {
-	MUX_VAL(CP(McSPI1_SOMI),  (IEN  | PTD | EN | M4))  /* gpio_172 red */
+	gpio_t *gpio2_base = (gpio_t *)OMAP34XX_GPIO2_BASE;
+	gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
+
+	sr32((u32)&gpio5_base->cleardataout, 26, 1, 1);   /* blue off */
+	sr32((u32)&gpio2_base->cleardataout, 29, 1, 1);   /* blue 2 off */
 }
 
-void omap3_zoom2_led_blue_on ()
+void omap3_zoom2_led_red_on(void)
 {
-	MUX_VAL(CP(McSPI1_SOMI),  (IEN  | PTD | EN | M4))  /* gpio_172 red */
- 	MUX_VAL(CP(McBSP4_DX),    (IEN  | PTU | EN | M4))  /* gpio_154 blue */
+	gpio_t *gpio6_base = (gpio_t *)OMAP34XX_GPIO6_BASE;
+
+	omap3_zoom2_led_blue_off();
+
+	sr32((u32)&gpio6_base->setdataout, 13, 1, 1); /* red on */
 }
 
-void omap3_zoom2_led_blue_off ()
+void omap3_zoom2_led_blue_on(void)
 {
- 	MUX_VAL(CP(McBSP4_DX),    (IEN  | PTD | EN | M4))  /* gpio_154 blue */
+	gpio_t *gpio2_base = (gpio_t *)OMAP34XX_GPIO2_BASE;
+	gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
+
+	omap3_zoom2_led_red_off();
+
+	sr32((u32)&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
+	sr32((u32)&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
 }
+
 
 #endif /* CONFIG_ZOOM2_LED */

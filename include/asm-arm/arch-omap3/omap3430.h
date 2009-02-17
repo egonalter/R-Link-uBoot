@@ -94,6 +94,77 @@
 #define SYNC_32KTIMER_BASE		(0x48320000)
 #define S32K_CR				(SYNC_32KTIMER_BASE+0x10)
 
+/* OMAP3 GPIO registers */
+#define OMAP34XX_GPIO1_BASE		0x48310000
+#define OMAP34XX_GPIO2_BASE		0x49050000
+#define OMAP34XX_GPIO3_BASE		0x49052000
+#define OMAP34XX_GPIO4_BASE		0x49054000
+#define OMAP34XX_GPIO5_BASE		0x49056000
+#define OMAP34XX_GPIO6_BASE		0x49058000
+
+#ifndef __ASSEMBLY__
+typedef struct gpio {
+	unsigned char res1[0x34];
+	unsigned int oe;		/* 0x34 */
+	unsigned char res2[0x58];
+	unsigned int cleardataout;	/* 0x90 */
+	unsigned int setdataout;	/* 0x94 */
+} gpio_t;
+#endif
+
+#define GPIO0				(0x1 << 0)
+#define GPIO1				(0x1 << 1)
+#define GPIO2				(0x1 << 2)
+#define GPIO3				(0x1 << 3)
+#define GPIO4				(0x1 << 4)
+#define GPIO5				(0x1 << 5)
+#define GPIO6				(0x1 << 6)
+#define GPIO7				(0x1 << 7)
+#define GPIO8				(0x1 << 8)
+#define GPIO9				(0x1 << 9)
+#define GPIO10				(0x1 << 10)
+#define GPIO11				(0x1 << 11)
+#define GPIO12				(0x1 << 12)
+#define GPIO13				(0x1 << 13)
+#define GPIO14				(0x1 << 14)
+#define GPIO15				(0x1 << 15)
+#define GPIO16				(0x1 << 16)
+#define GPIO17				(0x1 << 17)
+#define GPIO18				(0x1 << 18)
+#define GPIO19				(0x1 << 19)
+#define GPIO20				(0x1 << 20)
+#define GPIO21				(0x1 << 21)
+#define GPIO22				(0x1 << 22)
+#define GPIO23				(0x1 << 23)
+#define GPIO24				(0x1 << 24)
+#define GPIO25				(0x1 << 25)
+#define GPIO26				(0x1 << 26)
+#define GPIO27				(0x1 << 27)
+#define GPIO28				(0x1 << 28)
+#define GPIO29				(0x1 << 29)
+#define GPIO30				(0x1 << 30)
+#define GPIO31				(0x1 << 31)
+
+/* CM_FCLKEN_PER and CM_ICLKEN_PER */
+#define CLKEN_PER_EN_GPIO6_BIT           17
+#define CLKEN_PER_EN_GPIO5_BIT           16
+#define CLKEN_PER_EN_GPIO4_BIT           15
+#define CLKEN_PER_EN_GPIO3_BIT           14
+#define CLKEN_PER_EN_GPIO2_BIT           13
+#define CLKEN_PER_EN_WDT3_BIT            12
+#define CLKEN_PER_EN_UART3_BIT           11
+#define CLKEN_PER_EN_GPT9_BIT            10
+#define CLKEN_PER_EN_GPT8_BIT             9
+#define CLKEN_PER_EN_GPT7_BIT             8
+#define CLKEN_PER_EN_GPT6_BIT             7
+#define CLKEN_PER_EN_GPT5_BIT             6
+#define CLKEN_PER_EN_GPT4_BIT             5
+#define CLKEN_PER_EN_GPT3_BIT             4
+#define CLKEN_PER_EN_GPT2_BIT             3
+#define CLKEN_PER_EN_MCBSP4_BIT           2
+#define CLKEN_PER_EN_MCBSP3_BIT           1
+#define CLKEN_PER_EN_MCBSP2_BIT           0
+
 /*
  * SDP3430 specific Section
  */

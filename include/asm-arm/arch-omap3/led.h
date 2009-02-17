@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008
+ * (C) Copyright 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
  *
@@ -24,10 +24,10 @@
 
 #if defined (CONFIG_ZOOM2_LED)
 
-extern void omap3_zoom2_led_red_on ();
-extern void omap3_zoom2_led_red_off ();
-extern void omap3_zoom2_led_blue_on ();
-extern void omap3_zoom2_led_blue_off ();
+extern void omap3_zoom2_led_red_on(void);
+extern void omap3_zoom2_led_red_off(void);
+extern void omap3_zoom2_led_blue_on(void);
+extern void omap3_zoom2_led_blue_off(void);
 
 #define OMAP3_LED_OK_ON() omap3_zoom2_led_blue_on ()
 #define OMAP3_LED_OK_OFF() omap3_zoom2_led_blue_off ()
