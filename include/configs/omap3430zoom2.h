@@ -75,32 +75,21 @@
  * NS16550 Configuration:
  *  Zoom2 has external TL16CP754C
  */
+#define CONFIG_SERIAL_MULTI      1
+/* 0 - 1 : first  USB with respect to the left edge of the debug board
+   2 - 3 : second USB with respect to the left edge of the debug board */
+#define DEFAULT_ZOOM2_SERIAL_DEVICE (&zoom2_serial_device0)
+
 #define V_NS16550_CLK            (1843200)  /* 1.8432 Mhz */
 
 #define CFG_NS16550
-#define CFG_NS16550_SERIAL
 #define CFG_NS16550_REG_SIZE     (-2)
 #define CFG_NS16550_CLK          V_NS16550_CLK
-//#define CFG_NS16550_COM1         OMAP34XX_UART1
-//#define CFG_NS16550_COM2         OMAP34XX_UART2
-//#define CFG_NS16550_COM3         OMAP34XX_UART3
-/* Quad Uart debug console on COM4 */
-#define CFG_NS16550_COM4        SERIAL_TL16CP754C_BASE
-//#define CFG_NS16550_COM5      SERIAL_TL16CP754C_BASE + 0x100
-//#define CFG_NS16550_COM6      SERIAL_TL16CP754C_BASE + 0x200
-//#define CFG_NS16550_COM7      SERIAL_TL16CP754C_BASE + 0x300
+#define CONFIG_BAUDRATE          115200
+#define CFG_BAUDRATE_TABLE       {115200}
 
-
-/*
- * select serial console configuration
- */
-//#define CONFIG_SERIAL3           3    /* UART3 on board */
 /* allow to overwrite serial and ethaddr */
 #define CONFIG_ENV_OVERWRITE
-#define CONFIG_CONS_INDEX        4
-#define CONFIG_BAUDRATE          115200
-#define CFG_BAUDRATE_TABLE       {4800, 9600, 19200, 38400, 57600, 115200}
-
 #define CONFIG_MMC              1
 #define CFG_MMC_BASE            0xF0000000
 #define CONFIG_DOS_PARTITION    1

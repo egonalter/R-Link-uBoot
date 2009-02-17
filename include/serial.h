@@ -28,6 +28,12 @@ extern struct serial_device serial0_device;
 extern struct serial_device serial1_device;
 #endif
 
+#if defined(CONFIG_3430ZOOM2)
+extern struct serial_device zoom2_serial_device0;
+extern struct serial_device zoom2_serial_device1;
+extern struct serial_device zoom2_serial_device2;
+extern struct serial_device zoom2_serial_device3;
+#endif
 
 extern void serial_initialize(void);
 extern void serial_devices_init(void);

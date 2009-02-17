@@ -47,7 +47,10 @@ struct serial_device *default_serial_console (void)
 #else
 		return &serial0_device;
 #endif
+#elif defined(CONFIG_3430ZOOM2)
+		return DEFAULT_ZOOM2_SERIAL_DEVICE;
 #else
+
 #error No default console
 #endif
 }
@@ -82,6 +85,13 @@ void serial_initialize (void)
  || defined(CONFIG_405EP) || defined(CONFIG_MPC5xxx)
 	serial_register(&serial0_device);
 	serial_register(&serial1_device);
+#endif
+
+#if defined(CONFIG_3430ZOOM2)
+	serial_register(&zoom2_serial_device0);
+	serial_register(&zoom2_serial_device1);
+	serial_register(&zoom2_serial_device2);
+	serial_register(&zoom2_serial_device3);
 #endif
 
 	serial_assign (default_serial_console ()->name);
