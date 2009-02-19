@@ -29,19 +29,27 @@
 
 static int debug_board_connected = DEBUG_BOARD_CONNECTED;
 
+static void zoom2_debug_board_detect(void)
+{
+	unsigned int val;
+	/* GPIO to query for debug board
+	   158 db board query, bank 5, index 30 */
+	gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
+
+	val = __raw_readl(&gpio5_base->datain);
+
+	/* Check the bit for gpio 158 */
+	if (!(val & (1 << 30)))
+		debug_board_connected = DEBUG_BOARD_NOT_CONNECTED;
+}
+
 int zoom2_debug_board_connected(void)
 {
-	if (debug_board_connected == DEBUG_BOARD_CONNECTED) {
-		/* GPIO to query for debug board
-		   158 db board query, bank 5, index 30 */
-		   unsigned int val;
-		gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
+	static int first_time = 1;
 
-		val = __raw_readl(&gpio5_base->datain);
-
-		/* Check the bit for gpio 158 */
-		if (!(val & (1 << 30)))
-			debug_board_connected = DEBUG_BOARD_NOT_CONNECTED;
+	if (first_time) {
+		zoom2_debug_board_detect();
+		first_time = 0;
 	}
 	return debug_board_connected;
 }
