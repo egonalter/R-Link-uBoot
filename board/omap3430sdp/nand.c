@@ -326,6 +326,11 @@ void board_nand_init(struct nand_chip *nand)
 	nand->read_buf          = omap_nand_read_buf;
 	nand->write_buf         = omap_nand_write_buf;
 	nand->eccmode           = NAND_ECC_SOFT;
+#if (CFG_SW_ECC_512)
+	nand->eccsize		= 512;
+#else
+	nand->eccsize		= 256;
+#endif
 /* if RDY/BSY line is connected to OMAP then use the omap ready funcrtion
  * and the generic nand_wait function which reads the status register after
  * monitoring the RDY/BSY line. Otherwise use a standard chip delay which
