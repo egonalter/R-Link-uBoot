@@ -317,8 +317,8 @@ extern unsigned int boot_flash_type;
 #define NAND_WAIT_READY(nand)	udelay(10)
 
 /* Fastboot variables */
-#define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_1M)
-#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE SZ_32M
+#define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_16M)
+#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_128M - SZ_16M)
 
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE

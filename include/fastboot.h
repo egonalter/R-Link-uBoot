@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008
+ * (C) Copyright 2008 - 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
  *
@@ -95,7 +95,8 @@ struct cmd_fastboot_interface
 	   Returns 1 on failure	
 
 	   Set by cmd_fastboot	*/
-	int (*rx_handler)(const unsigned char *buffer, unsigned int buffer_size);
+	int (*rx_handler)(const unsigned char *buffer,
+			  unsigned int buffer_size);
 	
 	/* This function is called when an exception has
 	   occurred in the device code and the state
@@ -131,7 +132,8 @@ struct cmd_fastboot_interface
 	unsigned char *transfer_buffer;
 
 	/* How big is the transfer buffer
-	   Controlled by the configure variable CFG_FASTBOOT_TRANSFER_BUFFER_SIZE 
+	   Controlled by the configure variable
+	   CFG_FASTBOOT_TRANSFER_BUFFER_SIZE
 
 	   Set by board	*/ 
 	unsigned int transfer_buffer_size;
@@ -180,6 +182,12 @@ struct fastboot_ptentry
 /* Sets the ECC to software before writing
    HW and SW ECC should not both be set. */
 #define FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC           0x00000080
+
+/* Write the file with write.i */
+#define FASTBOOT_PTENTRY_FLAGS_WRITE_I                0x00000100
+
+/* Write the file with write.yaffs */
+#define FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS            0x00000200
 
 #if (CONFIG_FASTBOOT)
 /* Initizes the board specific fastboot 

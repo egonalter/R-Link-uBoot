@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008
+ * (C) Copyright 2008 - 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
  *
@@ -88,12 +88,14 @@ static struct cmd_fastboot_interface interface =
 	.transfer_buffer_size  = 0,
 };
 
-static unsigned int download_size = 0;
-static unsigned int download_bytes = 0;
+static unsigned int download_size;
+static unsigned int download_bytes;
+static unsigned int download_bytes_unpadded;
+static unsigned int download_error;
 
-static void save_contiguous_block_values (struct fastboot_ptentry *ptn, 
-					  unsigned int offset, 
-					  unsigned int size)
+static void save_block_values(struct fastboot_ptentry *ptn,
+			      unsigned int offset,
+			      unsigned int size)
 {
 	struct fastboot_ptentry *env_ptn;
 
@@ -195,6 +197,236 @@ static void reset_handler ()
 	/* If there was a download going on, bail */
 	download_size = 0;
 	download_bytes = 0;
+	download_bytes_unpadded = 0;
+	download_error = 0;
+}
+
+static int write_to_ptn(struct fastboot_ptentry *ptn)
+{
+	int ret = 1;
+	char start[32], length[32];
+	char wstart[32], wlength[32], addr[32];
+	char ecc_type[32], write_type[32];
+	int repeat, repeat_max;
+
+	char *lock[5]   = { "nand", "lock",   NULL, NULL, NULL, };
+	char *unlock[5] = { "nand", "unlock", NULL, NULL, NULL,	};
+	char *write[6]  = { "nand", "write",  NULL, NULL, NULL, NULL, };
+	char *ecc[4]    = { "nand", "ecc",    NULL, NULL, };
+	char *erase[5]  = { "nand", "erase",  NULL, NULL, NULL, };
+
+	lock[2] = unlock[2] = erase[2] = start;
+	lock[3] = unlock[3] = erase[3] = length;
+
+	write[1] = write_type;
+	write[2] = addr;
+	write[3] = wstart;
+	write[4] = wlength;
+
+	printf("flashing '%s'\n", ptn->name);
+
+	/* Which flavor of write to use */
+	if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_I)
+		sprintf(write_type, "write.i");
+#ifdef CFG_NAND_YAFFS_WRITE
+	else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS)
+		sprintf(write_type, "write.yaffs");
+#endif
+	else
+		sprintf(write_type, "write");
+
+
+	/* Some flashing requires the nand's ecc to be set */
+	ecc[2] = ecc_type;
+	if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) &&
+	    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC)) {
+		/* Both can not be true */
+		printf("Warning can not do hw and sw ecc for partition '%s'\n",
+		       ptn->name);
+		printf("Ignoring these flags\n");
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) {
+		sprintf(ecc_type, "hw");
+		do_nand(NULL, 0, 3, ecc);
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC) {
+		sprintf(ecc_type, "sw");
+		do_nand(NULL, 0, 3, ecc);
+	}
+
+	/* Some flashing requires writing the same data in multiple,
+	   consecutive flash partitions */
+	repeat_max = 1;
+	if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_REPEAT_MASK) {
+		if (ptn->flags &
+		    FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK) {
+			printf("Warning can not do both 'contiguous block' and 'repeat' writes for for partition '%s'\n", ptn->name);
+			printf("Ignoring repeat flag\n");
+		} else {
+			repeat_max = ptn->flags &
+				FASTBOOT_PTENTRY_FLAGS_REPEAT_MASK;
+		}
+	}
+
+	/* Unlock the whole partition instead of trying to
+	   manage special cases */
+	sprintf(length, "0x%x", ptn->length * repeat_max);
+
+	for (repeat = 0; repeat < repeat_max; repeat++) {
+		sprintf(start, "0x%x", ptn->start + (repeat * ptn->length));
+
+		do_nand(NULL, 0, 4, unlock);
+		do_nand(NULL, 0, 4, erase);
+
+		if ((ptn->flags &
+		     FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK) &&
+		    (ptn->flags &
+		     FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK)) {
+			/* Both can not be true */
+			printf("Warning can not do 'next good block' and 'contiguous block' for partition '%s'\n", ptn->name);
+			printf("Ignoring these flags\n");
+		} else if (ptn->flags &
+			   FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK) {
+			/* Keep writing until you get a good block
+			   transfer_buffer should already be aligned */
+			if (interface.nand_block_size) {
+				unsigned int blocks = download_bytes /
+					interface.nand_block_size;
+				unsigned int i = 0;
+				unsigned int offset = 0;
+
+				sprintf(wlength, "0x%x",
+					interface.nand_block_size);
+				while (i < blocks) {
+					/* Check for overflow */
+					if (offset >= ptn->length)
+						break;
+
+					/* download's address only advance
+					   if last write was successful */
+					sprintf(addr, "0x%x",
+						interface.transfer_buffer +
+						(i * interface.nand_block_size));
+
+					/* nand's address always advances */
+					sprintf(wstart, "0x%x",
+						ptn->start + (repeat * ptn->length) + offset);
+
+					ret = do_nand(NULL, 0, 5, write);
+					if (ret)
+						break;
+					else
+						i++;
+
+					/* Go to next nand block */
+					offset += interface.nand_block_size;
+				}
+			} else {
+				printf("Warning nand block size can not be 0 when using 'next good block' for partition '%s'\n", ptn->name);
+				printf("Ignoring write request\n");
+			}
+		} else if (ptn->flags &
+			 FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK) {
+			/* Keep writing until you get a good block
+			   transfer_buffer should already be aligned */
+			if (interface.nand_block_size) {
+				if (0 == nand_curr_device) {
+					nand_info_t *nand;
+					unsigned long off;
+					unsigned int ok_start;
+
+					nand = &nand_info[nand_curr_device];
+
+					printf("\nDevice %d bad blocks:\n",
+					       nand_curr_device);
+
+					/* Initialize the ok_start to the
+					   start of the partition
+					   Then try to find a block large
+					   enough for the download */
+					ok_start = ptn->start;
+
+					/* It is assumed that the start and
+					   length are multiples of block size */
+					for (off = ptn->start;
+					     off < ptn->start + ptn->length;
+					     off += nand->erasesize) {
+						if (nand_block_isbad(nand, off)) {
+							/* Reset the ok_start
+							   to the next block */
+							ok_start = off +
+								nand->erasesize;
+						}
+
+						/* Check if we have enough
+						   blocks */
+						if ((ok_start - off) >=
+						    download_bytes)
+							break;
+					}
+
+					/* Check if there is enough space */
+					if (ok_start + download_bytes <=
+					    ptn->start + ptn->length) {
+						sprintf(addr,    "0x%x", interface.transfer_buffer);
+						sprintf(wstart,  "0x%x", ok_start);
+						sprintf(wlength, "0x%x", download_bytes);
+
+						ret = do_nand(NULL, 0, 5, write);
+
+						/* Save the results into an
+						   environment variable on the
+						   format
+						   ptn_name + 'offset'
+						   ptn_name + 'size'  */
+						if (ret) {
+							/* failed */
+							save_block_values(ptn, 0, 0);
+						} else {
+							/* success */
+							save_block_values(ptn, ok_start, download_bytes);
+						}
+					} else {
+						printf("Error could not find enough contiguous space in partition '%s' \n", ptn->name);
+						printf("Ignoring write request\n");
+					}
+				} else {
+					/* TBD : Generalize flash handling */
+					printf("Error only handling 1 NAND per board");
+					printf("Ignoring write request\n");
+				}
+			} else {
+				printf("Warning nand block size can not be 0 when using 'continuous block' for partition '%s'\n", ptn->name);
+				printf("Ignoring write request\n");
+			}
+		} else {
+			/* Normal case */
+			sprintf(addr,    "0x%x", interface.transfer_buffer);
+			sprintf(wstart,  "0x%x", ptn->start +
+				(repeat * ptn->length));
+			sprintf(wlength, "0x%x", download_bytes);
+#ifdef CFG_NAND_YAFFS_WRITE
+			if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS)
+				sprintf(wlength, "0x%x",
+					download_bytes_unpadded);
+#endif
+
+			ret = do_nand(NULL, 0, 5, write);
+
+			if (0 == repeat) {
+				if (ret) /* failed */
+					save_block_values(ptn, 0, 0);
+				else     /* success */
+					save_block_values(ptn, ptn->start,
+							  download_bytes);
+			}
+		}
+
+		do_nand(NULL, 0, 4, lock);
+
+		if (ret)
+			break;
+	}
+
+	return ret;
 }
 
 static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
@@ -226,22 +458,36 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			download_bytes += transfer_size;
 			
 			/* Check if transfer is done */
-			if (download_bytes >= download_size)
-			{
-				/* Reset global transfer variable, 
-				   Keep download_bytes because it will be 
+			if (download_bytes >= download_size) {
+				/* Reset global transfer variable,
+				   Keep download_bytes because it will be
 				   used in the next possible flashing command */
 				download_size = 0;
 
-				/* Everything has transferred, 
-				   send the OK response */
-				sprintf(response,"OKAY");
+				if (download_error) {
+					/* There was an earlier error */
+					sprintf(response, "ERROR");
+				} else {
+					/* Everything has transferred,
+					   send the OK response */
+					sprintf(response, "OKAY");
+				}
 				fastboot_tx_status(response, strlen(response));
 
 				printf ("\ndownloading of %d bytes finished\n",
 					download_bytes);
 
-				/* Pad the download to be nand block aligned */
+				/* Pad to block length
+				   In most cases, padding the download to be
+				   block aligned is correct. The exception is
+				   when the following flash writes to the oob
+				   area.  This happens when the image is a
+				   YAFFS image.  Since we do not know what
+				   the download is until it is flashed,
+				   go ahead and pad it, but save the true
+				   size in case if should have
+				   been unpadded */
+				download_bytes_unpadded = download_bytes;
 				if (interface.nand_block_size)
 				{
 					if (download_bytes % 
@@ -261,16 +507,24 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 					}
 				}
 			}
-			else if (download_bytes && 
-				 0 == (download_bytes % (16 * interface.nand_block_size)))
+
+			/* Provide some feedback */
+			if (download_bytes &&
+			    0 == (download_bytes %
+				  (16 * interface.nand_block_size)))
 			{
-				/* Some feeback that the download is happening */
-				printf (".");
-				if (0 == (download_bytes % (80 * 16 * interface.nand_block_size)))
-					printf ("\n");
+				/* Some feeback that the
+				   download is happening */
+				if (download_error)
+					printf("X");
+				else
+					printf(".");
+				if (0 == (download_bytes %
+					  (80 * 16 *
+					   interface.nand_block_size)))
+					printf("\n");
 				
 			}
-			
 		}
 		else
 		{
@@ -393,7 +647,6 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			
 			}
 			ret = 0;
-
 		}
 
 		/* download
@@ -406,6 +659,8 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			download_size = simple_strtoul (cmdbuf + 9, NULL, 16);
 			/* Reset the bytes count, now it is safe */
 			download_bytes = 0;
+			/* Reset error */
+			download_error = 0;
 
 			printf ("Starting download of %d bytes\n", download_size);
 
@@ -422,6 +677,8 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			}
 			else
 			{
+				/* The default case, the transfer fits
+				   completely in the interface buffer */
 				sprintf(response, "DATA%08x", download_size);
 			}
 			ret = 0;
@@ -522,231 +779,15 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				}
 				else
 				{
-					/* inputs OK */
-
-					char start[32], length[32];
-					char wstart[32], wlength[32], addr[32];
-					char ecc_type[32];
-					int status, repeat, repeat_max;
-			
-					printf("flashing '%s'\n", ptn->name);   
-					
-					char *lock[5]   = { "nand", "lock",   NULL, NULL, NULL, };
-					char *unlock[5] = { "nand", "unlock", NULL, NULL, NULL,	};
-					char *write[6]  = { "nand", "write",  NULL, NULL, NULL, NULL, };
-					char *ecc[4]    = { "nand", "ecc",    NULL, NULL, };
-					char *erase[5]  = { "nand", "erase",  NULL, NULL, NULL, };
-
-					lock[2] = unlock[2] = erase[2] = start;
-					lock[3] = unlock[3] = erase[3] = length;
-
-					write[2] = addr;				
-					write[3] = wstart;
-					write[4] = wlength;
-
-					/* Some flashing requires the nand's ecc to be set */
-					ecc[2] = ecc_type;
-					if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) &&
-					    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC)) 
-					{
-						/* Both can not be true */
-						printf ("Warning can not do hw and sw ecc for partition '%s'\n", ptn->name);
-						printf ("Ignoring these flags\n");
-					} 
-					else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC)
-					{
-						sprintf (ecc_type, "hw");
-						do_nand (NULL, 0, 3, ecc);
-					}
-					else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC)
-					{
-						sprintf (ecc_type, "sw");
-						do_nand (NULL, 0, 3, ecc);
-					}
-					
-					/* Some flashing requires writing the same data in multiple, consecutive flash partitions */
-					repeat_max = 1;
-					if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_REPEAT_MASK)
-					{
-						if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK)
-						{
-							printf ("Warning can not do both 'contiguous block' and 'repeat' writes for for partition '%s'\n", ptn->name);
-							printf ("Ignoring repeat flag\n");
-						}
-						else
-						{
-							repeat_max = ptn->flags & FASTBOOT_PTENTRY_FLAGS_REPEAT_MASK;
-						}
-					}
-					
-					/* Unlock the whole partition instead of trying to
-					   manage special cases */
-					sprintf (length, "0x%x", ptn->length);
-
-					for (repeat = 0; repeat < repeat_max; repeat++) 
-
-					{
-						/* Poison status */
-						status = 1;
-						
-						sprintf (start, "0x%x", ptn->start + (repeat * ptn->length));
-
-						do_nand (NULL, 0, 4, unlock);
-						do_nand (NULL, 0, 4, erase);
-
-						if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK) &&
-						    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK))
-						{
-							/* Both can not be true */
-							printf ("Warning can not do 'next good block' and 'contiguous block' for partition '%s'\n", ptn->name);
-							printf ("Ignoring these flags\n");
-						}
-						else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK)
-						{
-							/* Keep writing until you get a good block
-							   transfer_buffer should already be aligned */
-							if (interface.nand_block_size)
-							{
-								unsigned int blocks = download_bytes / interface.nand_block_size;
-								unsigned int i = 0;
-
-								unsigned int offset = 0;
-								sprintf (wlength, "0x%x", interface.nand_block_size);
-								while (i < blocks)
-								{
-									/* Check for overflow */
-									if (offset >= ptn->length)
-										break;
-									
-									/* download's address only advance if last write was successful */
-									sprintf (addr,    "0x%x", interface.transfer_buffer + (i * interface.nand_block_size));
-
-									/* nand's address always advances */
-									sprintf (wstart,  "0x%x", ptn->start + (repeat * ptn->length) + offset);
-
-									status = do_nand (NULL, 0, 5, write);
-									if (status) 
-										break;
-									else
-										i++;
-
-									/* Go to next nand block */
-									offset += interface.nand_block_size;
-								}
-							}
-							else
-							{
-								printf ("Warning nand block size can not be 0 when using 'next good block' for partition '%s'\n", ptn->name);
-								printf ("Ignoring write request\n");
-							}
-							
-						}
-						else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK)
-						{
-							/* Keep writing until you get a good block
-							   transfer_buffer should already be aligned */
-							if (interface.nand_block_size)
-							{
-								if (0 == nand_curr_device)
-								{
-									nand_info_t* nand;
-									unsigned long off;
-									unsigned int ok_start;
-
-									nand = &nand_info[nand_curr_device];
-
-									printf("\nDevice %d bad blocks:\n", nand_curr_device);
-									
-									/* Initialize the ok_start to the start of the partition
-									   Then try to find a block large enough for the download */
-									ok_start = ptn->start;
-									
-									/* It is assumed that the start and length are multiples of block size */
-									for (off = ptn->start; off < ptn->start + ptn->length; off += nand->erasesize)
-									{
-										if (nand_block_isbad(nand, off))
-										{
-											/* Reset the ok_start to the next block */
-											ok_start = off + nand->erasesize;
-										}
-										
-										/* Check if we have enough blocks */
-										if ((ok_start - off) >= download_bytes)
-											break;
-									}
-									
-									/* Check if there is enough space */
-									if (ok_start + download_bytes <= ptn->start + ptn->length)
-									{
-										sprintf (addr,    "0x%x", interface.transfer_buffer);
-										sprintf (wstart,  "0x%x", ok_start);
-										sprintf (wlength, "0x%x", download_bytes);
-
-										status = do_nand (NULL, 0, 5, write);
-
-										/* Save the results into an environment variable on the format
-										   ptn_name + 'offset'
-										   ptn_name + 'size'  */
-										if (status)
-										{
-											/* failed */
-											save_contiguous_block_values (ptn, 0, 0);
-										}
-										else
-										{
-											/* success */
-											save_contiguous_block_values (ptn, ok_start, download_bytes);
-										}
-
-									}
-									else
-									{
-										printf ("Error could not find enough contiguous space in partition '%s' \n", ptn->name);
-										printf ("Ignoring write request\n");
-									}
-								}
-								else
-								{
-									/* TBD : Generalize flash handling */
-									printf ("Error only handling 1 NAND per board");
-									printf ("Ignoring write request\n");
-								}
-							}
-							else
-							{
-								printf ("Warning nand block size can not be 0 when using 'continuous block' for partition '%s'\n", ptn->name);
-								printf ("Ignoring write request\n");
-							}
-						}
-						else 
-						{
-							/* Normal case */
-							sprintf (addr,    "0x%x", interface.transfer_buffer);
-							sprintf (wstart,  "0x%x", ptn->start + (repeat * ptn->length));
-							sprintf (wlength, "0x%x", download_bytes);
-
-							status = do_nand (NULL, 0, 5, write);
-						}
-						
-
-						do_nand (NULL, 0, 4, lock);
-						
-						if (status)
-							break;
-					}
-					
-					if (status)
+					if (write_to_ptn(ptn))
 					{
 						printf("flashing '%s' failed\n", ptn->name);
 						sprintf(response,"FAILfailed to flash partition");
-					} 
-					else 
-					{
+					} else {
 						printf("partition '%s' flashed\n", ptn->name);
 						sprintf(response, "OKAY");
 					}
 				}
-
 			}
 			else
 			{
@@ -785,7 +826,6 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		}
 	}
 
-end:
 	/* Reset the board specific support */
 	fastboot_shutdown();
 	

@@ -448,7 +448,7 @@ void board_nand_init(struct nand_chip *nand)
 
 #if (CONFIG_FASTBOOT)
 	/* Initialize the name of fastboot flash name mappings */
-	fastboot_ptentry ptn[5] = {
+	fastboot_ptentry ptn[7] = {
 		{
 			.name   = "xloader",
 			.start  = 0x0000000,
@@ -470,7 +470,7 @@ void board_nand_init(struct nand_chip *nand)
 		},
 		{
 			.name   = "environment",
-			.start  = SMNAND_ENV_OFFSET,  /* set in board config file */
+			.start  = SMNAND_ENV_OFFSET,  /* set in config file */
 			.length = 0x0040000,
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
 		},
@@ -478,25 +478,43 @@ void board_nand_init(struct nand_chip *nand)
 		{
 			.name   = "kernel",
 			/* Test with start close to bad block
-			   The is dependent on the individual board. 
+			   The is dependent on the individual board.
 			   Change to what is required */
 			/* .start  = 0x0a00000, */
 
 			/* The real start */
 			.start  = 0x0140000, 
 			.length = 0x0400000,
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_CONTIGUOUS_BLOCK,
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			FASTBOOT_PTENTRY_FLAGS_WRITE_I,
 		},
+#ifndef CFG_NAND_YAFFS_WRITE
+#warn "CFG_NAND_YAFFS_WRITE must be defined"
+#endif
 		{
 			.name   = "system",
 			.start  = 0x0540000,
-			.length = 0x7AC0000,
-			.flags  = 0,
+			.length = 0x4000000, /* 64M */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
-		
+		{
+			.name   = "userdata",
+			.start  = 0x4540000,
+			.length = 0x4000000, /* 64M */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
+		},
+		{
+			.name   = "cache",
+			.start  = 0x8540000,
+			.length = 0x4000000, /* 64M */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
+		},
 	};
 	int i;
-	for (i = 0; i < 5; i++) 
+	for (i = 0; i < 7; i++)
 		fastboot_flash_add_ptn (&ptn[i]);
 	
 #endif
