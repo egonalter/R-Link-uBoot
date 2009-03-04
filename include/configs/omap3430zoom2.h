@@ -320,4 +320,7 @@ extern unsigned int boot_flash_type;
 #define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_1M)
 #define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE SZ_32M
 
+/* Yaffs variables */
+#define CFG_NAND_YAFFS_WRITE
+
 #endif                           /* __CONFIG_H */

@@ -437,9 +437,15 @@ int nand_write_opts(nand_info_t *meminfo, const nand_write_options_t *opts)
 		buffer += readlen;
 
 		if (opts->writeoob) {
-			/* read OOB data from input memory block, exit
-			 * on failure */
-			memcpy(oob_buf, buffer, meminfo->oobsize);
+			struct nand_oobinfo *oobinfo_yaffs2 = &meminfo->oobinfo;
+			memset(oob_buf, 0xff,  meminfo->oobsize);
+			/* Read OOB data from input memory block.
+			   Only copy yaffs portion.  The offset and
+			   sizes are set in the oobfree array at index
+			   0 and 1 respectively.
+			   Exit on failure */
+			memcpy(oob_buf+oobinfo_yaffs2->oobfree[0][0],
+			       buffer, oobinfo_yaffs2->oobfree[0][1]);
 			buffer += meminfo->oobsize;
 
 			/* write OOB data first, as ecc will be placed
