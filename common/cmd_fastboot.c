@@ -93,6 +93,48 @@ static unsigned int download_bytes;
 static unsigned int download_bytes_unpadded;
 static unsigned int download_error;
 
+static void save_env(struct fastboot_ptentry *ptn,
+		     char *var, char *val)
+{
+	char start[32], length[32];
+	char ecc_type[32];
+
+	char *lock[5]    = { "nand", "lock",   NULL, NULL, NULL, };
+	char *unlock[5]  = { "nand", "unlock", NULL, NULL, NULL, };
+	char *ecc[4]     = { "nand", "ecc",    NULL, NULL, };
+	char *setenv[4]  = { "setenv", NULL, NULL, NULL, };
+	char *saveenv[2] = { "setenv", NULL, };
+
+	setenv[1] = var;
+	setenv[2] = val;
+	lock[2] = unlock[2] = start;
+	lock[3] = unlock[3] = length;
+
+	do_setenv(NULL, 0, 3, setenv);
+
+	/* Some flashing requires the nand's ecc to be set */
+	ecc[2] = ecc_type;
+	if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) &&
+	    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC))	{
+		/* Both can not be true */
+		printf("Warning can not do hw and sw ecc for partition '%s'\n", ptn->name);
+		printf("Ignoring these flags\n");
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) {
+		sprintf(ecc_type, "hw");
+		do_nand(NULL, 0, 3, ecc);
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC) {
+		sprintf(ecc_type, "sw");
+		do_nand(NULL, 0, 3, ecc);
+	}
+	sprintf(start, "0x%x", ptn->start);
+	sprintf(length, "0x%x", ptn->length);
+
+	/* This could be a problem is there is an outstanding lock */
+	do_nand(NULL, 0, 4, unlock);
+	do_saveenv(NULL, 0, 1, saveenv);
+	do_nand(NULL, 0, 4, lock);
+}
+
 static void save_block_values(struct fastboot_ptentry *ptn,
 			      unsigned int offset,
 			      unsigned int size)
@@ -199,6 +241,161 @@ static void reset_handler ()
 	download_bytes = 0;
 	download_bytes_unpadded = 0;
 	download_error = 0;
+}
+
+/* When save = 0, just parse.  The input is unchanged
+   When save = 1, parse and do the save.  The input is changed */
+static int parse_env(void *ptn, char *err_string, int save, int debug)
+{
+	int ret = 1;
+	unsigned int sets = 0;
+	char *var = NULL;
+	char *var_end = NULL;
+	char *val = NULL;
+	char *val_end = NULL;
+	unsigned int i;
+
+	char *buff = (char *)interface.transfer_buffer;
+	unsigned int size = download_bytes_unpadded;
+
+	/* The input does not have to be null terminated.
+	   This will cause a problem in the corner case
+	   where the last line does not have a new line.
+	   Put a null after the end of the input.
+
+	   WARNING : Input buffer is assumed to be bigger
+	   than the size of the input */
+	if (save)
+		buff[size] = 0;
+
+	for (i = 0; i < size; i++) {
+		if (NULL == var) {
+			if (!((buff[i] == ' ') ||
+			      (buff[i] == '\t') ||
+			      (buff[i] == '\r') ||
+			      (buff[i] == '\n')))
+				var = &buff[i];
+		} else if (((NULL == var_end) || (NULL == val)) &&
+			   ((buff[i] == '\r') || (buff[i] == '\n'))) {
+
+			/* This is the case when a variable
+			   is unset. */
+
+			if (save) {
+				/* Set the var end to null so the
+				   normal string routines will work
+
+				   WARNING : This changes the input */
+				buff[i] = '\0';
+
+				save_env(ptn, var, val);
+
+				if (debug)
+					printf("Unsetting %s\n", var);
+			}
+
+			/* Clear the variable so state is parse is back
+			   to initial. */
+			var = NULL;
+			var_end = NULL;
+			sets++;
+		} else if (NULL == var_end) {
+			if ((buff[i] == ' ') ||
+			    (buff[i] == '\t'))
+				var_end = &buff[i];
+		} else if (NULL == val) {
+			if (!((buff[i] == ' ') ||
+			      (buff[i] == '\t')))
+				val = &buff[i];
+		} else if (NULL == val_end) {
+			if ((buff[i] == '\r') ||
+			    (buff[i] == '\n'))
+				val_end = &buff[i];
+		} else {
+			sprintf(err_string, "Internal Error");
+
+			if (debug)
+				printf("Internal error at %s %d\n",
+				       __FILE__, __LINE__);
+			return 1;
+		}
+		/* Check if a var / val pair is ready */
+		if (NULL != val_end) {
+			if (save) {
+				/* Set the end's with nulls so
+				   normal string routines will
+				   work.
+
+				   WARNING : This changes the input */
+				*var_end = '\0';
+				*val_end = '\0';
+
+				save_env(ptn, var, val);
+
+				if (debug)
+					printf("Setting %s %s\n", var, val);
+			}
+
+			/* Clear the variable so state is parse is back
+			   to initial. */
+			var = NULL;
+			var_end = NULL;
+			val = NULL;
+			val_end = NULL;
+
+			sets++;
+		}
+	}
+
+	/* Corner case
+	   Check for the case that no newline at end of the input */
+	if ((NULL != var) &&
+	    (NULL == val_end)) {
+		if (save) {
+			/* case of val / val pair */
+			if (var_end)
+				*var_end = '\0';
+			/* else case handled by setting 0 past
+			   the end of buffer.
+			   Similar for val_end being null */
+			save_env(ptn, var, val);
+
+			if (debug) {
+				if (var_end)
+					printf("Trailing Setting %s %s\n", var, val);
+				else
+					printf("Trailing Unsetting %s\n", var);
+			}
+		}
+		sets++;
+	}
+	/* Did we set anything ? */
+	if (0 == sets)
+		sprintf(err_string, "No variables set");
+	else
+		ret = 0;
+
+	return ret;
+}
+
+static int saveenv_to_ptn(struct fastboot_ptentry *ptn, char *err_string)
+{
+	int ret = 1;
+	int save = 0;
+	int debug = 0;
+
+	/* err_string is only 32 bytes
+	   Initialize with a generic error message. */
+	sprintf(err_string, "%s", "Unknown Error");
+
+	/* Parse the input twice.
+	   Only save to the enviroment if the entire input if correct */
+	save = 0;
+	if (0 == parse_env(ptn, err_string, save, debug)) {
+		save = 1;
+		ret = parse_env(ptn, err_string, save, debug);
+	}
+	return ret;
 }
 
 static int write_to_ptn(struct fastboot_ptentry *ptn)
@@ -769,23 +966,35 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				struct fastboot_ptentry *ptn;
 			
 				ptn = fastboot_flash_find_ptn(cmdbuf + 6);
-				if(ptn == 0) 
-				{
+				if (ptn == 0) {
 					sprintf(response, "FAILpartition does not exist");
-				}
-				else if (download_bytes > ptn->length)
-				{
+				} else if ((download_bytes > ptn->length) &&
+					   !(ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_ENV)) {
 					sprintf(response, "FAILimage too large for partition");
-				}
-				else
-				{
-					if (write_to_ptn(ptn))
-					{
-						printf("flashing '%s' failed\n", ptn->name);
-						sprintf(response,"FAILfailed to flash partition");
+					/* TODO : Improve check for yaffs write */
+				} else {
+					/* Check if this is not really a flash write
+					   but rather a saveenv */
+					if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_ENV) {
+						/* Since the response can only be 64 bytes,
+						   there is no point in having a large error message. */
+						char err_string[32];
+						if (saveenv_to_ptn(ptn, &err_string[0])) {
+							printf("savenv '%s' failed : %s\n", ptn->name, err_string);
+							sprintf(response, "FAIL%s", err_string);
+						} else {
+							printf("partition '%s' saveenv-ed\n", ptn->name);
+							sprintf(response, "OKAY");
+						}
 					} else {
-						printf("partition '%s' flashed\n", ptn->name);
-						sprintf(response, "OKAY");
+						/* Normal case */
+						if (write_to_ptn(ptn)) {
+							printf("flashing '%s' failed\n", ptn->name);
+							sprintf(response, "FAILfailed to flash partition");
+						} else {
+							printf("partition '%s' flashed\n", ptn->name);
+							sprintf(response, "OKAY");
+						}
 					}
 				}
 			}

@@ -189,6 +189,10 @@ struct fastboot_ptentry
 /* Write the file with write.yaffs */
 #define FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS            0x00000200
 
+/* Write the file as a series of variable/value pairs
+   using the setenv and saveenv commands */
+#define FASTBOOT_PTENTRY_FLAGS_WRITE_ENV              0x00000400
+
 #if (CONFIG_FASTBOOT)
 /* Initizes the board specific fastboot 
    Returns 0 on success

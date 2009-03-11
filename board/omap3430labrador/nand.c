@@ -472,7 +472,8 @@ void board_nand_init(struct nand_chip *nand)
 			.name   = "environment",
 			.start  = SMNAND_ENV_OFFSET,  /* set in config file */
 			.length = 0x0040000,
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			FASTBOOT_PTENTRY_FLAGS_WRITE_ENV,
 		},
 
 		{
