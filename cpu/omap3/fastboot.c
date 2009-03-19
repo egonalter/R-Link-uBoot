@@ -78,13 +78,13 @@ static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOI
 
 /* In high speed mode packets are 512
    In full speed mode packets are 64 */
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0200)
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0200)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
 
 /* Same, just repackaged as 
    2^(m+3), 64 = 2^6, m = 3 */
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (6)
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (6)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
 
 #define TX_LAST()						\
 	*csr0 |= (MUSB_CSR0_TXPKTRDY | MUSB_CSR0_P_DATAEND);	\
@@ -163,15 +163,15 @@ static void fastboot_db_regs(void)
 static void fastboot_bulk_endpoint_reset (void)
 {
 	u8 old_index;
-
 	/* save old index */
 	old_index = *index;
+
 	/* set index to endpoint */
 	*index = BULK_ENDPOINT;
   
 	/* Address starts at the end of EP0 fifo, shifted right 3 (8 bytes) */
 	*txfifoadd = MUSB_EP0_FIFOSIZE >> 3;
-	*rxfifoadd = MUSB_EP0_FIFOSIZE >> 3;
+	*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS) >> 3;
 
 	/* Size depends on the mode.  Do not double buffer */
 	*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
@@ -206,10 +206,10 @@ static void fastboot_bulk_endpoint_reset (void)
 		udelay(1);
 	}
   
-	/* No dma, enable bulkout,  */
-	*peri_txcsr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_ISO);
+	/* No dma, enable bulkout, no underflow */
+	*peri_txcsr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_ISO | MUSB_TXCSR_P_UNDERRUN);
 	/* reset endpoint data, shared fifo with rx */
-	*peri_txcsr |= (MUSB_RXCSR_CLRDATATOG | MUSB_TXCSR_MODE);
+	*peri_txcsr |= (MUSB_TXCSR_CLRDATATOG | MUSB_TXCSR_MODE);
 }
 
 static void fastboot_reset (void)
@@ -217,10 +217,13 @@ static void fastboot_reset (void)
 	OMAP3_LED_ERROR_ON ();
 
 	/* Kill the power */
-	*pwr = 0;
-	udelay (500000); /* 1/2 sec */
+	*pwr &= ~MUSB_POWER_SOFTCONN;
+	udelay(2 * 500000); /* 1 sec */
 
 	OMAP3_LED_ERROR_OFF ();
+
+	/* Reset address */
+	faddr = 0xff;
 
 	/* Reset */
 #ifdef CONFIG_USB_1_1_DEVICE
@@ -232,9 +235,6 @@ static void fastboot_reset (void)
 	/* Bulk endpoint fifo */
 	fastboot_bulk_endpoint_reset ();
 	
-	/* Reset address */
-	faddr = 0xff;
-  
 	/* Start off with a stall.. */
 	NAK_REQ();
 	udelay (2 * 500000); /* 1 sec */
@@ -296,7 +296,6 @@ static int do_usb_req_set_interface(void)
 	{
 		fastboot_bulk_endpoint_reset ();
 		ACK_REQ();
-
 	}
 	else
 	{
@@ -390,7 +389,11 @@ static int do_usb_req_get_descriptor(void)
 			d.bLength = MIN(req.wLength, sizeof (d));
 	      
 			d.bDescriptorType    = USB_DT_DEVICE;
+#ifdef CONFIG_USB_1_1_DEVICE
 			d.bcdUSB             = 0x110;
+#else
+			d.bcdUSB             = 0x200;
+#endif
 			d.bDeviceClass       = 0xff;
 			d.bDeviceSubClass    = 0xff;
 			d.bDeviceProtocol    = 0xff;
@@ -699,7 +702,6 @@ static int fastboot_resume (void)
 
 		   Only do the reset after the setup has finished
 		*/
-
 		if (0xff != faddr)
 			fastboot_reset ();
 
@@ -714,6 +716,7 @@ static int fastboot_resume (void)
 		   poll would be fine.  As it is returning now is the 
 		   right thing to do here.  */
 		return 0; 
+
 	}
 
 	/* Should we change the address ? */
@@ -795,7 +798,7 @@ static int fastboot_suspend (void)
 {
 	/* No suspending going on here! 
 	   We are polling for all its worth */
-	   
+
 	return 0;
 }
 
@@ -945,8 +948,8 @@ int fastboot_tx_status(const char *buffer, unsigned int buffer_size)
 {
 	int ret = 1;
 	unsigned int i;
-	unsigned int fifo_size = fastboot_fifo_size ();
-	unsigned int transfer_size = MIN(fifo_size, buffer_size);
+	/* fastboot client only reads back at most 64 */
+	unsigned int transfer_size = MIN(64, buffer_size);
 
 	while  (*peri_txcsr & MUSB_TXCSR_TXPKTRDY)
 		udelay(1);
@@ -954,10 +957,13 @@ int fastboot_tx_status(const char *buffer, unsigned int buffer_size)
 	for (i = 0; i < transfer_size; i++)
 		write_bulk_fifo_8 (buffer[i]);
 
-	for ( ; i < fifo_size; i++)
-		write_bulk_fifo_8 (0);
-
 	*peri_txcsr |= MUSB_TXCSR_TXPKTRDY;
+
+	while  (*peri_txcsr & MUSB_TXCSR_TXPKTRDY)
+		udelay(1);
+
+	/* Send an empty packet to signal that we are done */
+	TX_LAST();
 
 	ret = 0;
 
