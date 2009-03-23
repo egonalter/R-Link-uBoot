@@ -194,6 +194,12 @@ struct fastboot_ptentry
 #define FASTBOOT_PTENTRY_FLAGS_WRITE_ENV              0x00000400
 
 #if (CONFIG_FASTBOOT)
+/* A board specific test if u-boot should go into the fastboot command
+   ahead of the bootcmd
+   Returns 0 to continue with normal u-boot flow
+   Returns 1 to execute fastboot */
+extern int fastboot_preboot(void);
+
 /* Initizes the board specific fastboot 
    Returns 0 on success
    Returns 1 on failure */
@@ -255,6 +261,7 @@ extern int fastboot_flash_write(fastboot_ptentry *ptn, unsigned extra_per_page,
 #else
 
 /* Stubs for when CONFIG_FASTBOOT is not defined */
+#define fastboot_preboot() 0
 #define fastboot_init(a) 1
 #define fastboot_shutdown() 
 #define fastboot_poll() 1

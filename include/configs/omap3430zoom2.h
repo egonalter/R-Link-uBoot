@@ -35,6 +35,8 @@
 #define CONFIG_3430ZOOM2	1    /* working on Zoom2 board */
 #define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
 #define CONFIG_ZOOM2_LED	1    /* Using Zoom2 LED's */
+#define CONFIG_TWL4030_KEYPAD   1    /* Use the keypad */
+
 //#define CONFIG_3430_AS_3410	1    /* true for 3430 in 3410 mode */
 
 #include <asm/arch/cpu.h>        /* get chip and board defs */
@@ -319,6 +321,11 @@ extern unsigned int boot_flash_type;
 /* Fastboot variables */
 #define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_16M)
 #define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_128M - SZ_16M)
+#define CFG_FASTBOOT_PREBOOT_KEY1         0x11 /* 'g'  */
+#define CFG_FASTBOOT_PREBOOT_KEY2         0x37 /* 'ok' */
+#define CFG_FASTBOOT_PREBOOT_INITIAL_WAIT (500 * 1000) /* 1/2 sec */
+#define CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM (4)
+#define CFG_FASTBOOT_PREBOOT_LOOP_WAIT    (500 * 1000) /* 1/2 sec */
 
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE

@@ -38,6 +38,7 @@
 #include <hush.h>
 #endif
 
+#include <fastboot.h>
 #include <post.h>
 
 #ifdef CONFIG_SILENT_CONSOLE
@@ -364,6 +365,8 @@ void main_loop (void)
 #ifdef CONFIG_AUTO_COMPLETE
 	install_auto_complete();
 #endif
+	if (fastboot_preboot())
+		run_command("fastboot", 0);
 
 #ifdef CONFIG_PREBOOT
 	if ((p = getenv ("preboot")) != NULL) {

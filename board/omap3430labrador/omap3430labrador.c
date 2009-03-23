@@ -33,6 +33,7 @@
 #include <i2c.h>
 #include <asm/mach-types.h>
 #include <linux/mtd/nand_ecc.h>
+#include <twl4030.h>
 
 int get_boot_type(void);
 void v7_flush_dcache_all(int, int);
@@ -306,6 +307,7 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
+	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	return (0);
 }

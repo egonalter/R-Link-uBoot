@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008
+ * (C) Copyright 2008 - 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
  *
@@ -33,6 +33,7 @@
 #include <command.h>
 #include <usbdcore.h>
 #include <fastboot.h>
+#include <twl4030.h>
 
 #if defined(CONFIG_FASTBOOT)
 
@@ -116,8 +117,6 @@ static u8 fastboot_bulk_fifo[0x0200];
 static char *device_strings[DEVICE_STRING_MANUFACTURER_INDEX+1];
 
 static struct cmd_fastboot_interface *fastboot_interface = NULL;
-
-
 
 static void fastboot_db_regs(void) 
 {
@@ -973,6 +972,27 @@ int fastboot_tx_status(const char *buffer, unsigned int buffer_size)
 int fastboot_getvar(const char *rx_buffer, char *tx_buffer)
 {
 	/* Place board specific variables here */
+	return 0;
+}
+
+int fastboot_preboot(void)
+{
+#if (defined(CONFIG_TWL4030_KEYPAD) && (CONFIG_TWL4030_KEYPAD))
+	int i;
+	unsigned char key1, key2;
+	int keys;
+	udelay(CFG_FASTBOOT_PREBOOT_INITIAL_WAIT);
+	for (i = 0; i < CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM; i++) {
+		key1 = key2 = 0;
+		keys = twl4030_keypad_keys_pressed(&key1, &key2);
+		if (2 == keys) {
+			if ((CFG_FASTBOOT_PREBOOT_KEY1 == key1) &&
+			    (CFG_FASTBOOT_PREBOOT_KEY2 == key2))
+				return 1;
+		}
+		udelay(CFG_FASTBOOT_PREBOOT_LOOP_WAIT);
+	}
+#endif
 	return 0;
 }
 
