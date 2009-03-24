@@ -327,6 +327,11 @@ void per_clocks_enable(void)
 	sr32(CM_ICLKEN_PER, CLKEN_PER_EN_GPIO6_BIT, 1, 1);
 #endif
 
+#ifdef CONFIG_FASTBOOT
+	/* USB : EN_HSOTGUSB */
+	sr32(CM_ICLKEN1_CORE, 4, 1, 1);
+#endif
+
 #ifdef CONFIG_DRIVER_OMAP34XX_I2C
 	/* Turn on all 3 I2C clocks*/
 	sr32(CM_FCLKEN1_CORE, 15, 3, 0x7);
