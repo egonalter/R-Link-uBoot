@@ -307,6 +307,7 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
+	twl4030_usb_init();
 	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	return (0);

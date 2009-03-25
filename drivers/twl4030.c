@@ -1,6 +1,24 @@
 /*
  * Copyright (C) 2007-2008 Texas Instruments, Inc.
  *
+ * USB
+ * Imported from omap3-dev drivers/usb/twl4030_usb.c
+ * This is unique part of the copyright
+ *
+ * twl4030_usb - TWL4030 USB transceiver, talking to OMAP OTG controller
+ *
+ * (C) Copyright 2009 Atin Malaviya (atin.malaviya@gmail.com)
+ *
+ * Based on: twl4030_usb.c in linux 2.6 (drivers/i2c/chips/twl4030_usb.c)
+ * Copyright (C) 2004-2007 Texas Instruments
+ * Copyright (C) 2008 Nokia Corporation
+ * Contact: Felipe Balbi <felipe.balbi@nokia.com>
+ *
+ * Author: Atin Malaviya (atin.malaviya@gmail.com)
+ *
+ *
+ * Keypad
+ *
  * (C) Copyright 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
@@ -196,7 +214,7 @@ static int twl4030_charge_backup_battery(void)
 {
 	int ret;
 
-	ret = clear_n_set(TWL4030_CHIP_PM_RECIEVER, 0xff,
+	ret = clear_n_set(TWL4030_CHIP_PM_RECEIVER, 0xff,
 			  (BBCHEN | BBSEL_3200mV | BBISEL_150uA), REG_BB_CFG);
 	if (ret)
 		return ret;
@@ -426,8 +444,8 @@ int twl4030_keypad_init(void)
 	u8 ctrl;
 	ret = twl4030_i2c_read_u8(TWL4030_CHIP_KEYPAD, &ctrl, KEYPAD_KEYP_CTRL_REG);
 	if (!ret) {
-		ctrl |= CTRL_KBD_ON | CTRL_SOFT_NRST;
-		ctrl &= ~CTRL_SOFTMODEN;
+		ctrl |= KEYPAD_CTRL_KBD_ON | KEYPAD_CTRL_SOFT_NRST;
+		ctrl &= ~KEYPAD_CTRL_SOFTMODEN;
 		ret = twl4030_i2c_write_u8(TWL4030_CHIP_KEYPAD, ctrl, KEYPAD_KEYP_CTRL_REG);
 	}
 	return ret;
@@ -439,7 +457,7 @@ int twl4030_keypad_reset(void)
 	u8 ctrl;
 	ret = twl4030_i2c_read_u8(TWL4030_CHIP_KEYPAD, &ctrl, KEYPAD_KEYP_CTRL_REG);
 	if (!ret) {
-		ctrl &= ~CTRL_SOFT_NRST;
+		ctrl &= ~KEYPAD_CTRL_SOFT_NRST;
 		ret = twl4030_i2c_write_u8(TWL4030_CHIP_KEYPAD, ctrl, KEYPAD_KEYP_CTRL_REG);
 	}
 	return ret;
@@ -464,6 +482,118 @@ int twl4030_keypad_keys_pressed(unsigned char *key1, unsigned char *key2)
 		}
 	}
 	return ret;
+}
+
+#endif
+
+/* USB */
+
+#if (defined(CONFIG_TWL4030_USB) && (CONFIG_TWL4030_USB))
+
+static int twl4030_usb_write(u8 address, u8 data)
+{
+	int ret = 0;
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_USB, data, address);
+	if (ret != 0)
+		printf("TWL4030:USB:Write[0x%x] Error %d\n", address, ret);
+
+	return ret;
+}
+
+static int twl4030_usb_read(u8 address)
+{
+	u8 data;
+	int ret = 0;
+	ret = twl4030_i2c_read_u8(TWL4030_CHIP_USB, &data, address);
+	if (ret == 0)
+		ret = data;
+	else
+		printf("TWL4030:USB:Read[0x%x] Error %d\n", address, ret);
+
+	return ret;
+}
+
+static int twl4030_usb_set_bits(u8 reg, u8 bits)
+{
+	return twl4030_usb_write(reg + 1, bits);
+}
+
+static int twl4030_usb_clear_bits(u8 reg, u8 bits)
+{
+	return twl4030_usb_write(reg + 2, bits);
+}
+
+static void twl4030_usb_ldo_init(void)
+{
+	/* Enable writing to power configuration registers */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_MASTER, 0xC0, PM_MASTER_PROTECT_KEY);
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_MASTER, 0x0C, PM_MASTER_PROTECT_KEY);
+
+	/* put VUSB3V1 LDO in active state */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x00, PM_RECEIVER_VUSB_DEDICATED2);
+
+	/* input to VUSB3V1 LDO is from VBAT, not VBUS */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x14, PM_RECEIVER_VUSB_DEDICATED1);
+
+	/* turn on 3.1V regulator */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x20, PM_RECEIVER_VUSB3V1_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x00, PM_RECEIVER_VUSB3V1_TYPE);
+
+	/* turn on 1.5V regulator */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x20, PM_RECEIVER_VUSB1V5_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x00, PM_RECEIVER_VUSB1V5_TYPE);
+
+	/* turn on 1.8V regulator */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x20, PM_RECEIVER_VUSB1V8_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_RECEIVER, 0x00, PM_RECEIVER_VUSB1V8_TYPE);
+
+	/* disable access to power configuration registers */
+	twl4030_i2c_write_u8(TWL4030_CHIP_PM_MASTER, 0x00, PM_MASTER_PROTECT_KEY);
+}
+
+static void twl4030_phy_power(void)
+{
+	u8 pwr;
+
+	pwr = twl4030_usb_read(USB_PHY_PWR_CTRL);
+	pwr &= ~USB_PHYPWD;
+	twl4030_usb_write(USB_PHY_PWR_CTRL, pwr);
+	twl4030_usb_write(USB_PHY_CLK_CTRL, twl4030_usb_read(USB_PHY_CLK_CTRL) |
+				(USB_CLOCKGATING_EN | USB_CLK32K_EN));
+}
+
+int twl4030_usb_init(void)
+{
+	unsigned long timeout;
+
+	/* twl4030 ldo init */
+	twl4030_usb_ldo_init();
+
+	/* Enable the twl4030 phy */
+	twl4030_phy_power();
+
+	/* enable DPLL to access PHY registers over I2C */
+	twl4030_usb_write(USB_PHY_CLK_CTRL, twl4030_usb_read(USB_PHY_CLK_CTRL) |
+			  USB_REQ_PHY_DPLL_CLK);
+	timeout = 1000 * 1000; /* 1 sec */
+	while (!(twl4030_usb_read(USB_PHY_CLK_CTRL_STS) & USB_PHY_DPLL_CLK) &&
+		0 < timeout) {
+		udelay(10);
+		timeout -= 10;
+	}
+	if (!(twl4030_usb_read(USB_PHY_CLK_CTRL_STS) & USB_PHY_DPLL_CLK)) {
+		printf("Timeout setting T2 HSUSB PHY DPLL clock\n");
+		return -1;
+	}
+
+	/* Enable ULPI mode */
+	twl4030_usb_clear_bits(USB_IFC_CTRL, USB_CARKITMODE);
+	twl4030_usb_set_bits(USB_POWER_CTRL, USB_OTG_ENAB);
+	twl4030_usb_clear_bits(USB_FUNC_CTRL, USB_XCVRSELECT_MASK | USB_OPMODE_MASK);
+	/* let ULPI control the DPLL clock */
+	twl4030_usb_write(USB_PHY_CLK_CTRL, twl4030_usb_read(USB_PHY_CLK_CTRL) &
+				~USB_REQ_PHY_DPLL_CLK);
+	return 0;
 }
 
 #endif

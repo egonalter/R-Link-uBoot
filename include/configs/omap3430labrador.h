@@ -37,6 +37,7 @@
 #define CONFIG_OMAP3430		1    /* which is in a 3430 */
 #define CONFIG_3430LABRADOR     1    /* working on Labrador */
 #define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
+#define CONFIG_TWL4030_USB      1    /* Initialize twl usb */
 
 //#define CONFIG_3430_AS_3410	1    /* true for 3430 in 3410 mode */
 

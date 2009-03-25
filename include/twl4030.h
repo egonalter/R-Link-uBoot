@@ -1,4 +1,6 @@
 /*
+ * Copyright (C) 2007-2009 Texas Instruments, Inc.
+ *
  * (C) Copyright 2009
  * Windriver, <www.windriver.com>
  * Tom Rix <Tom.Rix@windriver.com>
@@ -47,7 +49,7 @@
 #define TWL4030_CHIP_BACKUP		0x4b
 #define TWL4030_CHIP_INT		0x4b
 #define TWL4030_CHIP_PM_MASTER		0x4b
-#define TWL4030_CHIP_PM_RECIEVER	0x4b
+#define TWL4030_CHIP_PM_RECEIVER	0x4b
 #define TWL4030_CHIP_RTC		0x4b
 #define TWL4030_CHIP_SECURED_REG	0x4b
 
@@ -155,39 +157,58 @@
 #define T2_BATTERY_ACVOLT	(TWL4030_BASEADD_MAIN_CHARGE + 0x0A)
 #define T2_BATTERY_USBVOLT	(TWL4030_BASEADD_MAIN_CHARGE + 0x0C)
 
-/* Keypad */
-#define KEYPAD_KEYP_CTRL_REG    0xD2
-#define KEYPAD_KEY_DEB_REG      0xD3
-#define KEYPAD_LONG_KEY_REG1    0xD4
-#define KEYPAD_LK_PTV_REG       0xD5
-#define KEYPAD_TIME_OUT_REG1    0xD6
-#define KEYPAD_TIME_OUT_REG2    0xD7
-#define KEYPAD_KBC_REG          0xD8
-#define KEYPAD_KBR_REG          0xD9
-#define KEYPAD_KEYP_SMS         0xDA
-#define KEYPAD_FULL_CODE_7_0    0xDB
-#define KEYPAD_FULL_CODE_15_8   0xDC
-#define KEYPAD_FULL_CODE_23_16  0xDD
-#define KEYPAD_FULL_CODE_31_24  0xDE
-#define KEYPAD_FULL_CODE_39_32  0xDF
-#define KEYPAD_FULL_CODE_47_40  0xE0
-#define KEYPAD_FULL_CODE_55_48  0xE1
-#define KEYPAD_FULL_CODE_63_56  0xE2
-#define KEYPAD_KEYP_ISR1        0xE3
-#define KEYPAD_KEYP_IMR1        0xE4
-#define KEYPAD_KEYP_ISR2        0xE5
-#define KEYPAD_KEYP_IMR2        0xE6
-#define KEYPAD_KEYP_SIR         0xE7
-#define KEYPAD_KEYP_EDR         0xE8
-#define KEYPAD_KEYP_SIH_CTRL    0xE9
+/* Power Management Master */
+#define PM_MASTER_PROTECT_KEY        0x44
 
-#define CTRL_KBD_ON             (1 << 6)
-#define CTRL_RP_EN              (1 << 5)
-#define CTRL_TOLE_EN            (1 << 4)
-#define CTRL_TOE_EN             (1 << 3)
-#define CTRL_LK_EN              (1 << 2)
-#define CTRL_SOFTMODEN          (1 << 1)
-#define CTRL_SOFT_NRST          (1 << 0)
+/* Power Managment Receiver */
+#define PM_RECEIVER_VUSB1V5_DEV_GRP  0xCC
+#define PM_RECEIVER_VUSB1V5_TYPE     0xCD
+#define PM_RECEIVER_VUSB1V5_REMAP    0xCE
+#define PM_RECEIVER_VUSB1V8_DEV_GRP  0xCF
+#define PM_RECEIVER_VUSB1V8_TYPE     0xD0
+#define PM_RECEIVER_VUSB1V8_REMAP    0xD1
+#define PM_RECEIVER_VUSB3V1_DEV_GRP  0xD2
+#define PM_RECEIVER_VUSB3V1_TYPE     0xD3
+#define PM_RECEIVER_VUSB3V1_REMAP    0xD4
+#define PM_RECEIVER_VUSBCP_DEV_GRP   0xD5
+#define PM_RECEIVER_VUSBCP_DEV_TYPE  0xD6
+#define PM_RECEIVER_VUSBCP_DEV_REMAP 0xD7
+#define PM_RECEIVER_VUSB_DEDICATED1  0xD8
+#define PM_RECEIVER_VUSB_DEDICATED2  0xD9
+
+/* Keypad */
+#define KEYPAD_KEYP_CTRL_REG         0xD2
+#define KEYPAD_KEY_DEB_REG           0xD3
+#define KEYPAD_LONG_KEY_REG1         0xD4
+#define KEYPAD_LK_PTV_REG            0xD5
+#define KEYPAD_TIME_OUT_REG1         0xD6
+#define KEYPAD_TIME_OUT_REG2         0xD7
+#define KEYPAD_KBC_REG               0xD8
+#define KEYPAD_KBR_REG               0xD9
+#define KEYPAD_KEYP_SMS              0xDA
+#define KEYPAD_FULL_CODE_7_0         0xDB
+#define KEYPAD_FULL_CODE_15_8        0xDC
+#define KEYPAD_FULL_CODE_23_16       0xDD
+#define KEYPAD_FULL_CODE_31_24       0xDE
+#define KEYPAD_FULL_CODE_39_32       0xDF
+#define KEYPAD_FULL_CODE_47_40       0xE0
+#define KEYPAD_FULL_CODE_55_48       0xE1
+#define KEYPAD_FULL_CODE_63_56       0xE2
+#define KEYPAD_KEYP_ISR1             0xE3
+#define KEYPAD_KEYP_IMR1             0xE4
+#define KEYPAD_KEYP_ISR2             0xE5
+#define KEYPAD_KEYP_IMR2             0xE6
+#define KEYPAD_KEYP_SIR              0xE7
+#define KEYPAD_KEYP_EDR              0xE8
+#define KEYPAD_KEYP_SIH_CTRL         0xE9
+
+#define KEYPAD_CTRL_KBD_ON           (1 << 6)
+#define KEYPAD_CTRL_RP_EN            (1 << 5)
+#define KEYPAD_CTRL_TOLE_EN          (1 << 4)
+#define KEYPAD_CTRL_TOE_EN           (1 << 3)
+#define KEYPAD_CTRL_LK_EN            (1 << 2)
+#define KEYPAD_CTRL_SOFTMODEN        (1 << 1)
+#define KEYPAD_CTRL_SOFT_NRST        (1 << 0)
 
 /* Declarations for users of the keypad, stubs for everyone else. */
 #if (defined(CONFIG_TWL4030_KEYPAD) && (CONFIG_TWL4030_KEYPAD))
@@ -198,5 +219,29 @@ int twl4030_keypad_keys_pressed(unsigned char *key1, unsigned char *key2);
 #define twl4030_keypad_init() 0
 #define twl4030_keypad_reset() 0
 #define twl4030_keypad_keys_pressed(a, b) 0
+#endif
+
+/* USB */
+#define	USB_FUNC_CTRL		(0x04)
+#define	USB_OPMODE_MASK		(3 << 3) /* bits 3 and 4 */
+#define	USB_XCVRSELECT_MASK	(3 << 0) /* bits 0 and 1 */
+#define	USB_IFC_CTRL		(0x07)
+#define	USB_CARKITMODE		(1 << 2)
+#define	USB_POWER_CTRL		(0xAC)
+#define	USB_OTG_ENAB		(1 << 5)
+#define	USB_PHY_PWR_CTRL	(0xFD)
+#define	USB_PHYPWD		(1 << 0)
+#define	USB_PHY_CLK_CTRL	(0xFE)
+#define	USB_CLOCKGATING_EN	(1 << 2)
+#define	USB_CLK32K_EN		(1 << 1)
+#define	USB_REQ_PHY_DPLL_CLK	(1 << 0)
+#define	USB_PHY_CLK_CTRL_STS	(0xFF)
+#define	USB_PHY_DPLL_CLK	(1 << 0)
+
+/* Declarations for users of usb, stubs for everyone else. */
+#if (defined(CONFIG_TWL4030_USB) && (CONFIG_TWL4030_USB))
+int twl4030_usb_init(void);
+#else
+#define twl4030_usb_init() 0
 #endif
 

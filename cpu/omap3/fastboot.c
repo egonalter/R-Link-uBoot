@@ -234,10 +234,6 @@ static void fastboot_reset (void)
 	/* Bulk endpoint fifo */
 	fastboot_bulk_endpoint_reset ();
 	
-	/* Start off with a stall.. */
-	NAK_REQ();
-	udelay (2 * 500000); /* 1 sec */
-
 	OMAP3_LED_ERROR_ON ();
 
 	/* fastboot_db_regs(); */
@@ -696,11 +692,7 @@ static int fastboot_resume (void)
 		/* This should be enough .. */
 		*csr0 |= MUSB_CSR0_P_SVDSETUPEND;
 
-		/* This happens when the fastboot client exits without closing
-		   the connection.  The causes a stall in the bulk fifo. 
-
-		   Only do the reset after the setup has finished
-		*/
+#if 0
 		if (0xff != faddr)
 			fastboot_reset ();
 
@@ -714,7 +706,8 @@ static int fastboot_resume (void)
 		/* If we were not resetting, dropping through and handling the
 		   poll would be fine.  As it is returning now is the 
 		   right thing to do here.  */
-		return 0; 
+		return 0;
+#endif
 
 	}
 
@@ -1023,7 +1016,7 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 	fastboot_interface->nand_block_size               = 2048;
 	fastboot_interface->transfer_buffer               = (unsigned char *) CFG_FASTBOOT_TRANSFER_BUFFER;
 	fastboot_interface->transfer_buffer_size          = CFG_FASTBOOT_TRANSFER_BUFFER_SIZE;
-	
+
 	fastboot_reset();
 
 	/* Check if device is in b-peripheral mode */
