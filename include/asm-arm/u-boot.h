@@ -52,6 +52,9 @@ typedef struct bd_info {
     /* second onboard ethernet port */
     unsigned char   bi_enet1addr[6];
 #endif
+#ifdef CONFIG_BOARD_REVISION
+	ulong bi_board_revision;
+#endif
 } bd_t;
 
 #define bi_env_data bi_env->data
