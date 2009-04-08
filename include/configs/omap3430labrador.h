@@ -176,7 +176,7 @@
 /*
  * Miscellaneous configurable options
  */
-#define V_PROMPT                 "USB OMAP34XX LAB # "
+#define V_PROMPT                 "OMAP34XX LAB # "
 
 #define CFG_LONGHELP             /* undef to save memory */
 #define CFG_PROMPT               V_PROMPT

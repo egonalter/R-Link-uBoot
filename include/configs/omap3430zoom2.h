@@ -169,7 +169,7 @@
 /*
  * Miscellaneous configurable options
  */
-#define V_PROMPT                 "USB OMAP34XX ZOOM2 # "
+#define V_PROMPT                 "OMAP34XX ZOOM2 # "
 
 #define CFG_LONGHELP             /* undef to save memory */
 #define CFG_PROMPT               V_PROMPT
