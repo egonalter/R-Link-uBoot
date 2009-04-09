@@ -118,6 +118,7 @@ static char *device_strings[DEVICE_STRING_MANUFACTURER_INDEX+1];
 
 static struct cmd_fastboot_interface *fastboot_interface = NULL;
 
+#ifdef DEBUG_FASTBOOT
 static void fastboot_db_regs(void) 
 {
 	printf("fastboot_db_regs\n");
@@ -156,8 +157,8 @@ static void fastboot_db_regs(void)
 
 	s = *peri_txcsr;
 	PRINT_TXCSR(s);
-  
 }
+#endif
 
 static void fastboot_bulk_endpoint_reset (void)
 {
@@ -877,51 +878,6 @@ void fastboot_shutdown(void)
 	fastboot_interface = NULL;
 	high_speed = 0;
 }
-
-static void fastboot_bulk_endpoint_shutdown (void)
-{
-	u8 old_index;
-
-	/* Flush anything on fifo */
-	while (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
-	{
-		*peri_rxcsr |= MUSB_RXCSR_FLUSHFIFO;
-		udelay(1);
-	}
-
-	/* Flush anything on fifo */
-	while (*peri_txcsr & MUSB_TXCSR_FIFONOTEMPTY)
-	{
-		*peri_txcsr |= MUSB_TXCSR_FLUSHFIFO;
-		udelay(1);
-	}
-
-	/* save old index */
-	old_index = *index;
-	/* set index to endpoint */
-	*index = BULK_ENDPOINT;
-  
-	/* Address starts at the end of EP0 fifo, shifted right 3 (8 bytes) */
-	*txfifoadd = 0;
-	*rxfifoadd = 0;
-
-	/* Size depends on the mode.  Do not double buffer */
-	*txfifosz = 0;
-	*rxfifosz = 0;
-
-	/* restore index */
-	*index = old_index;
-  
-	/* Setup Rx endpoint for Bulk OUT */
-	/* Set max packet size per usb 1.1 / 2.0 */
-	*rxmaxp = 0;
-
-	/* Setup Tx endpoint for Bulk IN */
-	/* Set max packet size per usb 1.1 / 2.0 */
-	*txmaxp = 0;
-}
-
-
 
 int fastboot_is_highspeed(void)
 {
