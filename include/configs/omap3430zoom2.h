@@ -321,11 +321,12 @@ extern unsigned int boot_flash_type;
 /* Fastboot variables */
 #define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_16M)
 #define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_128M - SZ_16M)
-#define CFG_FASTBOOT_PREBOOT_KEY1         0x11 /* 'g'  */
-#define CFG_FASTBOOT_PREBOOT_KEY2         0x37 /* 'ok' */
-#define CFG_FASTBOOT_PREBOOT_INITIAL_WAIT (500 * 1000) /* 1/2 sec */
-#define CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM (4)
-#define CFG_FASTBOOT_PREBOOT_LOOP_WAIT    (500 * 1000) /* 1/2 sec */
+#define CFG_FASTBOOT_PREBOOT_KEYS         1
+#define CFG_FASTBOOT_PREBOOT_KEY1         0x37 /* 'ok' */
+#define CFG_FASTBOOT_PREBOOT_KEY2         0x00 /* unused */
+#define CFG_FASTBOOT_PREBOOT_INITIAL_WAIT (0)
+#define CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM (1)
+#define CFG_FASTBOOT_PREBOOT_LOOP_WAIT    (0)
 
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE

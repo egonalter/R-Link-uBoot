@@ -934,7 +934,12 @@ int fastboot_preboot(void)
 	for (i = 0; i < CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM; i++) {
 		key1 = key2 = 0;
 		keys = twl4030_keypad_keys_pressed(&key1, &key2);
-		if (2 == keys) {
+		if ((1 == CFG_FASTBOOT_PREBOOT_KEYS) &&
+		    (1 == keys)) {
+			if (CFG_FASTBOOT_PREBOOT_KEY1 == key1)
+				return 1;
+		} else if ((2 == CFG_FASTBOOT_PREBOOT_KEYS) &&
+			   (2 == keys)) {
 			if ((CFG_FASTBOOT_PREBOOT_KEY1 == key1) &&
 			    (CFG_FASTBOOT_PREBOOT_KEY2 == key2))
 				return 1;
