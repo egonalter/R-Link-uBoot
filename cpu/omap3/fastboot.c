@@ -75,16 +75,26 @@ static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOI
 #define DEVICE_STRING_LANGUAGE_ID         0x0409 /* English (United States) */
 
 /* Define this to use 1.1 / fullspeed */
-/* #define CONFIG_USB_1_1_DEVICE  */
+/* #define CONFIG_USB_1_1_DEVICE */
 
 /* In high speed mode packets are 512
    In full speed mode packets are 64 */
+#ifndef CONFIG_USB_1_1_DEVICE
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0200)
+#else
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
+#endif
+
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
 
 /* Same, just repackaged as 
    2^(m+3), 64 = 2^6, m = 3 */
+#ifndef CONFIG_USB_1_1_DEVICE
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (6)
+#else
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
+#endif
+
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
 
 #define TX_LAST()						\
@@ -227,6 +237,7 @@ static void fastboot_reset (void)
 
 	/* Reset */
 #ifdef CONFIG_USB_1_1_DEVICE
+	*pwr &= ~MUSB_POWER_HSENAB;
 	*pwr |= MUSB_POWER_SOFTCONN;
 #else
 	*pwr |= (MUSB_POWER_SOFTCONN | MUSB_POWER_HSENAB);
