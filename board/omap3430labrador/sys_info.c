@@ -28,6 +28,9 @@
 #include <asm/arch/sys_info.h>
 #include <i2c.h>
 
+#ifdef CONFIG_3430ZOOM2
+#include "../omap3430zoom2/board_rev.h"
+#endif
 
 /************************************************************************
  *  get_gpmc0_type() - read sysboot lines to see type of memory attached
@@ -258,8 +261,16 @@ void display_board_info(u32 btype)
 
 	printf("OMAP%s-%s rev %d, CPU-OPP%s L3-%sMHz\n", cpu_s, sec_s, rev, p_cpu, 
 		   p_l3);
+
+#ifdef CONFIG_3430ZOOM2
+	printf("OMAP3430Zoom2 Rev %s + %s (Boot %s)\n",
+	       ZOOM2_BOARD_REVISION_STRING(),
+	       mem_s, bootmode[2]);
+
+#else
 	printf("OMAP3430LAB %s Version + %s (Boot %s)\n", db_s,
 	       mem_s, bootmode[2]);
+#endif
 }
 
 /********************************************************
