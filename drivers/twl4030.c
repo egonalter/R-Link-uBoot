@@ -342,7 +342,7 @@ static int twl4030_get_usb_charger_voltage(void)
 
 int twl4030_init_battery_charging(void)
 {
-	u8 batstsmchg, batstspchg, hwsts;
+	u8 batstsmchg, batstspchg, hwsts, reg;
 	int battery_volt = 0, charger_present = 0;
 	int ret = 0;
 
@@ -363,18 +363,43 @@ int twl4030_init_battery_charging(void)
        ret = clear_n_set(TWL4030_CHIP_PM_MASTER, 0, SW_EVENTS_STOPON_PWRON,
 			 PM_MASTER_P1_SW_EVENTS);
 
-	/* Enable AC charging */
+	/* Disable USB, enable AC: 0x35 defalut */
+	ret = clear_n_set(TWL4030_CHIP_PM_MASTER, BCIAUTOUSB,
+			       BCIAUTOAC,
+			       REG_BOOT_BCI);
+
+	/* Enable AC charging : ROM code is shutting down MADC CLK */
 	ret = clear_n_set(TWL4030_CHIP_INTBR, 0,
 		(MADC_HFCLK_EN | DEFAULT_MADC_CLK_EN), REG_GPBR1);
 
 	udelay(100);
 
+	ret = clear_n_set(TWL4030_CHIP_PM_MASTER,
+				BCIAUTOAC | CVENAC,
+				0,
+				REG_BOOT_BCI);
 
+	/* Change charging current */
 	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0xE7,
 			REG_BCIMFKEY);
-	/* set MAX charging current */
-	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0xFF,
+	/* set 1 Amp charging */
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0x58,
 			REG_BCIIREF1);
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0xE7,
+			REG_BCIMFKEY);
+	ret = twl4030_i2c_write_u8(TWL4030_CHIP_MAIN_CHARGE, 0x03,
+			REG_BCIIREF2);
+
+	/* Set CGAIN=1 */
+	ret = clear_n_set(TWL4030_CHIP_MAIN_CHARGE,
+				0,
+				CGAIN,
+				REG_BCICTL1);
+
+	ret = clear_n_set(TWL4030_CHIP_PM_MASTER,
+				0,
+				BCIAUTOAC | CVENAC,
+				REG_BOOT_BCI);
 
 	/* Red LED - off  */
 	omap3_zoom2_led_red_off();
