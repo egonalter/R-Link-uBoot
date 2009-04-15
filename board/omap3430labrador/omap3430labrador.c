@@ -814,6 +814,10 @@ void set_muxconf_regs(void)
 	MUX_VAL(CP(McSPI1_SOMI),  (IEN | PTD | EN | M4))  /* gpio_173 red */
 	MUX_VAL(CP(McBSP4_DX),    (IEN  | PTD | EN | M4))  /* gpio_154 blue */
 	MUX_VAL(CP(GPMC_nBE1),    (IEN  | PTD | EN | M4))  /* gpio_61 blue2 */
+		/* Keep UART3 RX line pulled-up:
+		 * Crashs have been seen on Zoom2 otherwise
+		 */
+	MUX_VAL(CP(UART3_RX_IRRX),(IEN  | PTU | DIS | M0)) /*UART3_RX_IRRX*/
 
 #endif
 }
