@@ -35,11 +35,16 @@
 #include <linux/mtd/nand_ecc.h>
 #include <twl4030.h>
 
+#ifdef CONFIG_3430ZOOM2
+#include "../omap3430zoom2/board_rev.h"
+#endif
+
 int get_boot_type(void);
 void v7_flush_dcache_all(int, int);
 void l2cache_enable(void);
 void setup_auxcr(int, int);
 void eth_init(void *);
+
 
 /*******************************************************
  * Routine: delay
@@ -62,6 +67,9 @@ int board_init(void)
 	gpmc_init();		/* in SRAM or SDRAM, finish GPMC */
 #ifdef CONFIG_3430ZOOM2
 	gd->bd->bi_arch_number = MACH_TYPE_OMAP_ZOOM2; /* Linux mach id*/
+#ifdef CONFIG_BOARD_REVISION
+	gd->bd->bi_board_revision = zoom2_board_revision();
+#endif
 #else
 	gd->bd->bi_arch_number = MACH_TYPE_OMAP_3430LABRADOR; /* Linux mach id*/
 #endif
@@ -818,6 +826,9 @@ void set_muxconf_regs(void)
 		 * Crashs have been seen on Zoom2 otherwise
 		 */
 	MUX_VAL(CP(UART3_RX_IRRX),(IEN  | PTU | DIS | M0)) /*UART3_RX_IRRX*/
+
+	/* gpio 94 is used to detect preproduction vs production boards */
+       MUX_VAL(CP(CAM_HS),          (IEN | PTD | DIS | M4)) /*gpio_94 */
 
 #endif
 }

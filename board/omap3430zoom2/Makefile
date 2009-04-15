@@ -30,9 +30,11 @@ OBJS	:= ../omap3430labrador/omap3430labrador.o \
 	../omap3430labrador/syslib.o \
 	../omap3430labrador/sys_info.o \
 	../omap3430labrador/nand.o \
+	board_rev.o \
+	debug_board.o \
 	led.o \
-	zoom2_serial.o \
-	debug_board.o
+	zoom2_serial.o
+
 
 SOBJS	:= ../omap3430labrador/lowlevel_init.o
 
