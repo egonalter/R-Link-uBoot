@@ -93,6 +93,16 @@ static unsigned int download_bytes;
 static unsigned int download_bytes_unpadded;
 static unsigned int download_error;
 
+static void set_env(char *var, char *val)
+{
+	char *setenv[4]  = { "setenv", NULL, NULL, NULL, };
+
+	setenv[1] = var;
+	setenv[2] = val;
+
+	do_setenv(NULL, 0, 3, setenv);
+}
+
 static void save_env(struct fastboot_ptentry *ptn,
 		     char *var, char *val)
 {
@@ -102,15 +112,12 @@ static void save_env(struct fastboot_ptentry *ptn,
 	char *lock[5]    = { "nand", "lock",   NULL, NULL, NULL, };
 	char *unlock[5]  = { "nand", "unlock", NULL, NULL, NULL, };
 	char *ecc[4]     = { "nand", "ecc",    NULL, NULL, };
-	char *setenv[4]  = { "setenv", NULL, NULL, NULL, };
 	char *saveenv[2] = { "setenv", NULL, };
 
-	setenv[1] = var;
-	setenv[2] = val;
 	lock[2] = unlock[2] = start;
 	lock[3] = unlock[3] = length;
 
-	do_setenv(NULL, 0, 3, setenv);
+	set_env (var, val);
 
 	/* Some flashing requires the nand's ecc to be set */
 	ecc[2] = ecc_type;
@@ -891,35 +898,35 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			ret = 0;
 		}
 
-		/* boot 
-		   boot what was downloaded 
+		/* boot
+		   boot what was downloaded
 
 		   WARNING WARNING WARNING
 
-		   This is not what you expect. 
-		   The fastboot client does its own packaging of the 
+		   This is not what you expect.
+		   The fastboot client does its own packaging of the
 		   kernel.  The layout is defined in the android header
-		   file bootimage.h.  This layeout is copiedlooks like this, 
+		   file bootimage.h.  This layeout is copiedlooks like this,
 
 		   **
-		   ** +-----------------+ 
+		   ** +-----------------+
 		   ** | boot header     | 1 page
 		   ** +-----------------+
-		   ** | kernel          | n pages  
+		   ** | kernel          | n pages
 		   ** +-----------------+
-		   ** | ramdisk         | m pages  
+		   ** | ramdisk         | m pages
 		   ** +-----------------+
 		   ** | second stage    | o pages
 		   ** +-----------------+
 		   **
 
-		   We only care about the kernel. 
-		   So we have to jump past a page. 
+		   We only care about the kernel.
+		   So we have to jump past a page.
 
-		   What is a page size ? 
+		   What is a page size ?
 		   The fastboot client uses 2048
 
-		   The is the default value of 
+		   The is the default value of
 
 		   CFG_FASTBOOT_MKBOOTIMAGE_PAGE_SIZE
 
@@ -934,9 +941,17 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				char *bootm[3] = { "bootm", NULL, NULL, };
 				char *go[3]    = { "go",    NULL, NULL, };
 
+				/*
+				 * Use this later to determine if a command line was passed
+				 * for the kernel.
+				 */
+				struct fastboot_boot_img_hdr *fb_hdr =
+					(image_header_t *) interface.transfer_buffer;
+
 				/* Skip the mkbootimage header */
-				image_header_t *hdr = 
-					(image_header_t *) &interface.transfer_buffer[CFG_FASTBOOT_MKBOOTIMAGE_PAGE_SIZE];
+				image_header_t *hdr =
+					(image_header_t *)
+					&interface.transfer_buffer[CFG_FASTBOOT_MKBOOTIMAGE_PAGE_SIZE];
 
 				bootm[1] = go[1] = start;
 				sprintf (start, "0x%x", hdr);
@@ -951,6 +966,13 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 					/* Looks like a kernel.. */
 					printf ("Booting kernel..\n");
 
+					/*
+					 * Check if the user sent a bootargs down.
+					 * If not, do not override what is already there
+					 */
+					if (strlen ((char *) &fb_hdr->cmdline[0]))
+						set_env ("bootargs", (char *) &fb_hdr->cmdline[0]);
+
 					do_bootm (NULL, 0, 2, bootm);
 				} else {
 					/* Raw image, maybe another uboot */
@@ -960,13 +982,12 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				}
 				printf ("ERROR : bootting failed\n");
 				printf ("You should reset the board\n");
-			} 
+			}
 			sprintf(response, "FAILinvalid boot image");
 			ret = 0;
 		}
-		
 
-		/* flash 
+		/* flash
 		   Flash what was downloaded */
 
 		if(memcmp(cmdbuf, "flash:", 6) == 0) {

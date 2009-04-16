@@ -19,9 +19,14 @@
  * MA 02111-1307 USA
  *
  * The logical naming of flash comes from the Android project
- * Thse structures and functions that look like fastboot_flash_* 
- * They come from bootloader/legacy/include/boot/flash.h 
- * Here is their copyright
+ * Thse structures and functions that look like fastboot_flash_*
+ * They come from bootloader/legacy/include/boot/flash.h
+ *
+ * The boot_img_hdr structure and associated magic numbers also
+ * come from the Android project.  They are from
+ * system/core/mkbootimg/bootimg.h
+ *
+ * Here are their copyrights
  *
  * Copyright (C) 2008 The Android Open Source Project
  * All rights reserved.
@@ -33,7 +38,7 @@
  *    notice, this list of conditions and the following disclaimer.
  *  * Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the 
+ *    the documentation and/or other materials provided with the
  *    distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -43,12 +48,12 @@
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
 #ifndef FASTBOOT_H
@@ -192,6 +197,35 @@ struct fastboot_ptentry
 /* Write the file as a series of variable/value pairs
    using the setenv and saveenv commands */
 #define FASTBOOT_PTENTRY_FLAGS_WRITE_ENV              0x00000400
+
+/* Android bootimage file format */
+#define FASTBOOT_BOOT_MAGIC "ANDROID!"
+#define FASTBOOT_BOOT_MAGIC_SIZE 8
+#define FASTBOOT_BOOT_NAME_SIZE 16
+#define FASTBOOT_BOOT_ARGS_SIZE 512
+
+struct fastboot_boot_img_hdr {
+	unsigned char magic[FASTBOOT_BOOT_MAGIC_SIZE];
+
+	unsigned kernel_size;  /* size in bytes */
+	unsigned kernel_addr;  /* physical load addr */
+
+	unsigned ramdisk_size; /* size in bytes */
+	unsigned ramdisk_addr; /* physical load addr */
+
+	unsigned second_size;  /* size in bytes */
+	unsigned second_addr;  /* physical load addr */
+
+	unsigned tags_addr;    /* physical addr for kernel tags */
+	unsigned page_size;    /* flash page size we assume */
+	unsigned unused[2];    /* future expansion: should be 0 */
+
+	unsigned char name[FASTBOOT_BOOT_NAME_SIZE]; /* asciiz product name */
+
+	unsigned char cmdline[FASTBOOT_BOOT_ARGS_SIZE];
+
+	unsigned id[8]; /* timestamp / checksum / sha1 / etc */
+};
 
 #if (CONFIG_FASTBOOT)
 /* A board specific test if u-boot should go into the fastboot command
