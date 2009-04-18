@@ -309,8 +309,18 @@ static int parse_env(void *ptn, char *err_string, int save, int debug)
 				val = &buff[i];
 		} else if (NULL == val_end) {
 			if ((buff[i] == '\r') ||
-			    (buff[i] == '\n'))
-				val_end = &buff[i];
+			    (buff[i] == '\n')) {
+				/* look for escaped cr or ln */
+				if ('\\' == buff[i - 1]) {
+					/* check for dos */
+					if ((buff[i] == '\r') &&
+					    (buff[i+1] == '\n'))
+						buff[i + 1] = ' ';
+					buff[i - 1] = buff[i] = ' ';
+				} else {
+					val_end = &buff[i];
+				}
+			}
 		} else {
 			sprintf(err_string, "Internal Error");
 
