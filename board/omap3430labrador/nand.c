@@ -443,7 +443,7 @@ void board_nand_init(struct nand_chip *nand)
 	nand->dev_ready         = omap_nand_dev_ready;
 #else
 	nand->waitfunc		= omap_nand_wait;
-	nand->chip_delay        = 50;
+	nand->chip_delay        = 50*2;
 #endif
 
 #if (CONFIG_FASTBOOT)

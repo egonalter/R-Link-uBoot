@@ -145,14 +145,8 @@ void prcm_init(void)
 	
 	sr32(PRM_CLKSEL, 0, 3, sys_clkin_sel); /* set input crystal speed */
 
-	/* If the input clock is greater than 19.2M always divide/2 */
-	if(sys_clkin_sel > 2) {
-		sr32(PRM_CLKSRC_CTRL, 6, 2, 2);/* input clock divider */
-		clk_index = sys_clkin_sel/2;
-	} else {
-		sr32(PRM_CLKSRC_CTRL, 6, 2, 1);/* input clock divider */
-		clk_index = sys_clkin_sel;
-	}
+	sr32(PRM_CLKSRC_CTRL, 6, 2, 1);/* input clock divider */
+	clk_index = sys_clkin_sel;
 
 	sr32(PRM_CLKSRC_CTRL, 0, 2, 0);/* Bypass mode: T2 inputs a square clock */
 
