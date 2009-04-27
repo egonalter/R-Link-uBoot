@@ -238,6 +238,18 @@ struct usb_string_descriptor {
 	u16 wData[0];
 } __attribute__ ((packed));
 
+struct usb_qualifier_descriptor {
+	u8 bLength;
+	u8 bDescriptorType;     /* 0x06 */
+	u16 bcdUSB;
+	u8 bDeviceClass;
+	u8 bDeviceSubClass;
+	u8 bDeviceProtocol;
+	u8 bMaxPacketSize0;
+	u8 bNumConfigurations;
+	u8 bRESERVED;
+} __attribute__ ((packed));
+
 struct usb_generic_descriptor {
 	u8 bLength;
 	u8 bDescriptorType;
