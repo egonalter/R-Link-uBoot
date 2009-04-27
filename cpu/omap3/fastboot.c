@@ -79,23 +79,17 @@ static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOI
 
 /* In high speed mode packets are 512
    In full speed mode packets are 64 */
-#ifndef CONFIG_USB_1_1_DEVICE
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0200)
-#else
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
-#endif
-
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0  (0x0200)
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1  (0x0040)
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
 
 /* Same, just repackaged as 
    2^(m+3), 64 = 2^6, m = 3 */
-#ifndef CONFIG_USB_1_1_DEVICE
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (6)
-#else
-#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
-#endif
-
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 (6)
+#define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 (3)
 #define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
+
+#define CONFIGURATION_NORMAL      1
 
 #define TX_LAST()						\
 	*csr0 |= (MUSB_CSR0_TXPKTRDY | MUSB_CSR0_P_DATAEND);	\
@@ -185,14 +179,16 @@ static void fastboot_bulk_endpoint_reset (void)
 
 	/* Size depends on the mode.  Do not double buffer */
 	*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
-	*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
+	if (high_speed)
+		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
+	else
+		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
 
 	/* restore index */
 	*index = old_index;
   
 	/* Setup Rx endpoint for Bulk OUT */
-	/* Set max packet size per usb 1.1 / 2.0 */
-	*rxmaxp = RX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+	*rxmaxp = fastboot_fifo_size();
 
 	/* Flush anything on fifo */
 	while (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
@@ -242,10 +238,10 @@ static void fastboot_reset (void)
 #else
 	*pwr |= (MUSB_POWER_SOFTCONN | MUSB_POWER_HSENAB);
 #endif
-
 	/* Bulk endpoint fifo */
 	fastboot_bulk_endpoint_reset ();
 	
+
 	OMAP3_LED_ERROR_ON ();
 
 	/* fastboot_db_regs(); */
@@ -320,7 +316,7 @@ static int do_usb_req_set_address(void)
 	{
 		faddr = (u8) (req.wValue & 0x7f);
 		set_address = 1;
-  
+
 		/* Check if we are in high speed mode */
 		if (*pwr & MUSB_POWER_HSMODE)
 		  high_speed = 1;
@@ -342,25 +338,21 @@ static int do_usb_req_set_configuration(void)
 {
 	int ret = 0;
 
-	if (0xff == faddr)
-	{
+	if (0xff == faddr) {
 		NAK_REQ(); 
-	}
-	else
-	{
-		if (0 == req.wValue)
-		{
+	} else {
+		if (0 == req.wValue) {
 			/* spec says to go to address state.. */
 			faddr = 0xff;
 			ACK_REQ();
-		}
-		else if (1 == req.wValue)
-		{
+		} else if (CONFIGURATION_NORMAL == req.wValue) {
 			/* This is the one! */
+
+			/* Bulk endpoint fifo */
+			fastboot_bulk_endpoint_reset();
+
 			ACK_REQ();
-		}
-		else
-		{
+		} else {
 			/* Only support 1 configuration so nak anything else */
 			NAK_REQ();
 		}
@@ -426,13 +418,13 @@ static int do_usb_req_get_descriptor(void)
 			struct usb_endpoint_descriptor e1, e2;
 			unsigned char bytes_remaining = req.wLength;
 			unsigned char bytes_total = 0;
-	  
+
 			c.bLength             = MIN(bytes_remaining, sizeof (c));
 			c.bDescriptorType     = USB_DT_CONFIG;
 			/* Set this to the total we want */
 			c.wTotalLength = sizeof (c) + sizeof (i) + sizeof (e1) + sizeof (e2); 
 			c.bNumInterfaces      = 1;
-			c.bConfigurationValue = 1;
+			c.bConfigurationValue = CONFIGURATION_NORMAL;
 			c.iConfiguration      = DEVICE_STRING_CONFIG_INDEX;
 			c.bmAttributes        = 0xc0;
 			c.bMaxPower           = 0x32;
@@ -470,7 +462,10 @@ static int do_usb_req_get_descriptor(void)
 			e2.bDescriptorType    = USB_DT_ENDPOINT;
 			e2.bEndpointAddress   = BULK_ENDPOINT; /* OUT */
 			e2.bmAttributes       = USB_ENDPOINT_XFER_BULK;
-			e2.wMaxPacketSize     = RX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+			if (high_speed)
+				e2.wMaxPacketSize = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0;
+			else
+				e2.wMaxPacketSize = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1;
 			e2.bInterval          = 0x00;
 
 			bytes_remaining -= e2.bLength;
@@ -537,6 +532,29 @@ static int do_usb_req_get_descriptor(void)
 
 				TX_LAST();
 			}
+		} else if (USB_DT_DEVICE_QUALIFIER == (req.wValue >> 8)) {
+
+#ifdef CONFIG_USB_1_1_DEVICE
+			/* This is an invalid request for usb 1.1, nak it */
+			NAK_REQ();
+#else
+			struct usb_qualifier_descriptor d;
+			d.bLength = MIN(req.wLength, sizeof(d));
+			d.bDescriptorType    = USB_DT_DEVICE_QUALIFIER;
+			d.bcdUSB             = 0x200;
+			d.bDeviceClass       = 0xff;
+			d.bDeviceSubClass    = 0xff;
+			d.bDeviceProtocol    = 0xff;
+			d.bMaxPacketSize0    = 0x40;
+			d.bNumConfigurations = 1;
+			d.bRESERVED          = 0;
+
+			memcpy(&fastboot_fifo, &d, d.bLength);
+			for (byteLoop = 0; byteLoop < d.bLength; byteLoop++)
+				write_fifo_8(fastboot_fifo[byteLoop]);
+
+			TX_LAST();
+#endif
 		}
 		else
 		{
@@ -741,14 +759,12 @@ static int fastboot_rx (void)
 	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
 	{
 		u16 count = *rxcount;
+		int fifo_size = fastboot_fifo_size();
 
-		if (0 == *rxcount)
-		{
+		if (0 == *rxcount) {
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
-		}
-		else if (RX_ENDPOINT_MAXIMUM_PACKET_SIZE < count) 
-		{
+		} else if (fifo_size < count) {
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
 
@@ -761,9 +777,7 @@ static int fastboot_rx (void)
 			
 			/* Clear stall */
 			*peri_rxcsr &= ~MUSB_RXCSR_P_SENTSTALL;
-		}
-		else
-		{
+		} else {
 			int i;
 			int err = 1;
 	  
@@ -775,20 +789,16 @@ static int fastboot_rx (void)
 
 			/* Pass this up to the interface's handler */
 			if (fastboot_interface &&
-			    fastboot_interface->rx_handler) 
-			{
+			    fastboot_interface->rx_handler) {
 				if (!fastboot_interface->rx_handler (&fastboot_bulk_fifo[0], count))
-				{
 					err = 0;
-				}
 			}
 			
 			/* Since the buffer is not null terminated, poison the buffer */
-			memset (&fastboot_bulk_fifo[0], 0, RX_ENDPOINT_MAXIMUM_PACKET_SIZE);
+			memset(&fastboot_bulk_fifo[0], 0, fifo_size);
 
 			/* If the interface did not handle the command */
-			if (err)
-			{
+			if (err) {
 				OMAP3_LED_ERROR_ON ();
 				CONFUSED();
 			}
@@ -900,7 +910,7 @@ int fastboot_is_highspeed(void)
 
 int fastboot_fifo_size(void)
 {
-	return RX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+	return high_speed ? RX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0 : RX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1;
 }
 
 int fastboot_tx_status(const char *buffer, unsigned int buffer_size)
