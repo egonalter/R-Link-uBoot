@@ -259,7 +259,7 @@
 # define CFG_ENV_IS_IN_FLASH	1
 #endif
 
-#define SMNAND_ENV_OFFSET	0x0c0000 /* environment starts here  */
+#define SMNAND_ENV_OFFSET	0x1c0000 /* environment starts here  */
 
 #define CFG_ENV_SECT_SIZE	boot_flash_sec
 #define CFG_ENV_OFFSET		boot_flash_off
