@@ -277,6 +277,17 @@ int misc_init_r(void)
 		sr32((u32)&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
 		sr32((u32)&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
 	}
+	/*
+	 * Board Reset
+	 * Enable resetting the board by pressing the large button
+	 * on the top right side of the main board and holding for
+	 * eight seconds.
+	 *
+	 * There are reported problems of some preproduction boards
+	 * continously resetting.  For those boards, disable resetting.
+	 */
+	if (ZOOM2_BOARD_REVISION_PRODUCTION_1 <= zoom2_board_revision())
+		twl4030_power_reset_init();
 #endif
 #ifdef CONFIG_DRIVER_OMAP34XX_I2C
 	unsigned char data;

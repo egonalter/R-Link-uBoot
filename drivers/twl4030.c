@@ -354,15 +354,6 @@ int twl4030_init_battery_charging(void)
 	/* Red LED - on  */
 	omap3_zoom2_led_red_on();
 
-	/*
-	 * Board Reset
-	 * Enable resetting the board by pressing the large button
-	 * on the top right side of the main board and holding for
-	 * eight seconds.
-	 */
-       ret = clear_n_set(TWL4030_CHIP_PM_MASTER, 0, SW_EVENTS_STOPON_PWRON,
-			 PM_MASTER_P1_SW_EVENTS);
-
 	/* Disable USB, enable AC: 0x35 defalut */
 	ret = clear_n_set(TWL4030_CHIP_PM_MASTER, BCIAUTOUSB,
 			       BCIAUTOAC,
@@ -631,3 +622,14 @@ int twl4030_usb_init(void)
 }
 
 #endif
+
+/*
+ * Power Reset
+ */
+void twl4030_power_reset_init(void)
+{
+#ifdef CONFIG_3430ZOOM2
+	clear_n_set(TWL4030_CHIP_PM_MASTER, 0, SW_EVENTS_STOPON_PWRON,
+		    PM_MASTER_P1_SW_EVENTS);
+#endif
+}

@@ -309,3 +309,5 @@ int twl4030_usb_init(void);
 #define twl4030_usb_init() 0
 #endif
 
+/* Power Reset, use to initialize system wide resetting */
+void twl4030_power_reset_init(void);
