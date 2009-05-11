@@ -462,7 +462,7 @@ void board_nand_init(struct nand_chip *nand)
 		{
 			.name   = "bootloader",
 			.start  = 0x0080000,
-			.length = 0x0080000,
+			.length = 0x0180000, /* 1.5 M */
 			/* Skip bad blocks on write 
 			   Use SW ECC */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK |
@@ -484,8 +484,8 @@ void board_nand_init(struct nand_chip *nand)
 			/* .start  = 0x0a00000, */
 
 			/* The real start */
-			.start  = 0x0140000, 
-			.length = 0x0400000,
+			.start  = 0x0200000,
+			.length = 0x1D00000, /* 30M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_I,
 		},
@@ -494,21 +494,21 @@ void board_nand_init(struct nand_chip *nand)
 #endif
 		{
 			.name   = "system",
-			.start  = 0x0540000,
-			.length = 0x8000000, /* 128M */
+			.start  = 0x2000000,
+			.length = 0xA000000, /* 160M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "userdata",
-			.start  = 0x8540000,
+			.start  = 0xC000000,
 			.length = 0x2000000, /* 32M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "cache",
-			.start  = 0xA540000,
+			.start  = 0xE000000,
 			.length = 0x2000000, /* 32M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
