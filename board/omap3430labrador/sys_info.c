@@ -53,24 +53,6 @@ u32 get_cpu_type(void)
 }
 
 /******************************************
- * get_cpu_rev(void) - extract version info
- ******************************************/
-u32 get_cpu_rev(void)
-{
-	u32 cpuid=0;
-	/* On ES1.0 the IDCODE register is not exposed on L4
-	 * so using CPU ID to differentiate
-	 * between ES2.0 and ES1.0.
-	 */
-	__asm__ __volatile__("mrc p15, 0, %0, c0, c0, 0":"=r" (cpuid));
-	if((cpuid  & 0xf) == 0x0)
-		return CPU_3430_ES1;
-	else
-		return CPU_3430_ES2;
-
-}
-
-/******************************************
  * cpu_is_3410(void) - returns true for 3410
  ******************************************/
 u32 cpu_is_3410(void)
