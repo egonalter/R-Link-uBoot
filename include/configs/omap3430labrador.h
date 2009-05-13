@@ -329,4 +329,7 @@ extern unsigned int boot_flash_type;
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE
 
+/* Command shell */
+#define CFG_HUSH_PARSER
+#define CFG_PROMPT_HUSH_PS2 "> "
 #endif                           /* __CONFIG_H */
