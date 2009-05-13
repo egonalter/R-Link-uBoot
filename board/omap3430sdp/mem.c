@@ -27,6 +27,7 @@
 #include <asm/arch/mem.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/sys_info.h>
+#include <asm/arch/rev.h>
 #include <environment.h>
 #include <command.h>
 
@@ -331,11 +332,19 @@ next_mem_type:
 #endif
 	}
 
-    /* set MDCFG_0 values */
-    if ((pass_type == IP_DDR) || (pass_type == STACKED)) {
-		__raw_writel(SDP_SDRC_MDCFG_0_DDR, SDRC_MCFG_0 + offset);
+	/* set MDCFG_0 values */
+	if ((pass_type == IP_DDR) || (pass_type == STACKED)) {
+		/* ES 3.1 uses DDR2 */
+		if (CPU_3XX_ES31 == get_cpu_rev())
+			__raw_writel(SDP_SDRC_MDCFG_0_DDR_2G,
+				     SDRC_MCFG_0 + offset);
+		else
+			__raw_writel(SDP_SDRC_MDCFG_0_DDR,
+				     SDRC_MCFG_0 + offset);
+
 		if (mono) /* Stacked with memory on CS1 only */
-			__raw_writel(SDP_SDRC_MDCFG_MONO_DDR, SDRC_MCFG_0 + offset);
+			__raw_writel(SDP_SDRC_MDCFG_MONO_DDR,
+				     SDRC_MCFG_0 + offset);
 	} else if (pass_type == COMBO_DDR) {	/* (combo-CS0/CS1) */
 		__raw_writel(SDP_COMBO_MDCFG_0_DDR, SDRC_MCFG_0 + offset);
 	} else if (pass_type == IP_SDR) {	/* ip sdr-CS0 */
