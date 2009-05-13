@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2004-2006
+ * (C) Copyright 2004-2009
  * Texas Instruments, <www.ti.com>
  * Richard Woodruff <r-woodruff2@ti.com>
  *
@@ -251,6 +251,7 @@ int misc_init_r(void)
 	i2c_init(CFG_I2C_SPEED, CFG_I2C_SLAVE);
 #endif
 	ether_init();	/* better done here so timers are init'ed */
+	dieid_num_r();
 	return (0);
 }
 

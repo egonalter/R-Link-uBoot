@@ -27,6 +27,7 @@
 #include <common.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/sys_info.h>
+#include <asm/io.h>
 
 /*
  * get_cpu_rev(void) - extract version info
@@ -45,5 +46,29 @@ u32 get_cpu_rev(void)
 	else
 		return CPU_3430_ES2;
 
+}
+
+/*
+ * dieid_num_r(void) - read and set die ID
+ */
+void dieid_num_r(void)
+{
+	ctrl_id_t *id_base = (ctrl_id_t *)OMAP34XX_ID_L4_IO_BASE;
+	char *uid_s, die_id[34];
+	u32 id[4];
+
+	memset(die_id, 0, sizeof(die_id));
+
+	uid_s = getenv("dieid#");
+
+	if (uid_s == NULL) {
+		id[3] = __raw_readl(&id_base->die_id_0);
+		id[2] = __raw_readl(&id_base->die_id_1);
+		id[1] = __raw_readl(&id_base->die_id_2);
+		id[0] = __raw_readl(&id_base->die_id_3);
+		sprintf(die_id, "%08x%08x%08x%08x", id[0], id[1], id[2], id[3]);
+		setenv("dieid#", die_id);
+		uid_s = die_id;
+	}
 }
 

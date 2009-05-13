@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2006
+ * (C) Copyright 2006 - 2009
  * Texas Instruments, <www.ti.com>
  *
  * See file CREDITS for list of people who contributed to this
@@ -33,6 +33,19 @@
 #define CONTROL_SCALABLE_OMAP_STATUS	(OMAP34XX_CTRL_BASE + 0x44C)
 #define CONTROL_SCALABLE_OMAP_OCP	(OMAP34XX_CTRL_BASE + 0x534)
 
+#define OMAP34XX_ID_L4_IO_BASE		0x4830A200
+#ifndef __ASSEMBLY__
+typedef struct ctrl_id {
+	unsigned char res1[0x4];
+	unsigned int idcode;		/* 0x04 */
+	unsigned int prod_id;		/* 0x08 */
+	unsigned char res2[0x0C];
+	unsigned int die_id_0;		/* 0x18 */
+	unsigned int die_id_1;		/* 0x1C */
+	unsigned int die_id_2;		/* 0x20 */
+	unsigned int die_id_3;		/* 0x24 */
+} ctrl_id_t;
+#endif /* __ASSEMBLY__ */
 
 /* Tap Information */
 #define TAP_IDCODE_REG		(OMAP34XX_TAP_BASE+0x204)
