@@ -27,6 +27,7 @@
 #include <asm/arch/mem.h>
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/sys_info.h>
+#include <asm/arch/rev.h>
 #include <environment.h>
 #include <command.h>
 
@@ -150,18 +151,19 @@ void prcm_init(void)
 
 	sr32(PRM_CLKSRC_CTRL, 0, 2, 0);/* Bypass mode: T2 inputs a square clock */
 
-	/* The DPLL tables are defined according to sysclk value and
+	/*
+	 * The DPLL tables are defined according to sysclk value and
 	 * silicon revision. The clk_index value will be used to get
 	 * the values for that input sysclk from the DPLL param table
 	 * and sil_index will get the values for that SysClk for the 
 	 * appropriate silicon rev. 
 	 */
-	if(cpu_is_3410())
+	if (cpu_is_3410()) {
 		sil_index = 2;
-	else {
-		if(get_cpu_rev() == CPU_3430_ES1)
+	} else {
+		if (get_cpu_rev() == CPU_3XX_ES10)
 			sil_index = 0;
-		else if(get_cpu_rev() == CPU_3430_ES2)
+		else if (get_cpu_rev() >= CPU_3XX_ES20)
 			sil_index = 1;
 	}
 	/* Unlock MPU DPLL (slows things down, and needed later) */

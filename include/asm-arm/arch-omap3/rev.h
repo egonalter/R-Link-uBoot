@@ -37,7 +37,19 @@
 
 #define CPU_3430	0x3430
 
-#define CPU_3430_ES1	1
-#define CPU_3430_ES2	1
+/*
+ * 343x real hardware:
+ *  ES1     = rev 0
+ *
+ *  ES2 onwards, the value maps to contents of IDCODE register [31:28].
+ */
+#define CPU_3XX_ES10		0
+#define CPU_3XX_ES20		1
+#define CPU_3XX_ES21		2
+#define CPU_3XX_ES30		3
+#define CPU_3XX_ES31		4
+#define CPU_3XX_MAX_REV		(CPU_3XX_ES31 + 1)
+
+#define CPU_3XX_ID_SHIFT	28
 
 #endif

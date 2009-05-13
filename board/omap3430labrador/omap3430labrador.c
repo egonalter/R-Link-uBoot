@@ -807,9 +807,7 @@ int dram_init(void)
  *********************************************************/
 void set_muxconf_regs(void)
 {
-	if(get_cpu_rev() == CPU_3430_ES2) {
-		MUX_DEFAULT_ES2();
-	}
+	MUX_DEFAULT_ES2();
 
 	/* Set ZOOM2 specific mux */
 #ifdef CONFIG_3430ZOOM2

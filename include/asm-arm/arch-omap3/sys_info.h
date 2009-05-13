@@ -31,24 +31,6 @@
 #define DDR_COMBO	2      /* combo part on cpu daughter card (menalaeus) */
 #define DDR_DISCRETE	1      /* 2x16 parts on daughter card */
 
-#define DDR_100		100    /* type found on most mem d-boards */
-#define DDR_111		111    /* some combo parts */
-#define DDR_133		133    /* most combo, some mem d-boards */
-#define DDR_165		165    /* future parts */
-
-#define CPU_3430	0x3430
-
-/* 343x real hardware:
- *  ES1     = rev 0
- */
-
-/* 343x code defines:
- * ES1     = 0+1 = 1
- * ES1     = 1+1 = 1
- */
-#define CPU_3430_ES1		1
-#define CPU_3430_ES2		2
-
 /* Currently Virtio models this one */
 #define CPU_3430_CHIPID		0x0B68A000
 

@@ -28,24 +28,34 @@
 #include <asm/arch/cpu.h>
 #include <asm/arch/sys_info.h>
 #include <asm/io.h>
+#include <asm/arch/rev.h>
 
 /*
  * get_cpu_rev(void) - extract version info
  */
 u32 get_cpu_rev(void)
 {
-	u32 cpuid=0;
-	/* 
+	u32 cpuid = 0;
+	ctrl_id_t *id_base;
+	/*
 	 * On ES1.0 the IDCODE register is not exposed on L4
-	 * so using CPU ID to differentiate
-	 * between ES2.0 and ES1.0.
+	 * so using CPU ID to differentiate between ES1.0 and > ES1.0.
 	 */
 	__asm__ __volatile__("mrc p15, 0, %0, c0, c0, 0":"=r" (cpuid));
-	if((cpuid  & 0xf) == 0x0)
-		return CPU_3430_ES1;
-	else
-		return CPU_3430_ES2;
+	if ((cpuid  & 0xf) == 0x0)
+		return CPU_3XX_ES10;
+	else {
+		/* Decode the IDs on > ES1.0 */
+		id_base = (ctrl_id_t *) OMAP34XX_ID_L4_IO_BASE;
 
+		cpuid = (__raw_readl(&id_base->idcode) >> CPU_3XX_ID_SHIFT) & 0xf;
+
+		/* Some early ES2.0 seem to report ID 0, fix this */
+		if (cpuid == 0)
+			cpuid = CPU_3XX_ES20;
+
+		return cpuid;
+	}
 }
 
 /*

@@ -26,6 +26,7 @@
 #include <asm/arch/mem.h>	/* get mem tables */
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/sys_info.h>
+#include <asm/arch/rev.h>
 #include <i2c.h>
 
 #ifdef CONFIG_3430ZOOM2
@@ -52,18 +53,19 @@ u32 get_cpu_type(void)
     return (CPU_3430);
 }
 
-/******************************************
+/*
  * cpu_is_3410(void) - returns true for 3410
- ******************************************/
+ */
 u32 cpu_is_3410(void)
 {
 	int status;
-	if(get_cpu_rev() < CPU_3430_ES2) {
+	if (get_cpu_rev() < CPU_3XX_ES20) {
 		return 0;
 	} else {
 		/* read scalability status and return 1 for 3410*/
 		status = __raw_readl(CONTROL_SCALABLE_OMAP_STATUS);
-		/* Check whether MPU frequency is set to 266 MHz which
+		/*
+		 * Check whether MPU frequency is set to 266 MHz which
 		 * is nominal for 3410. If yes return true else false
 		 */
 		if (((status >> 8) & 0x3) == 0x2)

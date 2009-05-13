@@ -37,6 +37,7 @@
 #include <asm/arch/cpu.h>
 #endif
 #include <asm/arch/sys_info.h>
+#include <asm/arch/rev.h>
 
 #ifdef CONFIG_USE_IRQ
 DECLARE_GLOBAL_DATA_PTR;
@@ -178,13 +179,12 @@ void l2cache_enable(void)
 	unsigned long i;
 	volatile unsigned int j;
 
-        /* ES2 onwards we can disable/enable L2 ourselves */
-        if(get_cpu_rev() == CPU_3430_ES2) {
+	/* ES2 onwards we can disable/enable L2 ourselves */
+	if (get_cpu_rev() >= CPU_3XX_ES20) {
 		__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 1":"=r" (i));
 		__asm__ __volatile__("orr %0, %0, #0x2":"=r"(i));
 		__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 1":"=r" (i));
-	}
-	else {
+	} else {
 		/* Save r0, r12 and restore them after usage */
 		__asm__ __volatile__("mov %0, r12":"=r" (j));
 		__asm__ __volatile__("mov %0, r0":"=r" (i));
@@ -206,13 +206,12 @@ void l2cache_disable()
 	unsigned long i;
 	volatile unsigned int j;
 
-        /* ES2 onwards we can disable/enable L2 ourselves */
-        if(get_cpu_rev() == CPU_3430_ES2) {
+	/* ES2 onwards we can disable/enable L2 ourselves */
+	if (get_cpu_rev() >= CPU_3XX_ES20) {
 		__asm__ __volatile__("mrc p15, 0, %0, c1, c0, 1":"=r" (i));
 		__asm__ __volatile__("bic %0, %0, #0x2":"=r"(i));
 		__asm__ __volatile__("mcr p15, 0, %0, c1, c0, 1":"=r" (i));
-	}
-	else {
+	} else {
 		/* Save r0, r12 and restore them after usage */
 		__asm__ __volatile__("mov %0, r12":"=r" (j));
 		__asm__ __volatile__("mov %0, r0":"=r" (i));

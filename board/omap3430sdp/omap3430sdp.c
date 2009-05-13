@@ -30,6 +30,7 @@
 #include <asm/arch/sys_info.h>
 #include <asm/arch/clocks.h>
 #include <asm/arch/mem.h>
+#include <asm/arch/rev.h>
 #include <i2c.h>
 #include <asm/mach-types.h>
 #if (CONFIG_COMMANDS & CFG_CMD_NAND) && defined(CFG_NAND_LEGACY)
@@ -1043,18 +1044,17 @@ int dram_init(void)
 	MUX_VAL(CP(d2d_sbusflag),   (IEN  | PTD | DIS | M0)) /*d2d_sbusflag */
 //#endif
 
-/**********************************************************
+/*
  * Routine: set_muxconf_regs
  * Description: Setting up the configuration Mux registers
  *              specific to the hardware. Many pins need
  *              to be moved from protect to primary mode.
- *********************************************************/
+ */
 void set_muxconf_regs(void)
 {
-	if(get_cpu_rev() == CPU_3430_ES2) {
+	if (get_cpu_rev() >= CPU_3XX_ES20) {
 		MUX_DEFAULT_ES2();
-	}
-	else {
+	} else {
 		MUX_DEFAULT();
 	}
 }
