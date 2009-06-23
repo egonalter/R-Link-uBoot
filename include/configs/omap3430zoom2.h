@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2008 Texas Instruments.
+ * (C) Copyright 2008 - 2009 Texas Instruments.
  *
  * Configuration settings for the 3430 TI Zoom2 board.
  *
@@ -318,7 +318,7 @@ extern unsigned int boot_flash_type;
 
 /* Fastboot variables */
 #define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_16M)
-#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_128M - SZ_16M)
+#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_256M - SZ_16M)
 #define CFG_FASTBOOT_PREBOOT_KEYS         1
 #define CFG_FASTBOOT_PREBOOT_KEY1         0x37 /* 'ok' */
 #define CFG_FASTBOOT_PREBOOT_KEY2         0x00 /* unused */
