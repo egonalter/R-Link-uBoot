@@ -58,6 +58,12 @@ static volatile u16 *peri_txcsr = (volatile u16 *) OMAP34XX_USB_TXCSR(BULK_ENDPO
 static volatile u16 *txmaxp     = (volatile u16 *) OMAP34XX_USB_TXMAXP(BULK_ENDPOINT);
 static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOINT);
 
+#define DMA_CHANNEL 1
+static volatile u8  *peri_dma_intr	= (volatile u8  *) OMAP34XX_USB_DMA_INTR;
+static volatile u16 *peri_dma_cntl	= (volatile u16 *) OMAP34XX_USB_DMA_CNTL_CH(DMA_CHANNEL);
+static volatile u32 *peri_dma_addr	= (volatile u32 *) OMAP34XX_USB_DMA_ADDR_CH(DMA_CHANNEL);
+static volatile u32 *peri_dma_count	= (volatile u32 *) OMAP34XX_USB_DMA_COUNT_CH(DMA_CHANNEL);
+
 /* This is the TI USB vendor id */
 #define DEVICE_VENDOR_ID  0x0451
 /* This is just made up.. */
@@ -179,10 +185,19 @@ static void fastboot_bulk_endpoint_reset (void)
 
 	/* Size depends on the mode.  Do not double buffer */
 	*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
+	/*
+	 * Double buffer the rx fifo because it handles the large transfers
+	 * The extent is now double and must be considered if another fifo is
+	 * added to the end of this one.
+	 */
 	if (high_speed)
-		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
+		*rxfifosz =
+			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 |
+			MUSB_RXFIFOSZ_DPB;
 	else
-		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
+		*rxfifosz =
+			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 |
+			MUSB_RXFIFOSZ_DPB;
 
 	/* restore index */
 	*index = old_index;
@@ -261,6 +276,39 @@ static u8 read_bulk_fifo_8(void)
   
 	val = *bulk_fifo;
 	return val;
+}
+
+static int read_bulk_fifo_dma(u8 *buf, u32 size)
+{
+	int ret = 0;
+
+	/* Set the address */
+	*peri_dma_addr = (u32) buf;
+	/* Set the transfer size */
+	*peri_dma_count = size;
+	/*
+	 * Set the control parts,
+	 * The size is either going to be 64 or 512 which
+	 * is ok for burst mode 3 which does increment by 16.
+	 */
+	*peri_dma_cntl =
+		MUSB_DMA_CNTL_BUSRT_MODE_3 |
+		MUSB_DMA_CNTL_END_POINT(BULK_ENDPOINT) |
+		MUSB_DMA_CNTL_MODE_1 |
+		MUSB_DMA_CNTL_WRITE |
+		MUSB_DMA_CNTL_ENABLE;
+
+	while (1) {
+
+		if (MUSB_DMA_CNTL_ERR & *peri_dma_cntl) {
+			ret = 1;
+			break;
+		}
+
+		if (0 == *peri_dma_count)
+			break;
+	}
+	return ret;
 }
 
 static void write_fifo_8(u8 val)
@@ -753,11 +801,27 @@ static int fastboot_resume (void)
   
 	return fastboot_poll_h();
 }
-  
+
+static void fastboot_rx_error()
+{
+	/* Clear the RXPKTRDY bit */
+	*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
+
+	/* Send stall */
+	*peri_rxcsr |= MUSB_RXCSR_P_SENDSTALL;
+
+	/* Wait till stall is sent.. */
+	while (!(*peri_rxcsr & MUSB_RXCSR_P_SENTSTALL))
+		udelay(1);
+
+	/* Clear stall */
+	*peri_rxcsr &= ~MUSB_RXCSR_P_SENTSTALL;
+
+}
+
 static int fastboot_rx (void)
 {
-	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
-	{
+	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY) {
 		u16 count = *rxcount;
 		int fifo_size = fastboot_fifo_size();
 
@@ -765,36 +829,62 @@ static int fastboot_rx (void)
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
 		} else if (fifo_size < count) {
-			/* Clear the RXPKTRDY bit */
-			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
-
-			/* Send stall */
-			*peri_rxcsr |= MUSB_RXCSR_P_SENDSTALL;
-
-			/* Wait till stall is sent.. */
-			while (! (*peri_rxcsr & MUSB_RXCSR_P_SENTSTALL))
-			  udelay(1);
-			
-			/* Clear stall */
-			*peri_rxcsr &= ~MUSB_RXCSR_P_SENTSTALL;
+			fastboot_rx_error();
 		} else {
-			int i;
+			int i = 0;
 			int err = 1;
-	  
-			for (i = 0; i < count; i++)
-				fastboot_bulk_fifo[i] = read_bulk_fifo_8 ();
 
+			/*
+			 * If the fifo is full, it is likely we are going to
+			 * do a multiple packet transfere.  To speed this up
+			 * do a DMA for full packets.  To keep the handling
+			 * of the end packet simple, just do it by manually
+			 * reading the fifo
+			 */
+			if (fifo_size == count) {
+				/* Mode 1
+				 *
+				 * The setup is not as simple as
+				 * *peri_rxcsr |=
+				 * (MUSB_RXCSR_DMAENAB | MUSB_RXCSR_DMAMODE)
+				 *
+				 * There is a special sequence needed to
+				 * enable mode 1.  This was take from
+				 * musb_gadget.c in the 2.6.27 kernel
+				 */
+				*peri_rxcsr &= ~MUSB_RXCSR_AUTOCLEAR;
+				*peri_rxcsr |= MUSB_RXCSR_DMAENAB;
+				*peri_rxcsr |= MUSB_RXCSR_DMAMODE;
+				*peri_rxcsr |= MUSB_RXCSR_DMAENAB;
+
+				if (read_bulk_fifo_dma
+				    (fastboot_bulk_fifo, fifo_size)) {
+					/* Failure */
+					fastboot_rx_error();
+				}
+
+				/* Disable DMA in peri_rxcsr */
+				*peri_rxcsr &= ~(MUSB_RXCSR_DMAENAB |
+						 MUSB_RXCSR_DMAMODE);
+
+			} else {
+				for (i = 0; i < count; i++)
+					fastboot_bulk_fifo[i] =
+						read_bulk_fifo_8();
+			}
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
 
 			/* Pass this up to the interface's handler */
 			if (fastboot_interface &&
 			    fastboot_interface->rx_handler) {
-				if (!fastboot_interface->rx_handler (&fastboot_bulk_fifo[0], count))
+				if (!fastboot_interface->rx_handler
+				    (&fastboot_bulk_fifo[0], count))
 					err = 0;
 			}
-			
-			/* Since the buffer is not null terminated, poison the buffer */
+
+			/* Since the buffer is not null terminated,
+			 * poison the buffer */
 			memset(&fastboot_bulk_fifo[0], 0, fifo_size);
 
 			/* If the interface did not handle the command */
@@ -804,7 +894,6 @@ static int fastboot_rx (void)
 			}
 		}
 	}
-  
 	return 0;
 }
 
