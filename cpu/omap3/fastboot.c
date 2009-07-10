@@ -64,6 +64,10 @@ static volatile u16 *peri_dma_cntl	= (volatile u16 *) OMAP34XX_USB_DMA_CNTL_CH(D
 static volatile u32 *peri_dma_addr	= (volatile u32 *) OMAP34XX_USB_DMA_ADDR_CH(DMA_CHANNEL);
 static volatile u32 *peri_dma_count	= (volatile u32 *) OMAP34XX_USB_DMA_COUNT_CH(DMA_CHANNEL);
 
+static volatile u32 *otg_sysconfig	= (volatile u32 *) OMAP34XX_OTG_SYSCONFIG;
+static volatile u32 *otg_interfsel	= (volatile u32 *) OMAP34XX_OTG_INTERFSEL;
+static volatile u32 *otg_forcestdby	= (volatile u32 *) OMAP34XX_OTG_FORCESTDBY;
+
 /* This is the TI USB vendor id */
 #define DEVICE_VENDOR_ID  0x0451
 /* This is just made up.. */
@@ -168,6 +172,21 @@ static void fastboot_db_regs(void)
 	s = *peri_txcsr;
 	PRINT_TXCSR(s);
 }
+
+static void fastboot_db_otg_regs(void)
+{
+	u32 v;
+	v = __raw_readl(OMAP34XX_OTG_REVISION);
+	printf("OTG_REVISION 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_SYSCONFIG);
+	printf("OTG_SYSCONFIG 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_SYSSTATUS);
+	printf("OTG_SYSSTATUS 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_INTERFSEL);
+	printf("OTG_INTERFSEL 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_FORCESTDBY);
+	printf("OTG_FORCESTDBY 0x%x\n", v);
+}
 #endif
 
 static void fastboot_bulk_endpoint_reset (void)
@@ -237,7 +256,18 @@ static void fastboot_reset (void)
 {
 	OMAP3_LED_ERROR_ON ();
 
-	/* Kill the power */
+	/* Reset OTG */
+	/* Set OTG to always be on */
+	*otg_sysconfig = (OMAP34XX_OTG_SYSCONFIG_NO_STANDBY_MODE |
+			  OMAP34XX_OTG_SYSCONFIG_NO_IDLE_MODE);
+
+	/* Set the interface */
+	*otg_interfsel = OMAP34XX_OTG_INTERFSEL_OMAP;
+
+	/* Clear force standby */
+	*otg_forcestdby &= ~OMAP34XX_OTG_FORCESTDBY_STANDBY;
+
+	/* Reset MUSB */
 	*pwr &= ~MUSB_POWER_SOFTCONN;
 	udelay(2 * 500000); /* 1 sec */
 
