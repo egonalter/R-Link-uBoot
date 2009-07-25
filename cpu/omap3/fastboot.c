@@ -369,7 +369,7 @@ static void read_request(void)
 
 static int do_usb_req_set_interface(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	/* Only support interface 0, alternate 0 */
 	if ((0 == req.wIndex) &&
@@ -388,7 +388,7 @@ static int do_usb_req_set_interface(void)
 
 static int do_usb_req_set_address(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	if (0xff == faddr) 
 	{
@@ -414,7 +414,7 @@ static int do_usb_req_set_address(void)
 
 static int do_usb_req_set_configuration(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	if (0xff == faddr) {
 		NAK_REQ(); 
@@ -441,7 +441,7 @@ static int do_usb_req_set_configuration(void)
 
 static int do_usb_req_set_feature(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	NAK_REQ();
 
@@ -450,7 +450,7 @@ static int do_usb_req_set_feature(void)
 
 static int do_usb_req_get_descriptor(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	if (0 == req.wLength)
 	{
@@ -645,7 +645,7 @@ static int do_usb_req_get_descriptor(void)
 
 static int do_usb_req_get_status(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	if (0 == req.wLength)
 	{
@@ -673,18 +673,19 @@ static int do_usb_req_get_status(void)
 
 static int fastboot_poll_h (void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_INACTIVE;
 	u16 count0;
 
 	if (*csr0 & MUSB_CSR0_RXPKTRDY) 
 	{
 		count0 = inw (OMAP34XX_USB_COUNT0);
+		ret = FASTBOOT_OK;
 
 		if (count0 != 8) 
 		{
 			OMAP3_LED_ERROR_ON ();
 			CONFUSED();
-			ret = 1;
+			ret = FASTBOOT_ERROR;
 		}
 		else
 		{
@@ -716,7 +717,7 @@ static int fastboot_poll_h (void)
 			  
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
@@ -730,14 +731,14 @@ static int fastboot_poll_h (void)
 			      
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
 					else
 					{
 						NAK_REQ();
-						ret = -1;
+						ret = FASTBOOT_ERROR;
 					}
 				}
 				else
@@ -757,14 +758,14 @@ static int fastboot_poll_h (void)
 
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
 					else
 					{
 						NAK_REQ();
-						ret = -1;
+						ret = FASTBOOT_ERROR;
 					}
 				}
 			}
@@ -772,10 +773,10 @@ static int fastboot_poll_h (void)
 			{
 				/* Non-Standard Req */
 				NAK_REQ();
-				ret = -1;
+				ret = FASTBOOT_ERROR;
 			}
 		}
-		if (0 > ret)
+		if (FASTBOOT_OK > ret)
 		{
 			printf ("Unhandled req\n");
 			PRINT_REQ (req);
@@ -791,7 +792,7 @@ static int fastboot_resume (void)
 	if (*csr0 & MUSB_CSR0_P_SENTSTALL)
 	{
 		*csr0 &= ~MUSB_CSR0_P_SENTSTALL;
-		return 0;
+		return FASTBOOT_OK;
 	}
 
 	/* Host stopped last transaction */
@@ -851,9 +852,13 @@ static void fastboot_rx_error()
 
 static int fastboot_rx (void)
 {
-	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY) {
+	int ret = FASTBOOT_INACTIVE;
+
+	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
+	{
 		u16 count = *rxcount;
 		int fifo_size = fastboot_fifo_size();
+		int ret = FASTBOOT_OK;
 
 		if (0 == *rxcount) {
 			/* Clear the RXPKTRDY bit */
@@ -921,10 +926,11 @@ static int fastboot_rx (void)
 			if (err) {
 				OMAP3_LED_ERROR_ON ();
 				CONFUSED();
+				ret = FASTBOOT_ERROR;
 			}
 		}
 	}
-	return 0;
+	return ret;
 }
 
 static int fastboot_suspend (void)
@@ -932,16 +938,20 @@ static int fastboot_suspend (void)
 	/* No suspending going on here! 
 	   We are polling for all its worth */
 
-	return 0;
+	return FASTBOOT_OK;
 }
 
 int fastboot_poll(void) 
 {
-	int ret = 0;
+	/* No activity */
+	int ret = FASTBOOT_INACTIVE;
 
 	u8 intrusb;
 	u16 intrtx;
 	u16 intrrx;
+
+	if (deferred_rx)
+		ret = FASTBOOT_OK;
 
 	/* Look at the interrupt registers */
 	intrusb = inb (OMAP34XX_USB_INTRUSB);
@@ -949,14 +959,12 @@ int fastboot_poll(void)
 	/* A disconnect happended, this signals that the cable
 	   has been disconnected, return immediately */
 	if (intrusb & OMAP34XX_USB_INTRUSB_DISCON)
-	{
-		return 1;
-	}
+		return FASTBOOT_DISCONNECT;
 
 	if (intrusb & OMAP34XX_USB_INTRUSB_RESUME)
 	{
 		ret = fastboot_resume ();
-		if (ret)
+		if (FASTBOOT_OK > ret)
 			return ret;
 	}
 	else 
@@ -964,7 +972,7 @@ int fastboot_poll(void)
 		if (intrusb & OMAP34XX_USB_INTRUSB_SOF)
 		{
 			ret = fastboot_resume ();
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
 
 			/* The fastboot client blocks of read and 
@@ -973,15 +981,13 @@ int fastboot_poll(void)
 			if (deferred_rx)
 				ret = fastboot_rx ();
 			deferred_rx = 0;
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
-			
-
 		}
 		if (intrusb & OMAP34XX_USB_INTRUSB_SUSPEND)
 		{
 			ret = fastboot_suspend ();
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
 		}
 
@@ -1017,6 +1023,7 @@ void fastboot_shutdown(void)
 	faddr = 0xff;
 	fastboot_interface = NULL;
 	high_speed = 0;
+	deferred_rx = 0;
 }
 
 int fastboot_is_highspeed(void)

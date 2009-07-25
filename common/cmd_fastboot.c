@@ -1210,7 +1210,7 @@ static int add_partition_from_environment(char *s, char **retptr)
 }
 
 
-	
+
 int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int ret = 1;
@@ -1265,16 +1265,74 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	/* Initialize the board specific support */
 	if (0 == fastboot_init(&interface))
 	{
+		int poll_status;
+		int check_timeout = 0;
+		uint64_t timeout_endtime = 0;
+		uint64_t timeout_ticks = 0;
+		long timeout_seconds = -1;
+
+		if (2 == argc) {
+			long try_seconds;
+			char *try_seconds_end;
+			/* Check for timeout */
+			try_seconds = simple_strtol(argv[1],
+						     &try_seconds_end, 10);
+			if ((try_seconds_end != argv[1]) &&
+			    (try_seconds >= 0)) {
+				check_timeout = 1;
+				timeout_seconds = try_seconds;
+				printf("Fastboot inactivity timeout %ld seconds\n", timeout_seconds);
+			}
+		}
+
+		if (1 == check_timeout) {
+			timeout_ticks = (uint64_t)
+				(timeout_seconds * get_tbclk());
+		}
+
 		printf ("Disconnect USB cable to finish fastboot..\n");
-		
+
 		/* If we got this far, we are a success */
 		ret = 0;
 
-		/* On disconnect or error, polling returns non zero */
+		timeout_endtime = get_ticks();
+		timeout_endtime += timeout_ticks;
+
 		while (1)
 		{
-			if (fastboot_poll())
+			uint64_t current_time = 0;
+			poll_status = fastboot_poll();
+
+			if (1 == check_timeout)
+				current_time = get_ticks();
+
+			if ((FASTBOOT_ERROR == poll_status) ||
+			    (FASTBOOT_DISCONNECT == poll_status)) {
+				/* Error or disconnect */
 				break;
+			} else if ((1 == check_timeout) &&
+				   (FASTBOOT_INACTIVE == poll_status)) {
+
+				/* No activity */
+				if (current_time >= timeout_endtime) {
+					printf("Fastboot inactivity detected\n");
+					break;
+				}
+			} else {
+				/* Something happened */
+				if (1 == check_timeout) {
+					/* Update the timeout endtime */
+					timeout_endtime = current_time;
+					timeout_endtime += timeout_ticks;
+				}
+			}
+
+			/* Check if the user wanted to terminate with ^C */
+			if ((FASTBOOT_INACTIVE == poll_status) &&
+			    (ctrlc())) {
+				printf("Fastboot ended by user\n");
+				break;
+			}
 		}
 	}
 
@@ -1285,9 +1343,12 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 }
 
 U_BOOT_CMD(
-	fastboot,	1,	1,	do_fastboot,
+	fastboot,	2,	1,	do_fastboot,
 	"fastboot- use USB Fastboot protocol\n",
-	NULL
+	"[inactive timeout]\n"
+	"    - Run as a fastboot usb device.\n"
+	"    - The optional inactive timeout is the decimal seconds before\n"
+	"    - the normal console resumes\n"
 );
 
 
