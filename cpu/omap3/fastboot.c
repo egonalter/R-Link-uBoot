@@ -858,7 +858,7 @@ static int fastboot_rx (void)
 	{
 		u16 count = *rxcount;
 		int fifo_size = fastboot_fifo_size();
-		int ret = FASTBOOT_OK;
+		ret = FASTBOOT_OK;
 
 		if (0 == *rxcount) {
 			/* Clear the RXPKTRDY bit */
