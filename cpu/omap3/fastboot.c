@@ -91,13 +91,15 @@ static volatile u32 *otg_forcestdby	= (volatile u32 *) OMAP34XX_OTG_FORCESTDBY;
    In full speed mode packets are 64 */
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0  (0x0200)
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1  (0x0040)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0  (0x0200)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1  (0x0040)
 
 /* Same, just repackaged as 
    2^(m+3), 64 = 2^6, m = 3 */
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 (6)
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 (3)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 (6)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 (3)
 
 #define CONFIGURATION_NORMAL      1
 
@@ -197,13 +199,19 @@ static void fastboot_bulk_endpoint_reset (void)
 
 	/* set index to endpoint */
 	*index = BULK_ENDPOINT;
-  
+
 	/* Address starts at the end of EP0 fifo, shifted right 3 (8 bytes) */
 	*txfifoadd = MUSB_EP0_FIFOSIZE >> 3;
-	*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS) >> 3;
 
 	/* Size depends on the mode.  Do not double buffer */
-	*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
+	if (high_speed) {
+		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0) >> 3;
+	} else {
+		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1) >> 3;
+	}
+
 	/*
 	 * Double buffer the rx fifo because it handles the large transfers
 	 * The extent is now double and must be considered if another fifo is
@@ -237,7 +245,7 @@ static void fastboot_bulk_endpoint_reset (void)
   
 	/* Setup Tx endpoint for Bulk IN */
 	/* Set max packet size per usb 1.1 / 2.0 */
-	*txmaxp = TX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+	*txmaxp = fastboot_fifo_size();
 
 	/* Flush anything on fifo */
 	while (*peri_txcsr & MUSB_TXCSR_FIFONOTEMPTY)
@@ -529,7 +537,10 @@ static int do_usb_req_get_descriptor(void)
 			e1.bDescriptorType    = USB_DT_ENDPOINT;
 			e1.bEndpointAddress   = 0x80 | BULK_ENDPOINT; /* IN */
 			e1.bmAttributes       = USB_ENDPOINT_XFER_BULK;
-			e1.wMaxPacketSize     = TX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+			if (high_speed)
+				e1.wMaxPacketSize = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0;
+			else
+				e1.wMaxPacketSize = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1;
 			e1.bInterval          = 0x00;
 
 			bytes_remaining -= e1.bLength;
