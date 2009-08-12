@@ -1097,6 +1097,27 @@ int fastboot_preboot(void)
 	return 0;
 }
 
+static void set_serial_number(void)
+{
+	char *dieid = getenv("dieid#");
+	if (dieid == NULL) {
+		device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] = "00123";
+	} else {
+		static char serial_number[32];
+		int len;
+
+		memset(&serial_number[0], 0, 32);
+		len = strlen(dieid);
+		if (len > 30)
+			len = 30;
+
+		strncpy(&serial_number[0], dieid, len);
+
+		device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] =
+			&serial_number[0];
+	}
+}
+
 int fastboot_init(struct cmd_fastboot_interface *interface) 
 {
 	int ret = 1;
@@ -1112,8 +1133,8 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 #error "Need a product name for fastboot"
 
 #endif
+	set_serial_number();
 	/* These are just made up */
-	device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] = "00123";
 	device_strings[DEVICE_STRING_CONFIG_INDEX]        = "Android Fastboot";
 	device_strings[DEVICE_STRING_INTERFACE_INDEX]     = "Android Fastboot";
 
