@@ -197,7 +197,7 @@ static void fastboot_bulk_endpoint_reset (void)
 	/* save old index */
 	old_index = *index;
 
-	/* set index to endpoint */
+	/* set index to tx/rx endpoint */
 	*index = BULK_ENDPOINT;
 
 	/* Address starts at the end of EP0 fifo, shifted right 3 (8 bytes) */
@@ -206,10 +206,8 @@ static void fastboot_bulk_endpoint_reset (void)
 	/* Size depends on the mode.  Do not double buffer */
 	if (high_speed) {
 		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
-		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0) >> 3;
 	} else {
 		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
-		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1) >> 3;
 	}
 
 	/*
@@ -217,14 +215,17 @@ static void fastboot_bulk_endpoint_reset (void)
 	 * The extent is now double and must be considered if another fifo is
 	 * added to the end of this one.
 	 */
-	if (high_speed)
+	if (high_speed) {
 		*rxfifosz =
 			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 |
 			MUSB_RXFIFOSZ_DPB;
-	else
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0) >> 3;
+	} else {
 		*rxfifosz =
 			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 |
 			MUSB_RXFIFOSZ_DPB;
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1) >> 3;
+	}
 
 	/* restore index */
 	*index = old_index;
@@ -293,11 +294,8 @@ static void fastboot_reset (void)
 #endif
 	/* Bulk endpoint fifo */
 	fastboot_bulk_endpoint_reset ();
-	
 
 	OMAP3_LED_ERROR_ON ();
-
-	/* fastboot_db_regs(); */
 }
 
 static u8 read_fifo_8(void)
@@ -832,19 +830,19 @@ static int fastboot_resume (void)
 	}
 
 	/* Should we change the address ? */
-	if (set_address) 
+	if (set_address)
 	{
 		outb (faddr, OMAP34XX_USB_FADDR);
 		set_address = 0;
 
 		/* If you have gotten here you are mostly ok */
-		OMAP3_LED_OK_ON ();
+		OMAP3_LED_OK_ON();
 	}
-  
+
 	return fastboot_poll_h();
 }
 
-static void fastboot_rx_error()
+static void fastboot_rx_error(void)
 {
 	/* Clear the RXPKTRDY bit */
 	*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
@@ -1027,6 +1025,12 @@ int fastboot_poll(void)
 
 void fastboot_shutdown(void)
 {
+	/* Let the cmd layer know that we are shutting down */
+	if (fastboot_interface &&
+	    fastboot_interface->reset_handler) {
+		fastboot_interface->reset_handler();
+	}
+
 	/* Clear the SOFTCONN bit to disconnect */
 	*pwr &= ~MUSB_POWER_SOFTCONN;
 
@@ -1035,6 +1039,8 @@ void fastboot_shutdown(void)
 	fastboot_interface = NULL;
 	high_speed = 0;
 	deferred_rx = 0;
+
+	OMAP3_LED_ERROR_ON ();
 }
 
 int fastboot_is_highspeed(void)

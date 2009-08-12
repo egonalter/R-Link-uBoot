@@ -1215,6 +1215,11 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int ret = 1;
 	char fbparts[4096], *env;
+	int check_timeout = 0;
+	uint64_t timeout_endtime = 0;
+	uint64_t timeout_ticks = 0;
+	long timeout_seconds = -1;
+	int continue_from_disconnect = 0;
 
 	/*
 	 * Place the runtime partitions at the end of the
@@ -1262,82 +1267,87 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		}
 	}
 
-	/* Initialize the board specific support */
-	if (0 == fastboot_init(&interface))
-	{
-		int poll_status;
-		int check_timeout = 0;
-		uint64_t timeout_endtime = 0;
-		uint64_t timeout_ticks = 0;
-		long timeout_seconds = -1;
-
-		if (2 == argc) {
-			long try_seconds;
-			char *try_seconds_end;
-			/* Check for timeout */
-			try_seconds = simple_strtol(argv[1],
-						     &try_seconds_end, 10);
-			if ((try_seconds_end != argv[1]) &&
-			    (try_seconds >= 0)) {
-				check_timeout = 1;
-				timeout_seconds = try_seconds;
-				printf("Fastboot inactivity timeout %ld seconds\n", timeout_seconds);
-			}
-		}
-
-		if (1 == check_timeout) {
-			timeout_ticks = (uint64_t)
-				(timeout_seconds * get_tbclk());
-		}
-
-		printf ("Disconnect USB cable to finish fastboot..\n");
-
-		/* If we got this far, we are a success */
-		ret = 0;
-
-		timeout_endtime = get_ticks();
-		timeout_endtime += timeout_ticks;
-
-		while (1)
-		{
-			uint64_t current_time = 0;
-			poll_status = fastboot_poll();
-
-			if (1 == check_timeout)
-				current_time = get_ticks();
-
-			if ((FASTBOOT_ERROR == poll_status) ||
-			    (FASTBOOT_DISCONNECT == poll_status)) {
-				/* Error or disconnect */
-				break;
-			} else if ((1 == check_timeout) &&
-				   (FASTBOOT_INACTIVE == poll_status)) {
-
-				/* No activity */
-				if (current_time >= timeout_endtime) {
-					printf("Fastboot inactivity detected\n");
-					break;
-				}
-			} else {
-				/* Something happened */
-				if (1 == check_timeout) {
-					/* Update the timeout endtime */
-					timeout_endtime = current_time;
-					timeout_endtime += timeout_ticks;
-				}
-			}
-
-			/* Check if the user wanted to terminate with ^C */
-			if ((FASTBOOT_INACTIVE == poll_status) &&
-			    (ctrlc())) {
-				printf("Fastboot ended by user\n");
-				break;
-			}
+	/* Time out */
+	if (2 == argc) {
+		long try_seconds;
+		char *try_seconds_end;
+		/* Check for timeout */
+		try_seconds = simple_strtol(argv[1],
+					    &try_seconds_end, 10);
+		if ((try_seconds_end != argv[1]) &&
+		    (try_seconds >= 0)) {
+			check_timeout = 1;
+			timeout_seconds = try_seconds;
+			printf("Fastboot inactivity timeout %ld seconds\n", timeout_seconds);
 		}
 	}
 
-	/* Reset the board specific support */
-	fastboot_shutdown();
+	if (1 == check_timeout) {
+		timeout_ticks = (uint64_t)
+			(timeout_seconds * get_tbclk());
+	}
+
+
+	do {
+		continue_from_disconnect = 0;
+
+		/* Initialize the board specific support */
+		if (0 == fastboot_init(&interface)) {
+
+			int poll_status;
+
+			/* If we got this far, we are a success */
+			ret = 0;
+
+			timeout_endtime = get_ticks();
+			timeout_endtime += timeout_ticks;
+
+			while (1) {
+				uint64_t current_time = 0;
+				poll_status = fastboot_poll();
+
+				if (1 == check_timeout)
+					current_time = get_ticks();
+
+				if (FASTBOOT_ERROR == poll_status) {
+					/* Error */
+					break;
+				} else if (FASTBOOT_DISCONNECT == poll_status) {
+					/* beak, cleanup and re-init */
+					printf("Fastboot disconnect detected\n");
+					continue_from_disconnect = 1;
+					break;
+				} else if ((1 == check_timeout) &&
+					   (FASTBOOT_INACTIVE == poll_status)) {
+
+					/* No activity */
+					if (current_time >= timeout_endtime) {
+						printf("Fastboot inactivity detected\n");
+						break;
+					}
+				} else {
+					/* Something happened */
+					if (1 == check_timeout) {
+						/* Update the timeout endtime */
+						timeout_endtime = current_time;
+						timeout_endtime += timeout_ticks;
+					}
+				}
+
+				/* Check if the user wanted to terminate with ^C */
+				if ((FASTBOOT_INACTIVE == poll_status) &&
+				    (ctrlc())) {
+					printf("Fastboot ended by user\n");
+					break;
+				}
+			}
+		}
+
+		/* Reset the board specific support */
+		fastboot_shutdown();
+
+		/* restart the loop if a disconnect was detected */
+	} while (continue_from_disconnect);
 
 	return ret;
 }
