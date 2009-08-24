@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2008 - 2009
- * Windriver, <www.windriver.com>
+ * Copyright 2008 - 2009 (C) Wind River Systems, Inc.
  * Tom Rix <Tom.Rix@windriver.com>
  *
  * This program is free software; you can redistribute it and/or
@@ -92,6 +91,7 @@ static unsigned int download_size;
 static unsigned int download_bytes;
 static unsigned int download_bytes_unpadded;
 static unsigned int download_error;
+static unsigned int continue_booting;
 
 /* To support the Android-style naming of flash */
 #define MAX_PTN 16
@@ -254,6 +254,7 @@ static void reset_handler ()
 	download_bytes = 0;
 	download_bytes_unpadded = 0;
 	download_error = 0;
+	continue_booting = 0;
 }
 
 /* When save = 0, just parse.  The input is unchanged
@@ -1066,6 +1067,14 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			ret = 0;
 		}
 
+		/* continue
+		   Stop doing fastboot */
+		if (memcmp(cmdbuf, "continue", 8) == 0) {
+			sprintf(response, "OKAY");
+			continue_booting = 1;
+			ret = 0;
+		}
+
 		fastboot_tx_status(response, strlen(response));
 
 	} /* End of command */
@@ -1362,6 +1371,15 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				if ((FASTBOOT_INACTIVE == poll_status) &&
 				    (ctrlc())) {
 					printf("Fastboot ended by user\n");
+					break;
+				}
+
+				/*
+				 * Check if the fastboot client wanted to
+				 * continue booting
+				 */
+				if (continue_booting) {
+					printf("Fastboot ended by client\n");
 					break;
 				}
 			}
