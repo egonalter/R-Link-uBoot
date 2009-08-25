@@ -1165,6 +1165,7 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 	fastboot_interface->product_name                  = device_strings[DEVICE_STRING_PRODUCT_INDEX];
 	fastboot_interface->serial_no                     = device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX];
 	fastboot_interface->nand_block_size               = 2048;
+	fastboot_interface->nand_oob_size                 = 64;
 	fastboot_interface->transfer_buffer               = (unsigned char *) CFG_FASTBOOT_TRANSFER_BUFFER;
 	fastboot_interface->transfer_buffer_size          = CFG_FASTBOOT_TRANSFER_BUFFER_SIZE;
 

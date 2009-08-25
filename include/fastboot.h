@@ -128,6 +128,10 @@ struct cmd_fastboot_interface
 	   Set by board */
 	unsigned int nand_block_size;
 
+	/* Nand oob size
+	   Set by board */
+	unsigned int nand_oob_size;
+
 	/* Transfer buffer, for handling flash updates
 	   Should be multiple of the nand_block_size 
 	   Care should be take so it does not overrun bootloader memory	
