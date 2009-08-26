@@ -262,6 +262,7 @@ static int parse_env(void *ptn, char *err_string, int save, int debug)
 {
 	int ret = 1;
 	unsigned int sets = 0;
+	unsigned int comment_start = 0;
 	char *var = NULL;
 	char *var_end = NULL;
 	char *val = NULL;
@@ -282,12 +283,34 @@ static int parse_env(void *ptn, char *err_string, int save, int debug)
 		buff[size] = 0;
 
 	for (i = 0; i < size; i++) {
+
 		if (NULL == var) {
-			if (!((buff[i] == ' ') ||
-			      (buff[i] == '\t') ||
-			      (buff[i] == '\r') ||
-			      (buff[i] == '\n')))
-				var = &buff[i];
+
+			/*
+			 * Check for comments, comment ok only on
+			 * mostly empty lines
+			 */
+			if (buff[i] == '#')
+				comment_start = 1;
+
+			if (comment_start) {
+				if  ((buff[i] == '\r') ||
+				     (buff[i] == '\n')) {
+					comment_start = 0;
+				}
+			} else {
+				if (!((buff[i] == ' ') ||
+				      (buff[i] == '\t') ||
+				      (buff[i] == '\r') ||
+				      (buff[i] == '\n'))) {
+					/*
+					 * Normal whitespace before the
+					 * variable
+					 */
+					var = &buff[i];
+				}
+			}
+
 		} else if (((NULL == var_end) || (NULL == val)) &&
 			   ((buff[i] == '\r') || (buff[i] == '\n'))) {
 
