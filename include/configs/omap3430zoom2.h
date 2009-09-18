@@ -329,6 +329,10 @@ extern unsigned int boot_flash_type;
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE
 
+/* Zoom2 Battery threshold */
+#define CFG_LOW_BAT 3300 /* 3.3V */
+#define CFG_BAT_CHG 4000 /* 4.0V */
+
 /* Command shell */
 #define CFG_HUSH_PARSER
 #define CFG_PROMPT_HUSH_PS2 "> "

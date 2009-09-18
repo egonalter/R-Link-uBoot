@@ -342,9 +342,9 @@ static int twl4030_get_usb_charger_voltage(void)
 
 int twl4030_init_battery_charging(void)
 {
-	u8 batstsmchg, batstspchg, hwsts, reg;
+	u8 hwsts;
 	int battery_volt = 0, charger_present = 0;
-	int ret = 0;
+	int ret = 0, ac_t2_enabled = 0;
 
 #ifdef CONFIG_3430ZOOM2
 	/* For Zoom2 enable Main charge Automatic mode:
@@ -392,69 +392,104 @@ int twl4030_init_battery_charging(void)
 				BCIAUTOAC | CVENAC,
 				REG_BOOT_BCI);
 
-	/* Red LED - off  */
-	omap3_zoom2_led_red_off();
 
-
-	/* Done for Zoom2 */
-	return 0;
 #endif
 
-	/* check for battery presence */
-	ret = twl4030_i2c_read_u8(TWL4030_CHIP_MAIN_CHARGE, &batstsmchg,
-				  REG_BCIMFSTS3);
-	if (ret)
-		return ret;
+	/* Read the sts_hw_conditions register */
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_MASTER, &hwsts,
+			  REG_STS_HW_CONDITIONS);
 
-	ret = twl4030_i2c_read_u8(TWL4030_CHIP_PRECHARGE, &batstspchg,
-				  REG_BCIMFSTS1);
-	if (ret)
-		return ret;
+	/* AC T2 charger present */
+	if (hwsts & STS_CHG) {
+		omap3_zoom2_led_blue_on(); /* Blue LED - on */
+		ret = twl4030_ac_charger_enable(1);
+		if (ret)
+			return ret;
+		udelay(500000); /* 0.5 sec */
+		charger_present = 1;
+		ac_t2_enabled = 1;
+		omap3_zoom2_led_blue_off(); /* Blue LED - off */
+	}
 
-	if (!((batstspchg & BATSTSPCHG) || (batstsmchg & BATSTSMCHG)))
-		return ret;	/* no battery */
+	/* USB charger present */
+	if ((hwsts & STS_VBUS) | (hwsts & STS_USB)) {
+		omap3_zoom2_led_blue_on(); /* Blue LED - on */
+		charger_present = 1;
+	}
 
 	ret = twl4030_madc_setup();
 	if (ret) {
 		printf("twl4030 madc setup error %d\n", ret);
 		return ret;
 	}
+
+	/* usb charging is enabled regardless of the whether the
+	* charger is attached, otherwise we will not be able to enable
+	* usb charging at a later stage
+	*/
+	ret = twl4030_usb_charger_enable(1);
+	if (ret)
+		return ret;
+	udelay(250000); /* 0.25 sec */
+	omap3_zoom2_led_blue_off(); /* Blue LED - off */
+
+	/* AC charging is enabled regardless of the whether the
+	* charger is attached
+	*/
+	if (!ac_t2_enabled) {
+		ret = twl4030_ac_charger_enable(1);
+		if (ret)
+			return ret;
+	}
+
 	/* backup battery charges through main battery */
 	ret = twl4030_charge_backup_battery();
 	if (ret) {
 		printf("backup battery charging error\n");
 		return ret;
 	}
-	/* check for charger presence */
-	ret = twl4030_i2c_read_u8(TWL4030_CHIP_PM_MASTER, &hwsts,
-				  REG_STS_HW_CONDITIONS);
-	if (ret)
-		return ret;
 
-	if (hwsts & STS_CHG) {
-		printf("AC charger detected\n");
-		ret = twl4030_ac_charger_enable(1);
-		if (ret)
-			return ret;
-		charger_present = 1;
-	} else {
-		if (hwsts & STS_VBUS) {
-			printf("USB charger detected\n");
-			charger_present = 1;
-		}
-		/* usb charging is enabled regardless of the whether the
-		 * charger is attached, otherwise the main battery voltage
-		 * cannot be read
-		 */
-		ret = twl4030_usb_charger_enable(1);
-		if (ret)
-			return ret;
-	}
 	battery_volt = twl4030_get_battery_voltage();
 	printf("Battery levels: main %d mV, backup %d mV\n",
-		battery_volt, twl4030_get_backup_battery_voltage());
-	if (!charger_present && (battery_volt < 3300))
+	battery_volt, twl4030_get_backup_battery_voltage());
+	if (battery_volt < CFG_LOW_BAT) {
 		printf("Main battery charge too low!\n");
+		printf("Please connect USB or AC charger to continue.\n");
+		/*
+		* Main charging loop
+		* If the battery volage is below CFG_LOW_BAT, attempt is made
+		* to recharge the battery to CFG_BAT_CHG.  The main led will
+		* blink red until either the ac or the usb charger is connected.
+		*/
+		do {
+			/* Read the sts_hw_conditions register */
+			twl4030_i2c_read_u8(TWL4030_CHIP_PM_MASTER, &hwsts,
+			REG_STS_HW_CONDITIONS);
+
+			if ((hwsts & STS_CHG) |
+			((hwsts & STS_VBUS) | (hwsts & STS_USB))) {
+				omap3_zoom2_led_blue_off(); /* Blue LED - off */
+				charger_present = 1;
+			}	else {
+				omap3_zoom2_led_red_off(); /* Red LED - off */
+				udelay(500000); /* 0.5 sec */
+			}
+
+			if (charger_present)	{
+				omap3_zoom2_led_blue_on(); /* Blue LED - on */
+				udelay(500000); /* 0.5 sec */
+			}	else
+				omap3_zoom2_led_red_on(); /* Red LED - on */
+
+		} while (((battery_volt = twl4030_get_battery_voltage())
+					< CFG_BAT_CHG) && (!charger_present));
+		/* If debug board charger is connected,
+		*  battery_volt is approximately 4100mV
+		*/
+	}
+
+	omap3_zoom2_led_blue_off(); /* Blue LED - off */
+	omap3_zoom2_led_red_off(); /* Red LED - off */
 
 	return ret;
 }
