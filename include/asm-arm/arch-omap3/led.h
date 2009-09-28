@@ -32,7 +32,7 @@ extern void omap3_zoom2_led_blue_off(void);
 #define OMAP3_LED_OK_ON() omap3_zoom2_led_blue_on ()
 #define OMAP3_LED_OK_OFF() omap3_zoom2_led_blue_off ()
 #define OMAP3_LED_ERROR_ON() omap3_zoom2_led_red_on ()
-#define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_red_on ()
+#define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_red_off()
 
 #endif /* CONFIG_ZOOM2_LED */
 
