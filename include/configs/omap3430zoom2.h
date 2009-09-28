@@ -329,9 +329,15 @@ extern unsigned int boot_flash_type;
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE
 
+/* Zoom2 Battery charging enable */
+#define CFG_BATTERY_CHARGING
+
 /* Zoom2 Battery threshold */
 #define CFG_LOW_BAT 3300 /* 3.3V */
 #define CFG_BAT_CHG 4000 /* 4.0V */
+
+/* Zoom2 charger tries */
+#define CFG_CHARGER_TRIES_MAX 100
 
 /* Command shell */
 #define CFG_HUSH_PARSER

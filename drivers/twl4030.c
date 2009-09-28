@@ -344,7 +344,7 @@ int twl4030_init_battery_charging(void)
 {
 	u8 hwsts;
 	int battery_volt = 0, charger_present = 0;
-	int ret = 0, ac_t2_enabled = 0;
+	int ret = 0, ac_t2_enabled = 0, charger_tries = 0;
 
 #ifdef CONFIG_3430ZOOM2
 	/* For Zoom2 enable Main charge Automatic mode:
@@ -395,25 +395,26 @@ int twl4030_init_battery_charging(void)
 
 #endif
 
+#ifdef CFG_BATTERY_CHARGING
 	/* Read the sts_hw_conditions register */
 	twl4030_i2c_read_u8(TWL4030_CHIP_PM_MASTER, &hwsts,
 			  REG_STS_HW_CONDITIONS);
 
 	/* AC T2 charger present */
 	if (hwsts & STS_CHG) {
-		omap3_zoom2_led_blue_on(); /* Blue LED - on */
+		OMAP3_LED_OK_ON(); /* Blue LED - on */
 		ret = twl4030_ac_charger_enable(1);
 		if (ret)
 			return ret;
 		udelay(500000); /* 0.5 sec */
 		charger_present = 1;
 		ac_t2_enabled = 1;
-		omap3_zoom2_led_blue_off(); /* Blue LED - off */
+		OMAP3_LED_OK_OFF(); /* Blue LED - off */
 	}
 
 	/* USB charger present */
 	if ((hwsts & STS_VBUS) | (hwsts & STS_USB)) {
-		omap3_zoom2_led_blue_on(); /* Blue LED - on */
+		OMAP3_LED_OK_ON(); /* Blue LED - on */
 		charger_present = 1;
 	}
 
@@ -431,7 +432,7 @@ int twl4030_init_battery_charging(void)
 	if (ret)
 		return ret;
 	udelay(250000); /* 0.25 sec */
-	omap3_zoom2_led_blue_off(); /* Blue LED - off */
+	OMAP3_LED_OK_OFF(); /* Blue LED - off */
 
 	/* AC charging is enabled regardless of the whether the
 	* charger is attached
@@ -468,18 +469,31 @@ int twl4030_init_battery_charging(void)
 
 			if ((hwsts & STS_CHG) |
 			((hwsts & STS_VBUS) | (hwsts & STS_USB))) {
-				omap3_zoom2_led_blue_off(); /* Blue LED - off */
+				OMAP3_LED_OK_OFF(); /* Blue LED - off */
 				charger_present = 1;
 			}	else {
-				omap3_zoom2_led_red_off(); /* Red LED - off */
+				OMAP3_LED_ERROR_OFF(); /* Red LED - off */
 				udelay(500000); /* 0.5 sec */
 			}
 
 			if (charger_present)	{
-				omap3_zoom2_led_blue_on(); /* Blue LED - on */
+				OMAP3_LED_OK_ON(); /* Blue LED - on */
 				udelay(500000); /* 0.5 sec */
 			}	else
-				omap3_zoom2_led_red_on(); /* Red LED - on */
+				OMAP3_LED_ERROR_ON(); /* Red LED - on */
+
+			charger_tries++;
+
+			if (ctrlc()) {
+				printf("Battery charging terminated by user\n");
+				printf("Battery charged to %d\n", battery_volt);
+				break;
+			}	else if (charger_tries >
+							CFG_CHARGER_TRIES_MAX) {
+					printf("No charger connected, \
+					       giving up on charging.\n");
+					break;
+			}
 
 		} while (((battery_volt = twl4030_get_battery_voltage())
 					< CFG_BAT_CHG) && (!charger_present));
@@ -488,10 +502,13 @@ int twl4030_init_battery_charging(void)
 		*/
 	}
 
-	omap3_zoom2_led_blue_off(); /* Blue LED - off */
-	omap3_zoom2_led_red_off(); /* Red LED - off */
+	OMAP3_LED_OK_OFF(); /* Blue LED - off */
+	OMAP3_LED_ERROR_OFF(); /* Red LED - off */
+
+#endif
 
 	return ret;
+
 }
 
 #if (defined(CONFIG_TWL4030_KEYPAD) && (CONFIG_TWL4030_KEYPAD))

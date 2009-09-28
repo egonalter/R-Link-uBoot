@@ -329,6 +329,16 @@ extern unsigned int boot_flash_type;
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE
 
+/* Labrador Battery charging enable */
+#define CFG_BATTERY_CHARGING
+
+/* Labrador Battery threshold */
+#define CFG_LOW_BAT 3300 /* 3.3V */
+#define CFG_BAT_CHG 4000 /* 4.0V */
+
+/* Labrador charger tries */
+#define CFG_CHARGER_TRIES_MAX 100
+
 /* Command shell */
 #define CFG_HUSH_PARSER
 #define CFG_PROMPT_HUSH_PS2 "> "
