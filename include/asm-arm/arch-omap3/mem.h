@@ -63,6 +63,8 @@ typedef enum {
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584019|B_ALL) /* Infin ddr module */
 #elif CONFIG_OMAP3_BEAGLE
 #define SDP_SDRC_MDCFG_0_DDR	(0x00D04019|B_ALL) /* Samsung MCP ddr module */
+#elif CONFIG_3430ZOOM2_512M
+#define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
 #else
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
 #endif
@@ -191,6 +193,42 @@ typedef enum {
 #define XSR_165    23
 #define V_ACTIMB_165 ((TCKE_165 << 12) | (XSR_165 << 0)) | \
 	                                (TXP_165 << 8) | (TWTR_165 << 16)
+
+#elif CONFIG_3430ZOOM2_512M
+/* Hynix part of 3430 Zoom2 (166MHz optimized) 6.02ns
+ *     ACTIMA
+ *        -TDAL = Twr/Tck + Trp/tck = 15/6 + 18/6 = 2.5 + 3 = 5.5 -> 6
+ *        -TDPL (Twr) = 15/6       = 2.5 -> 3
+ *        -TRRD = 12/6     = 2
+ *        -TRCD = 18/6     = 3
+ *        -TRP = 18/6      = 3
+ *        -TRAS = 42/6     = 7
+ *        -TRC = 60/6      = 10
+ *        -TRFC = 97.5/6    = 17
+ *     ACTIMB
+ *        -TWTR = 1
+ *        -TCKE = 1
+ *        -TXP = 1+1
+ *        -XSR = 140/6 = 24
+ */
+#define TDAL_165	6
+#define TDPL_165	3
+#define TRRD_165	2
+#define TRCD_165	3
+#define TRP_165	3
+#define TRAS_165	7
+#define TRC_165	10
+#define TRFC_165	21
+#define V_ACTIMA_165 ((TRFC_165 << 27) | (TRC_165 << 22) | (TRAS_165 << 18) |\
+		      (TRP_165 << 15) | (TRCD_165 << 12) | (TRRD_165 << 9) | \
+		      (TDPL_165 << 6) | (TDAL_165))
+
+#define TWTR_165	1
+#define TCKE_165	1
+#define TXP_165	2
+#define XSR_165	24
+#define V_ACTIMB_165 (((TCKE_165 << 12) | (XSR_165 << 0)) |	\
+		      (TXP_165 << 8) | (TWTR_165 << 16))
 
 #else /* sdp3430 */
 /* Infineon part of 3430SDP (166MHz optimized) 6.02ns
