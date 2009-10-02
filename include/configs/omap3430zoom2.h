@@ -153,10 +153,39 @@
 
 #define CONFIG_BOOTDELAY         3
 
+#define CONFIG_EXTRA_ENV_SETTINGS		\
+"loadaddr=0x81c00000\0"			\
+"nandloadaddr=0x81000000\0"			\
+"console=ttyS3,115200n8\0"			\
+"mmcroot=/dev/mmcblk0p2\0"			\
+"nandroot=/dev/ram0\0"				\
+"mmcargs=setenv bootargs console=${console} "	\
+		"root=${mmcroot} rootdelay=2\0"	\
+"nandargs=setenv bootargs console=${console} "	\
+		"rootdelay=2\0"			\
+"loaduimage=fatload mmc 0:1 ${loadaddr} uImage\0"\
+"mmcboot=echo Booting from mmc ...;"		\
+	" run mmcargs;"				\
+	" bootm ${loadaddr}\0"			\
+"nandboot=echo Booting from nand ...;"		\
+		" nand unlock;"			\
+		" nand read.i ${nandloadaddr}"	\
+		" ${kernel_nand_offset}"	\
+		" ${kernel_nand_size};"		\
+		" run nandargs;"		\
+		" bootm ${nandloadaddr}\0"	\
+"autoboot=if mmcinit; then" 			\
+		" run loaduimage;" 		\
+		" run mmcboot;" 		\
+	" else nandboot;"			\
+	" fi;\0"				\
+
+#define CONFIG_BOOTCOMMAND "run autoboot"
+
 #ifdef NFS_BOOT_DEFAULTS
-#define CONFIG_BOOTARGS "mem=64M console=ttyS2,115200n8 noinitrd root=/dev/nfs rw nfsroot=128.247.77.158:/home/a0384864/wtbu/rootfs ip=dhcp"
+#define CONFIG_BOOTARGS "mem=64M console=ttyS3,115200n8 noinitrd root=/dev/nfs rw nfsroot=128.247.77.158:/home/a0384864/wtbu/rootfs ip=dhcp"
 #else
-#define CONFIG_BOOTARGS "root=/dev/ram0 rw mem=64M console=ttyS2,115200n8 initrd=0x80600000,8M ramdisk_size=8192"
+#define CONFIG_BOOTARGS "root=/dev/ram0 rw mem=64M console=ttyS3,115200n8 initrd=0x80600000,8M ramdisk_size=8192"
 #endif
 
 #define CONFIG_NETMASK           255.255.254.0
