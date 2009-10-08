@@ -96,27 +96,73 @@ int select_bus(int bus, int speed)
 
 void i2c_init(int speed, int slaveadd)
 {
-	int scl_lh = 0;
-	int psc = 0;
-	int iclk = 0;
+	int psc, fsscll, fssclh;
+	int hsscll = 0, hssclh = 0;
+	u32 scll, sclh;
 	int reset_timeout = 10;
 
-	/* assume clock settings done */
-	/* write to clock regs to enable if and fun clks for board */
-#if defined(CONFIG_OMAP243X)
-	{
-		u32 v = 0;
-
-		v = __raw_readl(CM_ICLKEN1_CORE) | (0x3 << 19);	/* Interface clocks on */
-		__raw_writel(v, CM_ICLKEN1_CORE);
-		v = __raw_readl(CM_FCLKEN1_CORE) & ~(0x3 << 19);
-		__raw_writel(v, CM_FCLKEN1_CORE);
-		v = __raw_readl(CM_FCLKEN2_CORE) | (0x3 << 19);	/* Functional Clocks on */
-		__raw_writel(v, CM_FCLKEN2_CORE);
+	/* Only handle standard, fast and high speeds */
+	if ((speed != OMAP_I2C_STANDARD) &&
+	    (speed != OMAP_I2C_FAST_MODE) &&
+	    (speed != OMAP_I2C_HIGH_SPEED)) {
+		printf("Error : I2C unsupported speed %d\n", speed);
+		return;
 	}
-#endif				/* End of 243x code */
 
-/* Execute Soft-reset sequence for I2C controller */
+	psc = I2C_IP_CLK / I2C_INTERNAL_SAMPLING_CLK;
+	psc -= 1;
+	if (psc < I2C_PSC_MIN) {
+		printf("Error : I2C unsupported prescalar %d\n", psc);
+		return;
+	}
+
+	if (speed == OMAP_I2C_HIGH_SPEED) {
+		/* High speed */
+
+		/* For first phase of HS mode */
+		fsscll = fssclh = I2C_INTERNAL_SAMPLING_CLK /
+			(2 * OMAP_I2C_FAST_MODE);
+
+		fsscll -= I2C_HIGHSPEED_PHASE_ONE_SCLL_TRIM;
+		fssclh -= I2C_HIGHSPEED_PHASE_ONE_SCLH_TRIM;
+		if (((fsscll < 0) || (fssclh < 0)) ||
+		    ((fsscll > 255) || (fssclh > 255))) {
+			printf("Error : I2C initializing first phase clock\n");
+			return;
+		}
+
+		/* For second phase of HS mode */
+		hsscll = hssclh = I2C_INTERNAL_SAMPLING_CLK / (2 * speed);
+
+		hsscll -= I2C_HIGHSPEED_PHASE_TWO_SCLL_TRIM;
+		hssclh -= I2C_HIGHSPEED_PHASE_TWO_SCLH_TRIM;
+		if (((fsscll < 0) || (fssclh < 0)) ||
+		    ((fsscll > 255) || (fssclh > 255))) {
+			printf("Error : I2C initializing second phase clock\n");
+			return;
+		}
+
+		scll = (unsigned int)hsscll << 8 | (unsigned int)fsscll;
+		sclh = (unsigned int)hssclh << 8 | (unsigned int)fssclh;
+
+	} else {
+		/* Standard and fast speed */
+		fsscll = fssclh = I2C_INTERNAL_SAMPLING_CLK / (2 * speed);
+
+		fsscll -= I2C_FASTSPEED_SCLL_TRIM;
+		fssclh -= I2C_FASTSPEED_SCLH_TRIM;
+		if (((fsscll < 0) || (fssclh < 0)) ||
+		    ((fsscll > 255) || (fssclh > 255))) {
+			printf("Error : I2C initializing clock\n");
+			return;
+		}
+
+		scll = (unsigned int)fsscll;
+		sclh = (unsigned int)fssclh;
+	}
+
+
+	/* Execute Soft-reset sequence for I2C controller */
 
 	if (inw(I2C_CON) & I2C_CON_EN) {   /* Ensure that the module is disabled */
 		outw(0, I2C_CON);
@@ -132,75 +178,12 @@ void i2c_init(int speed, int slaveadd)
 		udelay(1000);
 	}
 
-	/* compute divisors - dynamic decision based on i/p clock */
-	psc = I2C_PSC_MAX;
-	while (psc >= I2C_PSC_MIN) {
-		iclk = I2C_IP_CLK / (psc + 1);
-		switch (speed) {
-		case OMAP_I2C_STANDARD:
-			scl_lh = (iclk * 10 / (OMAP_I2C_STANDARD * 2));
-			break;
-		case OMAP_I2C_HIGH_SPEED:
-			/* PSC ignored for HS */
-		case OMAP_I2C_FAST_MODE:
-			scl_lh = (iclk * 10 / (OMAP_I2C_FAST_MODE * 2));
-			break;
-			/* no default case  - fall thru */
-		}
-		DBG("Search- speed= %d SysClk=%d, iclk=%d,psc=0x%x[%d],scl_lh=0x%x[%d]\n",
-	       speed, I2C_IP_CLK, iclk, psc, psc, scl_lh, scl_lh);
-		/* Check for decimal places.. if yes, we ignore it */
-		if (scl_lh % 10) {
-			scl_lh = -1;
-		} else {
-			scl_lh /= 10;
-			scl_lh -= 7;
-		}
-		if (scl_lh >= 0) {
-			break;
-		}
-		psc--;
-	}
-	/* Did not find an optimal config */
-	if (psc < I2C_PSC_MIN) {
-		printf
-		    ("Unable to set Prescalar for i2c_clock=%d syI2C_IP_CLK=%d\n",
-		     speed, I2C_IP_CLK);
-		psc = 0;
-		return;
-
-	}
-	iclk = I2C_IP_CLK / (psc + 1);
-	/* Initialize the I2C clock timers to generate an I2C bus clock
-	 * frequency of i2c_clock kilohertz (default is 100 KHz).
-	 */
-	switch (speed) {
-	case OMAP_I2C_STANDARD:
-		scl_lh =
-		    (((iclk / (OMAP_I2C_STANDARD * 2)) - 7) &
-		     I2C_SCLL_SCLL_M) << I2C_SCLL_SCLL;
-		break;
-	case OMAP_I2C_HIGH_SPEED:
-		scl_lh =
-		    (((I2C_IP_CLK / (OMAP_I2C_HIGH_SPEED * 2)) - 7) &
-		     I2C_SCLH_HSSCLL_M) << I2C_SCLL_HSSCLL;
-		/* Fall through for the FS settings */
-	case OMAP_I2C_FAST_MODE:
-		scl_lh |=
-		    (((iclk / (OMAP_I2C_FAST_MODE * 2)) - 7) &
-		     I2C_SCLL_SCLL_M) << I2C_SCLL_SCLL;
-		break;
-		/* no default case */
-	}
-
-	DBG(" speed= %d SysClk=%d, iclk=%d,psc=0x%x[%d],scl_lh=0x%x[%d]\n",
-	       speed, I2C_IP_CLK, iclk, psc, psc, scl_lh, scl_lh);
-
 	outw(0, I2C_CON);  /* Disable I2C controller before writing
                                         to PSC and SCL registers */
 	outw(psc, I2C_PSC);
-	outw(scl_lh, I2C_SCLL);
-	outw(scl_lh, I2C_SCLH);
+	outw(scll, I2C_SCLL);
+	outw(sclh, I2C_SCLH);
+
 	/* own address */
 	outw(slaveadd, I2C_OA);
 	outw(I2C_CON_EN, I2C_CON);
@@ -212,7 +195,6 @@ void i2c_init(int speed, int slaveadd)
 	flush_fifo();
 	outw(0xFFFF, I2C_STAT);
 	outw(0, I2C_CNT);
-	i2c_speed = speed;
 }
 
 static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
