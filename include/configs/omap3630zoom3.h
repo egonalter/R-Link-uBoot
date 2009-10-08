@@ -30,7 +30,8 @@
  */
 #define CONFIG_ARMCORTEXA8	1    /* This is an ARM V7 CPU core */
 #define CONFIG_OMAP		1    /* in a TI OMAP core */
-#define CONFIG_OMAP34XX		1    /* which is a 34XX */
+#define CONFIG_OMAP36XX		1    /* which is a 36XX */
+#define CONFIG_OMAP34XX		1    /* reuse the 34XX setup */
 #define CONFIG_OMAP3430		1    /* which is in a 3430 */
 #define CONFIG_3430ZOOM2	1    /* working on Zoom2 board */
 #define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
@@ -196,7 +197,7 @@
 /*
  * Miscellaneous configurable options
  */
-#define V_PROMPT                 "OMAP34XX ZOOM2 # "
+#define V_PROMPT                 "OMAP36XX ZOOM2 # "
 
 #define CFG_LONGHELP             /* undef to save memory */
 #define CFG_PROMPT               V_PROMPT
