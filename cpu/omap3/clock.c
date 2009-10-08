@@ -158,6 +158,9 @@ void prcm_init(void)
 	 * and sil_index will get the values for that SysClk for the
 	 * appropriate silicon rev.
 	 */
+#ifdef OMAP36XX
+	sil_index = 0;
+#else
 	if (cpu_is_3410()) {
 		sil_index = 2;
 	} else {
@@ -166,6 +169,7 @@ void prcm_init(void)
 		else if (get_cpu_rev() >= CPU_3XX_ES20)
 			sil_index = 1;
 	}
+#endif
 	/* Unlock MPU DPLL (slows things down, and needed later) */
 	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOW_POWER_BYPASS);
 	wait_on_value(BIT0, 0, CM_IDLEST_PLL_MPU, LDELAY);
@@ -252,6 +256,10 @@ void prcm_init(void)
 	}	
 	sr32(CM_CLKSEL2_PLL, 8, 11, dpll_param_p->m);	/* set m */
 	sr32(CM_CLKSEL2_PLL, 0, 7, dpll_param_p->n);	/* set n */
+#ifdef OMAP36XX
+	sr32(CM_CLKSEL2_PLL, 21, 3, PER_DCO_SEL);	/* DCO_SEL */
+	sr32(CM_CLKSEL2_PLL, 24, 81, PER_SD_DIV);	/* SD_DIV */
+#endif
 	sr32(CM_CLKEN_PLL, 20, 4, dpll_param_p->fsel);/* FREQSEL */
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
 	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);

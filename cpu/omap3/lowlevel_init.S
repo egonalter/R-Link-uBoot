@@ -209,7 +209,9 @@ get_per_dpll_param:
 	mov pc, lr
 
 
-#if defined(CONFIG_OMAP34XX)
+#if defined(CONFIG_OMAP36XX)
+#include <asm/arch/dpll_table_36xx.S>
+#elif defined(CONFIG_OMAP34XX)
 #include <asm/arch/dpll_table_34xx.S>
 #else
 #error "DPLL Table is undefined"
