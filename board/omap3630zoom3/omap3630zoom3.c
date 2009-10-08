@@ -62,6 +62,7 @@ int board_init(void)
 	gpmc_init();		/* in SRAM or SDRAM, finish GPMC */
 
 	gd->bd->bi_arch_number = MACH_TYPE_OMAP_ZOOM3; /* Linux mach id*/
+
 	gd->bd->bi_boot_params = (OMAP34XX_SDRC_CS0 + 0x100); /* boot param addr */
 
 	return 0;
@@ -527,12 +528,12 @@ int dram_init(void)
 	MUX_VAL(CP(DSS_HSYNC),      (IDIS | PTD | DIS | M0)) /*DSS_HSYNC*/\
 	MUX_VAL(CP(DSS_VSYNC),      (IDIS | PTD | DIS | M0)) /*DSS_VSYNC*/\
 	MUX_VAL(CP(DSS_ACBIAS),     (IDIS | PTD | DIS | M0)) /*DSS_ACBIAS*/\
-	MUX_VAL(CP(DSS_DATA0),      (IDIS | PTD | DIS | M0)) /*DSS_DATA0*/\
-	MUX_VAL(CP(DSS_DATA1),      (IDIS | PTD | DIS | M0)) /*DSS_DATA1*/\
-	MUX_VAL(CP(DSS_DATA2),      (IDIS | PTD | DIS | M0)) /*DSS_DATA2*/\
-	MUX_VAL(CP(DSS_DATA3),      (IDIS | PTD | DIS | M0)) /*DSS_DATA3*/\
-	MUX_VAL(CP(DSS_DATA4),      (IDIS | PTD | DIS | M0)) /*DSS_DATA4*/\
-	MUX_VAL(CP(DSS_DATA5),      (IDIS | PTD | DIS | M0)) /*DSS_DATA5*/\
+	MUX_VAL(CP(DSS_DATA0),      (IDIS | PTD | DIS | M3)) /*DSS_DATA0*/\
+	MUX_VAL(CP(DSS_DATA1),      (IDIS | PTD | DIS | M3)) /*DSS_DATA1*/\
+	MUX_VAL(CP(DSS_DATA2),      (IDIS | PTD | DIS | M3)) /*DSS_DATA2*/\
+	MUX_VAL(CP(DSS_DATA3),      (IDIS | PTD | DIS | M3)) /*DSS_DATA3*/\
+	MUX_VAL(CP(DSS_DATA4),      (IDIS | PTD | DIS | M3)) /*DSS_DATA4*/\
+	MUX_VAL(CP(DSS_DATA5),      (IDIS | PTD | DIS | M3)) /*DSS_DATA5*/\
 	MUX_VAL(CP(DSS_DATA6),      (IDIS | PTD | DIS | M0)) /*DSS_DATA6*/\
 	MUX_VAL(CP(DSS_DATA7),      (IDIS | PTD | DIS | M0)) /*DSS_DATA7*/\
 	MUX_VAL(CP(DSS_DATA8),      (IDIS | PTD | DIS | M0)) /*DSS_DATA8*/\
@@ -545,12 +546,12 @@ int dram_init(void)
 	MUX_VAL(CP(DSS_DATA15),     (IDIS | PTD | DIS | M0)) /*DSS_DATA15*/\
 	MUX_VAL(CP(DSS_DATA16),     (IDIS | PTD | DIS | M0)) /*DSS_DATA16*/\
 	MUX_VAL(CP(DSS_DATA17),     (IDIS | PTD | DIS | M0)) /*DSS_DATA17*/\
-	MUX_VAL(CP(DSS_DATA18),     (IDIS | PTD | DIS | M0)) /*DSS_DATA18*/\
-	MUX_VAL(CP(DSS_DATA19),     (IDIS | PTD | DIS | M0)) /*DSS_DATA19*/\
-	MUX_VAL(CP(DSS_DATA20),     (IDIS | PTD | DIS | M0)) /*DSS_DATA20*/\
-	MUX_VAL(CP(DSS_DATA21),     (IDIS | PTD | DIS | M0)) /*DSS_DATA21*/\
-	MUX_VAL(CP(DSS_DATA22),     (IDIS | PTD | DIS | M0)) /*DSS_DATA22*/\
-	MUX_VAL(CP(DSS_DATA23),     (IDIS | PTD | DIS | M0)) /*DSS_DATA23*/\
+	MUX_VAL(CP(DSS_DATA18),     (IDIS | PTD | DIS | M3)) /*DSS_DATA18*/\
+	MUX_VAL(CP(DSS_DATA19),     (IDIS | PTD | DIS | M3)) /*DSS_DATA19*/\
+	MUX_VAL(CP(DSS_DATA20),     (IDIS | PTD | DIS | M3)) /*DSS_DATA20*/\
+	MUX_VAL(CP(DSS_DATA21),     (IDIS | PTD | DIS | M3)) /*DSS_DATA21*/\
+	MUX_VAL(CP(DSS_DATA22),     (IDIS | PTD | DIS | M3)) /*DSS_DATA22*/\
+	MUX_VAL(CP(DSS_DATA23),     (IDIS | PTD | DIS | M3)) /*DSS_DATA23*/\
 	/*CAMERA*/\
 	MUX_VAL(CP(CAM_HS ),        (IDIS | PTD | DIS | M7)) /*CAM_HS */\
 	MUX_VAL(CP(CAM_VS ),        (IDIS | PTD | DIS | M7)) /*CAM_VS */\
@@ -676,13 +677,7 @@ int dram_init(void)
 	MUX_VAL(CP(SYS_32K),        (IEN  | PTD | DIS | M0)) /*SYS_32K*/\
 	MUX_VAL(CP(SYS_CLKREQ),     (IEN  | PTD | DIS | M0)) /*SYS_CLKREQ*/\
 	MUX_VAL(CP(SYS_nIRQ),       (IEN  | PTU | EN  | M0)) /*SYS_nIRQ*/\
-	MUX_VAL(CP(SYS_BOOT0),      (IEN  | PTD | DIS | M4)) /*GPIO_2 -  */\
-	MUX_VAL(CP(SYS_BOOT1),      (IEN  | PTD | DIS | M4)) /*GPIO_3 */\
 	MUX_VAL(CP(SYS_BOOT2),      (IEN  | PTD | DIS | M4)) /*GPIO_4 -  */\
-	MUX_VAL(CP(SYS_BOOT3),      (IEN  | PTD | DIS | M4)) /*GPIO_5 - */\
-	MUX_VAL(CP(SYS_BOOT4),      (IEN  | PTD | DIS | M4)) /*GPIO_6 - */\
-	MUX_VAL(CP(SYS_BOOT5),      (IEN  | PTD | DIS | M4)) /*GPIO_7 - */\
-	MUX_VAL(CP(SYS_BOOT6),      (IDIS | PTD | DIS | M4)) /*GPIO_8 - */\
 	MUX_VAL(CP(SYS_OFF_MODE),   (IEN  | PTD | DIS | M0)) /*SYS_OFF_MODE */\
 	/* clkout1 to t2-hfclkin, clkout2 to usb transeiver (both 26mhz) lab */\
 	MUX_VAL(CP(SYS_CLKOUT1),    (IDIS | PTD | DIS | M0)) /*sys_clkout2 lab*/\

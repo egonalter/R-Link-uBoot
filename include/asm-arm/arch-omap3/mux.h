@@ -168,12 +168,22 @@
 #define  CONTROL_PADCONF_DSS_HSYNC           0x00D6       
 #define  CONTROL_PADCONF_DSS_VSYNC           0x00D8       
 #define  CONTROL_PADCONF_DSS_ACBIAS          0x00DA       
-#define  CONTROL_PADCONF_DSS_DATA0           0x00DC       
-#define  CONTROL_PADCONF_DSS_DATA1           0x00DE       
-#define  CONTROL_PADCONF_DSS_DATA2           0x00E0       
-#define  CONTROL_PADCONF_DSS_DATA3           0x00E2       
-#define  CONTROL_PADCONF_DSS_DATA4           0x00E4       
-#define  CONTROL_PADCONF_DSS_DATA5           0x00E6       
+
+#if defined(CONFIG_OMAP36XX)
+#define  CONTROL_PADCONF_DSS_DATA0           0x0100 /* dss_data18 */
+#define  CONTROL_PADCONF_DSS_DATA1           0x0102 /* dss_data19 */
+#define  CONTROL_PADCONF_DSS_DATA2           0x0104 /* dss_data20 */
+#define  CONTROL_PADCONF_DSS_DATA3           0x0106 /* dss_data21 */
+#define  CONTROL_PADCONF_DSS_DATA4           0x0108 /* dss_data22 */
+#define  CONTROL_PADCONF_DSS_DATA5           0x010A /* dss_data23 */
+#else
+#define  CONTROL_PADCONF_DSS_DATA0           0x00DC
+#define  CONTROL_PADCONF_DSS_DATA1           0x00DE
+#define  CONTROL_PADCONF_DSS_DATA2           0x00E0
+#define  CONTROL_PADCONF_DSS_DATA3           0x00E2
+#define  CONTROL_PADCONF_DSS_DATA4           0x00E4
+#define  CONTROL_PADCONF_DSS_DATA5           0x00E6
+#endif
 #define  CONTROL_PADCONF_DSS_DATA6           0x00E8       
 #define  CONTROL_PADCONF_DSS_DATA7           0x00EA       
 #define  CONTROL_PADCONF_DSS_DATA8           0x00EC       
@@ -186,12 +196,21 @@
 #define  CONTROL_PADCONF_DSS_DATA15          0x00FA       
 #define  CONTROL_PADCONF_DSS_DATA16          0x00FC       
 #define  CONTROL_PADCONF_DSS_DATA17          0x00FE       
-#define  CONTROL_PADCONF_DSS_DATA18          0x0100       
-#define  CONTROL_PADCONF_DSS_DATA19          0x0102       
-#define  CONTROL_PADCONF_DSS_DATA20          0x0104       
-#define  CONTROL_PADCONF_DSS_DATA21          0x0106       
-#define  CONTROL_PADCONF_DSS_DATA22          0x0108       
-#define  CONTROL_PADCONF_DSS_DATA23          0x010A       
+#if defined(CONFIG_OMAP36XX)
+#define  CONTROL_PADCONF_DSS_DATA18          0x0A0A /* sys_boot0, gpio2 */
+#define  CONTROL_PADCONF_DSS_DATA19          0x0A0C /* sys_boot1, gpio3 */
+#define  CONTROL_PADCONF_DSS_DATA20          0x0A10 /* sys_boot3, gpio5 */
+#define  CONTROL_PADCONF_DSS_DATA21          0x0A12 /* sys_boot4, gpio6 */
+#define  CONTROL_PADCONF_DSS_DATA22          0x0A14 /* sys_boot5, gpio7 */
+#define  CONTROL_PADCONF_DSS_DATA23          0x0A16 /* sys_boot6, gpio8 */
+#else
+#define  CONTROL_PADCONF_DSS_DATA18          0x0100
+#define  CONTROL_PADCONF_DSS_DATA19          0x0102
+#define  CONTROL_PADCONF_DSS_DATA20          0x0104
+#define  CONTROL_PADCONF_DSS_DATA21          0x0106
+#define  CONTROL_PADCONF_DSS_DATA22          0x0108
+#define  CONTROL_PADCONF_DSS_DATA23          0x010A
+#endif
 /*CAMERA*/                                 
 #define  CONTROL_PADCONF_CAM_HS              0x010C       
 #define  CONTROL_PADCONF_CAM_VS              0x010E       
@@ -312,8 +331,8 @@
 #define  CONTROL_PADCONF_SYS_CLKREQ          0x0A06       
 #define  CONTROL_PADCONF_SYS_nIRQ            0x01E0       
 #define  CONTROL_PADCONF_SYS_BOOT0           0x0A0A       
-#define  CONTROL_PADCONF_SYS_BOOT1           0x0A0C       
-#define  CONTROL_PADCONF_SYS_BOOT2           0x0A0E       
+#define  CONTROL_PADCONF_SYS_BOOT1           0x0A0C
+#define  CONTROL_PADCONF_SYS_BOOT2           0x0A0E
 #define  CONTROL_PADCONF_SYS_BOOT3           0x0A10       
 #define  CONTROL_PADCONF_SYS_BOOT4           0x0A12       
 #define  CONTROL_PADCONF_SYS_BOOT5           0x0A14       
@@ -327,11 +346,10 @@
 #define  CONTROL_PADCONF_JTAG_TDI            0x0A22       
 #define  CONTROL_PADCONF_JTAG_EMU0           0x0A24       
 #define  CONTROL_PADCONF_JTAG_EMU1           0x0A26       
-
 #define  CONTROL_PADCONF_ETK_CLK             0x0A28       
 #define  CONTROL_PADCONF_ETK_CTL             0x0A2A       
 #define  CONTROL_PADCONF_ETK_D0              0x0A2C       
-#define  CONTROL_PADCONF_ETK_D1              0x0A2E       
+#define  CONTROL_PADCONF_ETK_D1              0x0A2E
 #define  CONTROL_PADCONF_ETK_D2              0x0A30       
 #define  CONTROL_PADCONF_ETK_D3              0x0A32       
 #define  CONTROL_PADCONF_ETK_D4              0x0A34       
