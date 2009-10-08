@@ -26,11 +26,8 @@ LIB	= lib$(BOARD).a
 
 OBJS	:= \
 	board_rev.o \
-	debug_board.o \
-	led.o \
 	omap3430zoom2.o \
-	sys_info.o \
-	zoom2_serial.o
+	sys_info.o
 
 $(LIB):	$(OBJS)
 	$(AR) crv $@ $^
