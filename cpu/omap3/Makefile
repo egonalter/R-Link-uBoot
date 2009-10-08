@@ -26,8 +26,20 @@ include $(TOPDIR)/config.mk
 LIB	= lib$(CPU).a
 
 START	= start.o
-OBJS	= interrupts.o cpu.o mmc.o fastboot.o sys_info.o
 
+COBJS	= clock.o \
+	cpu.o \
+	interrupts.o \
+	fastboot.o \
+	mem.o \
+	mmc.o \
+	nand.o \
+	sys_info.o \
+	syslib.o
+
+AOBJS	= lowlevel_init.o
+
+OBJS	= $(COBJS) $(AOBJS)
 all:	.depend $(START) $(LIB)
 
 $(LIB):	$(OBJS)
@@ -35,8 +47,8 @@ $(LIB):	$(OBJS)
 
 #########################################################################
 
-.depend:	Makefile $(START:.o=.S) $(OBJS:.o=.c)
-		$(CC) -M $(CFLAGS) $(START:.o=.S) $(OBJS:.o=.c) > $@
+.depend:	Makefile $(AOBJS:.o=.S) $(COBJS:.o=.c) $(START:.o=.S)
+		$(CC) -M $(CFLAGS) $(AOBJS:.o=.S) $(COBJS:.o=.c) $(START:.o=.S) > $@
 
 sinclude .depend
 

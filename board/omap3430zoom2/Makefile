@@ -24,33 +24,27 @@ include $(TOPDIR)/config.mk
 
 LIB	= lib$(BOARD).a
 
-OBJS	:= ../omap3430labrador/omap3430labrador.o \
-	../omap3430labrador/mem.o \
-	../omap3430labrador/clock.o \
-	../omap3430labrador/syslib.o \
-	../omap3430labrador/sys_info.o \
-	../omap3430labrador/nand.o \
+OBJS	:= \
 	board_rev.o \
 	debug_board.o \
 	led.o \
+	omap3430zoom2.o \
+	sys_info.o \
 	zoom2_serial.o
 
-
-SOBJS	:= ../omap3430labrador/lowlevel_init.o
-
-$(LIB):	$(OBJS) $(SOBJS)
+$(LIB):	$(OBJS)
 	$(AR) crv $@ $^
 
 clean:
-	rm -f $(SOBJS) $(OBJS)
+	rm -f $(OBJS)
 
 distclean:	clean
 	rm -f $(LIB) core *.bak .depend
 
 #########################################################################
 
-.depend:	Makefile $(SOBJS:.o=.S) $(OBJS:.o=.c)
-		$(CC) -M $(CPPFLAGS) $(SOBJS:.o=.S) $(OBJS:.o=.c) > $@
+.depend:	Makefile $(OBJS:.o=.c)
+		$(CC) -M $(CPPFLAGS) $(OBJS:.o=.c) > $@
 
 -include .depend
 
