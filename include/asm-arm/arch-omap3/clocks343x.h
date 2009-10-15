@@ -48,6 +48,13 @@
 
 #  define CLSEL1_EMU_VAL ((CORE_M3X2 << 16) | (PER_M6X2 << 24) | (0x0a50))
 
+#ifdef CONFIG_OMAP36XX
+
+#define PER_SD_DIV     4
+#define PER_DCO_SEL    2
+
+#endif
+
 #ifdef PRCM_CLK_CFG2_332MHZ
 # define M_12		0xA6
 # define N_12		0x05

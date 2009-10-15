@@ -197,7 +197,7 @@
 /*
  * Miscellaneous configurable options
  */
-#define V_PROMPT                 "OMAP36XX ZOOM2 # "
+#define V_PROMPT                 "OMAP36XX ZOOM3 # "
 
 #define CFG_LONGHELP             /* undef to save memory */
 #define CFG_PROMPT               V_PROMPT

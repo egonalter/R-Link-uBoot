@@ -158,8 +158,8 @@ void prcm_init(void)
 	 * and sil_index will get the values for that SysClk for the
 	 * appropriate silicon rev.
 	 */
-#ifdef OMAP36XX
-	sil_index = 0;
+#ifdef CONFIG_OMAP36XX
+	sil_index = 1;
 #else
 	if (cpu_is_3410()) {
 		sil_index = 2;
@@ -256,9 +256,9 @@ void prcm_init(void)
 	}	
 	sr32(CM_CLKSEL2_PLL, 8, 11, dpll_param_p->m);	/* set m */
 	sr32(CM_CLKSEL2_PLL, 0, 7, dpll_param_p->n);	/* set n */
-#ifdef OMAP36XX
+#ifdef CONFIG_OMAP36XX
 	sr32(CM_CLKSEL2_PLL, 21, 3, PER_DCO_SEL);	/* DCO_SEL */
-	sr32(CM_CLKSEL2_PLL, 24, 81, PER_SD_DIV);	/* SD_DIV */
+	sr32(CM_CLKSEL2_PLL, 24, 7, PER_SD_DIV);	/* SD_DIV */
 #endif
 	sr32(CM_CLKEN_PLL, 20, 4, dpll_param_p->fsel);/* FREQSEL */
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
