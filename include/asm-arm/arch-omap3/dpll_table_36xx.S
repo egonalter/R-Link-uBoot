@@ -25,7 +25,7 @@
 
 /* DPLL(1-4) PARAM TABLES */
 /* Each of the tables has M, N, FREQSEL, M2 values defined for nominal
- * OPP (1.2V). The fields are defined according to dpll_param struct(clock.c). 
+ * OPP (1.2V). The fields are defined according to dpll_param struct(clock.c).
  * The values are defined for all possible sysclk and for ES1 and ES2.
  */
 
@@ -45,7 +45,7 @@ mpu_dpll_param:
 .word 0x226,0x0C,0x04,0x01
 /* 3410 */
 .word 0x10A,0x0C,0x03,0x01
- 
+
 /* 19.2MHz */
 /* ES1 */
 .word 0x179,0x12,0x04,0x01
@@ -113,48 +113,96 @@ iva_dpll_param:
 /* 3410 */
 .word 0x14C,0x2F,0x03,0x01
 
-/* Core DPLL targets for L3 at 166 & L133 */
+#if defined(PRCM_CLK_CFG2_400MHZ)
+
 core_dpll_param:
 /* 12MHz */
 /* ES1 */
-.word M_12_ES1,M_12_ES1,FSL_12_ES1,M2_12_ES1
+.word 100, 2, 7, 1
 /* ES2 */
-.word M_12,N_12,FSEL_12,M2_12
+.word 100, 2, 7, 1
 /* 3410 */
-.word M_12,N_12,FSEL_12,M2_12
+.word 100, 2, 7, 1
 
 /* 13MHz */
 /* ES1 */
-.word M_13_ES1,N_13_ES1,FSL_13_ES1,M2_13_ES1
+.word 400, 12, 3, 1
 /* ES2 */
-.word M_13,N_13,FSEL_13,M2_13
+.word 400, 12, 3, 1
 /* 3410 */
-.word M_13,N_13,FSEL_13,M2_13
+.word 400, 12, 3, 1
 
 /* 19.2MHz */
 /* ES1 */
-.word M_19p2_ES1,N_19p2_ES1,FSL_19p2_ES1,M2_19p2_ES1
+.word 375, 17, 3, 1
 /* ES2 */
-.word M_19p2,N_19p2,FSEL_19p2,M2_19p2
+.word 375, 17, 3, 1
 /* 3410 */
-.word M_19p2,N_19p2,FSEL_19p2,M2_19p2
+.word 375, 17, 3, 1
 
 /* 26MHz */
 /* ES1 */
-/*.word M_26_ES1,N_26_ES1,FSL_26_ES1,M2_26_ES1*/
-.word  0xC8,0x0C,0x7,0x1
+.word 200, 12, 7, 1
 /* ES2 */
-.word M_26,N_26,FSEL_26,M2_26
+.word 200, 12, 7, 1
 /* 3410 */
-.word M_26,N_26,FSEL_26,M2_26
+.word 200, 12, 7, 1
 
 /* 38.4MHz */
 /* ES1 */
-.word M_38p4_ES1,N_38p4_ES1,FSL_38p4_ES1,M2_38p4_ES1
+.word 375, 35, 3, 1
 /* ES2 */
-.word M_38p4,N_38p4,FSEL_38p4,M2_38p4
+.word 375, 35, 3, 1
 /* 3410 */
-.word M_38p4,N_38p4,FSEL_38p4,M2_38p4
+.word 375, 35, 3, 1
+
+#elif defined(PRCM_CLK_CFG2_332MHZ)
+
+core_dpll_param:
+/* 12MHz */
+/* ES1 */
+.word 0x0E, 0x03, 0x07, 0x1
+/* ES2 */
+.word 0xA6, 0x05, 0x07, 0x1
+/* 3410 */
+.word 0xA6, 0x05, 0x07, 0x1
+
+/* 13MHz */
+/* ES1 */
+.word 0x1B2, 0x10, 0x3, 0x1
+/* ES2 */
+.word 0x14C, 0x0c, 0x3, 0x1
+/* 3410 */
+.word 0x14C, 0x0c, 0x3, 0x1
+
+/* 19.2MHz */
+/* ES1 */
+.word 0x19F, 0x17, 0x03, 01
+/* ES2 */
+.word 0x19F, 0x17, 0x03, 01
+/* 3410 */
+.word 0x19F, 0x17, 0x03, 01
+
+/* 26MHz */
+/* ES1 */
+/* this is different from TRM */
+.word 0x1B2, 0x21, 0x3, 0x1
+/* ES2 */
+.word 0xA6, 0x0C, 0x7, 0x1
+/* 3410 */
+.word 0xA6, 0x0C, 0x7, 0x1
+
+/* 38.4MHz */
+/* ES1 */
+.word 0x19F, 0x2F, 0x03, 0x01
+/* ES2 */
+.word 0x19F, 0x2F, 0x03, 0x01
+/* 3410 */
+.word 0x19F, 0x2F, 0x03, 0x01
+
+#else
+#error "Undefined memory speed"
+#endif /* PRCM_CLK_CFG2_* */
 
 /* PER DPLL values are same for both ES1 and ES2 */
 per_dpll_param:

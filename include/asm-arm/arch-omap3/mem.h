@@ -63,7 +63,7 @@ typedef enum {
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584019|B_ALL) /* Infin ddr module */
 #elif CONFIG_OMAP3_BEAGLE
 #define SDP_SDRC_MDCFG_0_DDR	(0x00D04019|B_ALL) /* Samsung MCP ddr module */
-#elif CONFIG_3430ZOOM2_512M
+#elif defined(CONFIG_3430ZOOM2_512M) || defined(CONFIG_3630ZOOM3)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
 #else
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
@@ -75,6 +75,7 @@ typedef enum {
 #define SDP_3430_SDRC_RFR_CTRL_100MHz   0x0002da01
 #define SDP_3430_SDRC_RFR_CTRL_133MHz   0x0003de01 /* 7.8us/7.5ns - 50=0x3de */
 #define SDP_3430_SDRC_RFR_CTRL_165MHz   0x0004e201 /* 7.8us/6ns - 50=0x4e2 */
+#define ZOOM3_3630_RFR_CTRL_200MHz	0x0005e601
 
 #define DLL_OFFSET              0
 #define DLL_WRITEDDRCLKX2DIS    1
@@ -194,7 +195,8 @@ typedef enum {
 #define V_ACTIMB_165 ((TCKE_165 << 12) | (XSR_165 << 0)) | \
 	                                (TXP_165 << 8) | (TWTR_165 << 16)
 
-#elif CONFIG_3430ZOOM2_512M
+#elif defined(CONFIG_3430ZOOM2_512M) || defined(CONFIG_3630ZOOM3)
+
 /* Hynix part of 3430 Zoom2 (166MHz optimized) 6.02ns
  *     ACTIMA
  *        -TDAL = Twr/Tck + Trp/tck = 15/6 + 18/6 = 2.5 + 3 = 5.5 -> 6
@@ -229,6 +231,10 @@ typedef enum {
 #define XSR_165	24
 #define V_ACTIMB_165 (((TCKE_165 << 12) | (XSR_165 << 0)) |	\
 		      (TXP_165 << 8) | (TWTR_165 << 16))
+
+/* TODO : Cleanup magic */
+#define V_ACTIMA_200 0xa2e1b4c6
+#define V_ACTIMB_200 0x0002131c
 
 #else /* sdp3430 */
 /* Infineon part of 3430SDP (166MHz optimized) 6.02ns
@@ -272,6 +278,10 @@ typedef enum {
 # define L3_133MHZ    /* Use with <= 133MHz SDRAM*/
 #elif  defined(PRCM_CLK_CFG2_332MHZ) || defined(PRCM_CONFIG_I) || defined(PRCM_CONFIG_2)
 # define L3_165MHZ    /* Use with <= 165MHz SDRAM (L3=166 on 3430) */
+#elif defined(PRCM_CLK_CFG2_400MHZ)
+# define L3_200MHZ    /* Use with <= 200MHz SDRAM (L3=200 on 3630) */
+#else
+#error "Undefined bus speed"
 #endif
 
 #if defined(L3_100MHZ)
@@ -286,6 +296,10 @@ typedef enum {
 # define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_165
 # define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_165
 # define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_165MHz
+#elif defined(L3_200MHZ)
+# define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_200
+# define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_200
+# define SDP_SDRC_RFR_CTRL          ZOOM3_3630_RFR_CTRL_200MHz
 #endif
 
 /*
@@ -495,8 +509,75 @@ typedef enum {
 # define ONENAND_GPMC_CONFIG4 0x0F040F04
 # define ONENAND_GPMC_CONFIG5 0x010F1010
 # define ONENAND_GPMC_CONFIG6 0x1F060000
+#endif /* L3_165MHZ */
 
-#endif
+#if defined(L3_200MHZ)
+# define SMNAND_GPMC_CONFIG1 0x00000800
+# define SMNAND_GPMC_CONFIG2 0x00060600
+# define SMNAND_GPMC_CONFIG3 0x00060401
+# define SMNAND_GPMC_CONFIG4 0x05010801
+# define SMNAND_GPMC_CONFIG5 0x00090B0B
+# define SMNAND_GPMC_CONFIG6 0x050001C0
+# define SMNAND_GPMC_CONFIG7 0x00000C44
+
+# define M_NAND_GPMC_CONFIG1 0x00001800
+# define M_NAND_GPMC_CONFIG2 0x00141400
+# define M_NAND_GPMC_CONFIG3 0x00141400
+# define M_NAND_GPMC_CONFIG4 0x0F010F01
+# define M_NAND_GPMC_CONFIG5 0x010C1414
+# define M_NAND_GPMC_CONFIG6 0x1F0F0A80
+# define M_NAND_GPMC_CONFIG7 0x00000C44
+
+# define STNOR_GPMC_CONFIG1  0x3
+# define STNOR_GPMC_CONFIG2  0x00151501
+# define STNOR_GPMC_CONFIG3  0x00060602
+# define STNOR_GPMC_CONFIG4  0x11091109
+# define STNOR_GPMC_CONFIG5  0x01141F1F
+# define STNOR_GPMC_CONFIG6  0x1F0F04c4
+
+# define SIBNOR_GPMC_CONFIG1  0x1200
+# define SIBNOR_GPMC_CONFIG2  0x001f1f00
+# define SIBNOR_GPMC_CONFIG3  0x00080802
+# define SIBNOR_GPMC_CONFIG4  0x1C091C09
+# define SIBNOR_GPMC_CONFIG5  0x01131F1F
+# define SIBNOR_GPMC_CONFIG6  0x1F0F03C2
+
+# define SDPV2_MPDB_GPMC_CONFIG1  0x00611200
+# define SDPV2_MPDB_GPMC_CONFIG2  0x001F1F01
+# define SDPV2_MPDB_GPMC_CONFIG3  0x00080803
+# define SDPV2_MPDB_GPMC_CONFIG4  0x1D091D09
+# define SDPV2_MPDB_GPMC_CONFIG5  0x041D1F1F
+# define SDPV2_MPDB_GPMC_CONFIG6  0x1D0904C4
+
+# define MPDB_GPMC_CONFIG1  0x00011000
+# define MPDB_GPMC_CONFIG2  0x001f1f01
+# define MPDB_GPMC_CONFIG3  0x00080803
+# define MPDB_GPMC_CONFIG4  0x1c0b1c0a
+# define MPDB_GPMC_CONFIG5  0x041f1F1F
+# define MPDB_GPMC_CONFIG6  0x1F0F04C4
+
+# define LAB_ENET_GPMC_CONFIG1  0x00611000
+# define LAB_ENET_GPMC_CONFIG2  0x001F1F01
+# define LAB_ENET_GPMC_CONFIG3  0x00080803
+# define LAB_ENET_GPMC_CONFIG4  0x1D091D09
+# define LAB_ENET_GPMC_CONFIG5  0x041D1F1F
+# define LAB_ENET_GPMC_CONFIG6  0x1D0904C4
+
+# define P2_GPMC_CONFIG1  0x0
+# define P2_GPMC_CONFIG2  0x0
+# define P2_GPMC_CONFIG3  0x0
+# define P2_GPMC_CONFIG4  0x0
+# define P2_GPMC_CONFIG5  0x0
+# define P2_GPMC_CONFIG6  0x0
+
+# define ONENAND_GPMC_CONFIG1 0x00001200
+# define ONENAND_GPMC_CONFIG2 0x000F0F01
+# define ONENAND_GPMC_CONFIG3 0x00030301
+# define ONENAND_GPMC_CONFIG4 0x0F040F04
+# define ONENAND_GPMC_CONFIG5 0x010F1010
+# define ONENAND_GPMC_CONFIG6 0x1F060000
+
+#endif /* L3_200MHZ */
 
 /* max number of GPMC Chip Selects */
 #define GPMC_MAX_CS	8

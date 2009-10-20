@@ -50,8 +50,13 @@
 
 #ifdef CONFIG_OMAP36XX
 
-#define PER_SD_DIV     4
-#define PER_DCO_SEL    2
+/* Undefine the 34xx PER_M4X2 */
+#ifdef PER_M4X2
+#undef PER_M4X2
+#endif
+#define PER_M4X2	5
+#define PER_SD_DIV	4
+#define PER_DCO_SEL	2
 
 #endif
 

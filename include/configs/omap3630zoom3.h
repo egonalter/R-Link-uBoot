@@ -33,7 +33,8 @@
 #define CONFIG_OMAP36XX		1    /* which is a 36XX */
 #define CONFIG_OMAP34XX		1    /* reuse the 34XX setup */
 #define CONFIG_OMAP3430		1    /* which is in a 3430 */
-#define CONFIG_3430ZOOM2	1    /* working on Zoom2 board */
+#define CONFIG_3630ZOOM3	1    /* working on Zoom3 board */
+#define CONFIG_3430ZOOM2	1    /* reuse Zoom2 setup */
 #define CONFIG_FASTBOOT	        1    /* Using fastboot interface */
 #define CONFIG_ZOOM2_LED	1    /* Using Zoom2 LED's */
 #define CONFIG_TWL4030_KEYPAD   1    /* Use the keypad */
@@ -49,8 +50,8 @@
 
 #define V_SCLK                   (V_OSCK >> 1)
 
-//#define PRCM_CLK_CFG2_266MHZ   1    /* VDD2=1.15v - 133MHz DDR */
-#define PRCM_CLK_CFG2_332MHZ     1    /* VDD2=1.15v - 166MHz DDR */
+#define PRCM_CLK_CFG2_400MHZ   1    /* VDD2=1.15v - 200MHz DDR */
+//#define PRCM_CLK_CFG2_332MHZ     1    /* VDD2=1.15v - 166MHz DDR */
 #define PRCM_PCLK_OPP2           1    /* ARM=500MHz - VDD1=1.20v */
 
 #undef CONFIG_USE_IRQ                 /* no support for IRQs */
