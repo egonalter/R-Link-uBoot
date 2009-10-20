@@ -99,6 +99,7 @@ void i2c_init(int speed, int slaveadd)
 	int scl_lh = 0;
 	int psc = 0;
 	int iclk = 0;
+	int reset_timeout = 10;
 
 	/* assume clock settings done */
 	/* write to clock regs to enable if and fun clks for board */
@@ -115,14 +116,22 @@ void i2c_init(int speed, int slaveadd)
 	}
 #endif				/* End of 243x code */
 
-	outw(0x2, I2C_SYSC);	/* for ES2 after soft reset */
-	udelay(1000);
-	outw(0x0, I2C_SYSC);	/* will probably self clear but */
+/* Execute Soft-reset sequence for I2C controller */
 
-	if (inw(I2C_CON) & I2C_CON_EN) {
+	if (inw(I2C_CON) & I2C_CON_EN) {   /* Ensure that the module is disabled */
 		outw(0, I2C_CON);
 		udelay(50000);
 	}
+	outw(I2C_SYSC_SRST, I2C_SYSC);  /* Set the I2Ci.I2C_SYSC[1] SRST bit to 1 */
+	udelay(1000);
+	outw(I2C_CON_EN, I2C_CON);  /* Enable the module */
+
+	while (!(inw(I2C_SYSS) & I2C_SYSS_RDONE) && reset_timeout--) {
+		if (reset_timeout <= 0)
+			printf("ERROR: Timeout while waiting for soft-reset to complete\n");
+		udelay(1000);
+	}
+
 	/* compute divisors - dynamic decision based on i/p clock */
 	psc = I2C_PSC_MAX;
 	while (psc >= I2C_PSC_MIN) {
@@ -187,6 +196,8 @@ void i2c_init(int speed, int slaveadd)
 	DBG(" speed= %d SysClk=%d, iclk=%d,psc=0x%x[%d],scl_lh=0x%x[%d]\n",
 	       speed, I2C_IP_CLK, iclk, psc, psc, scl_lh, scl_lh);
 
+	outw(0, I2C_CON);  /* Disable I2C controller before writing
+                                        to PSC and SCL registers */
 	outw(psc, I2C_PSC);
 	outw(scl_lh, I2C_SCLL);
 	outw(scl_lh, I2C_SCLH);

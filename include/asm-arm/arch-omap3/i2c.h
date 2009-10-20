@@ -32,6 +32,7 @@
 #define I2C_IE                  (0x04)
 #define I2C_STAT                (0x08)
 #define I2C_IV                  (0x0c)
+#define I2C_SYSS                (0x10)
 #define I2C_BUF                 (0x14)
 #define I2C_CNT                 (0x18)
 #define I2C_DATA                (0x1c)
@@ -105,6 +106,15 @@
 #define I2C_SYSTEST_SCL_O       (1 << 2)        /* SCL line drive output value */
 #define I2C_SYSTEST_SDA_I       (1 << 1)        /* SDA line sense input value */
 #define I2C_SYSTEST_SDA_O       (1 << 0)        /* SDA line drive output value */
+
+/* I2C System Control Register (I2C_SYSC): */
+
+#define I2C_SYSC_SRST           (1 << 1)        /* Software Reset */
+
+/* I2C System Status Register (I2C_SYSS): */
+
+#define I2C_SYSS_RDONE          (1 << 0)        /* Internel reset monitoring */
+
 
 #define I2C_SCLL_SCLL        (0)
 #define I2C_SCLL_SCLL_M      (0xFF)
