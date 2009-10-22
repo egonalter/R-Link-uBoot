@@ -118,7 +118,7 @@ void get_sys_clkin_sel(u32 osc_clk, u32 *sys_clkin_sel)
 		*sys_clkin_sel = 0;
 }
 
-static int get_silindex()
+static int get_silindex(void)
 {
 	int sil_index = 0;
 
@@ -412,13 +412,140 @@ void per_clocks_enable(void)
  */
 #if defined(CONFIG_CMD_CLOCK) && defined(CONFIG_CMD_CLOCK_INFO_CPU)
 
-static print_dpll_param(dpll_param *r, char *s) {
-	printf("D%s
+static void print_dpll_param(dpll_param *r, char *s)
+{
+	printf("DPLL %s ", s);
+	printf("m %d n %d fsel %d m2 %d\n", r->m, r->n, r->fsel, r->m2);
 }
 
-void cpu_clock_info()
+void cpu_clock_info(void)
 {
-	/* dplls */
-	dpll_param *dpll_param_p;
+	u32 osc_clk, clk_index;
+	int sil_index;
+	dpll_param *core, *per;
+
+	osc_clk = get_osc_clk_speed();
+	get_sys_clkin_sel(osc_clk, &clk_index);
+	sil_index = get_silindex();
+
+	printf("OSC CLK %d\n", osc_clk);
+	printf("Clock index %d Silicon Index %d\n", clk_index, sil_index);
+
+	core = _get_core_dpll(clk_index, sil_index);
+	print_dpll_param(core, "core params");
+
+	per = _get_per_dpll(clk_index, sil_index);
+	print_dpll_param(per, "per params ");
+	/* Now verify */
+	{
+		/* System clk */
+		u32 sys_clk;
+		u32 sys_clk_div;
+		u32 sys_clk_calc;
+
+		/* PER / DPLL 4 clk */
+		u32 per_m, per_n, per_fsel;
+		u32 per_m2, per_m3, per_m4, per_m5;
+		u32 clk_96m_calc, per_clk_calc;
+#ifdef CONFIG_OMAP36XX
+		u32 per_clk_div;
+		u32 per_dco_sel;
+		u32 per_sd_div;
+#endif
+
+		printf("Verifying from hardware registers..\n");
+
+		/* Sys clk */
+		sys_clk = readl(PRM_CLKSEL);
+		sys_clk >>= 0;
+
+		sys_clk &= ((1 << 3) - 1);
+
+		sys_clk_calc = 0;
+
+		sys_clk_div = readl(PRM_CLKSRC_CTRL);
+		sys_clk_div >>= 6;
+		sys_clk_div &= ((1 << 2) - 1);
+
+		if (4 == sys_clk)
+			sys_clk_calc = 38400000;
+		else if (3 == sys_clk)
+			sys_clk_calc = 26000000;
+		else if (2 == sys_clk)
+			sys_clk_calc = 19200000;
+		else if (1 == sys_clk)
+			sys_clk_calc = 13000000;
+		else if (0 == sys_clk)
+			sys_clk_calc = 12000000;
+
+		if (sys_clk_div)
+			sys_clk_calc /= sys_clk_div;
+		else
+			sys_clk_calc = 0;
+
+		printf("sys_clk %d sys_clk_div %d\n", sys_clk, sys_clk_div);
+		printf("calculated system clock %d\n", sys_clk_calc);
+
+		/* Per clk */
+		per_m = readl(CM_CLKSEL2_PLL);
+		per_m >>= 8;
+		per_m &= ((1 << 11) - 1);
+
+		per_n = readl(CM_CLKSEL2_PLL);
+		per_n >>= 0;
+		per_n &= ((1 << 7) - 1);
+
+		per_fsel = readl(CM_CLKEN_PLL);
+		per_fsel >>= 20;
+		per_fsel &= ((1 << 4) - 1);
+
+		per_m2 = readl(CM_CLKSEL3_PLL);
+		per_m2 >>= 0;
+		per_m2 &= ((1 << 8) - 1);
+
+		printf("per m %d n %d fsel %d m2 %d",
+		       per_m, per_n, per_fsel, per_m2);
+
+		per_clk_calc = sys_clk_calc;
+
+#ifdef CONFIG_OMAP36XX
+		per_clk_div = readl(PRM_CLKSRC_CTRL);
+		per_clk_div >>= 8;
+		per_clk_div &= 1;
+
+		per_dco_sel = readl(CM_CLKSEL2_PLL);
+		per_dco_sel >>= 21;
+		per_dco_sel &= ((1 << 3) - 1);
+
+		per_sd_div = readl(CM_CLKSEL2_PLL);
+		per_sd_div >>= 24;
+		per_sd_div &= ((1 << 7) - 1);
+
+		printf(" per clkdiv %d dco_sel %d sd_div %d ",
+		       per_clk_div, per_dco_sel, per_sd_div);
+
+		/* Div by 6.5 */
+		if (per_clk_div) {
+			per_clk_calc *= 2;
+			per_clk_calc /= ((per_n + 1) * 13);
+		} else {
+			per_clk_calc /= (per_n + 1);
+		}
+#else
+		per_clk_calc /= (per_n + 1);
+#endif
+
+		per_clk_calc *= per_m;
+
+
+		if (per_m2)
+			clk_96m_calc = per_clk_calc / per_m2;
+		else
+			clk_96m_calc = 0;
+
+		printf("\n");
+		printf("DPLL4 base clk %d 96M clk %d\n",
+		       per_clk_calc, clk_96m_calc);
+	}
 }
 #endif
