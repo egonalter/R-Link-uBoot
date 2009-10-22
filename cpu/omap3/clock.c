@@ -118,6 +118,53 @@ void get_sys_clkin_sel(u32 osc_clk, u32 *sys_clkin_sel)
 		*sys_clkin_sel = 0;
 }
 
+static int get_silindex()
+{
+	int sil_index = 0;
+
+	/*
+	 * The DPLL tables are defined according to sysclk value and
+	 * silicon revision. The clk_index value will be used to get
+	 * the values for that input sysclk from the DPLL param table
+	 * and sil_index will get the values for that SysClk for the
+	 * appropriate silicon rev.
+	 */
+#ifdef CONFIG_OMAP36XX
+	sil_index = 1;
+#else
+	if (cpu_is_3410()) {
+		sil_index = 2;
+	} else {
+		if (get_cpu_rev() == CPU_3XX_ES10)
+			sil_index = 0;
+		else if (get_cpu_rev() >= CPU_3XX_ES20)
+			sil_index = 1;
+	}
+#endif
+	return sil_index;
+}
+
+static dpll_param *_get_core_dpll(int clk_index, int sil_index)
+{
+	dpll_param *ret = (dpll_param *)get_core_dpll_param();
+	ret += (MAX_SIL_INDEX * clk_index) + sil_index;
+	return ret;
+}
+
+static dpll_param *_get_mpu_dpll(int clk_index, int sil_index)
+{
+	dpll_param *ret = (dpll_param *)get_mpu_dpll_param();
+	ret += (MAX_SIL_INDEX * clk_index) + sil_index;
+	return ret;
+}
+
+static dpll_param *_get_per_dpll(int clk_index, int sil_index)
+{
+	dpll_param *ret = (dpll_param *)get_per_dpll_param();
+	ret += clk_index;
+	return ret;
+}
+
 /******************************************************************************
  * prcm_init() - inits clocks for PRCM as defined in clocks.h
  *   -- called from SRAM, or Flash (using temp SRAM stack).
@@ -151,25 +198,8 @@ void prcm_init(void)
 
 	sr32(PRM_CLKSRC_CTRL, 0, 2, 0);/* Bypass mode: T2 inputs a square clock */
 
-	/*
-	 * The DPLL tables are defined according to sysclk value and
-	 * silicon revision. The clk_index value will be used to get
-	 * the values for that input sysclk from the DPLL param table
-	 * and sil_index will get the values for that SysClk for the
-	 * appropriate silicon rev.
-	 */
-#ifdef CONFIG_OMAP36XX
-	sil_index = 1;
-#else
-	if (cpu_is_3410()) {
-		sil_index = 2;
-	} else {
-		if (get_cpu_rev() == CPU_3XX_ES10)
-			sil_index = 0;
-		else if (get_cpu_rev() >= CPU_3XX_ES20)
-			sil_index = 1;
-	}
-#endif
+	sil_index = get_silindex();
+
 	/* Unlock MPU DPLL (slows things down, and needed later) */
 	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOW_POWER_BYPASS);
 	wait_on_value(BIT0, 0, CM_IDLEST_PLL_MPU, LDELAY);
@@ -376,3 +406,19 @@ void per_clocks_enable(void)
 #endif
 	sdelay(1000);
 }
+
+/*
+ * Clock Info
+ */
+#if defined(CONFIG_CMD_CLOCK) && defined(CONFIG_CMD_CLOCK_INFO_CPU)
+
+static print_dpll_param(dpll_param *r, char *s) {
+	printf("D%s
+}
+
+void cpu_clock_info()
+{
+	/* dplls */
+	dpll_param *dpll_param_p;
+}
+#endif
