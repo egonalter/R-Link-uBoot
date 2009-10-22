@@ -140,16 +140,14 @@
 #define I2C_IP_CLK			SYSTEM_CLOCK_96
 #endif
 
-#ifndef I2C_INTERNAL_SAMPLING_CLK
-#define I2C_INTERNAL_SAMPLING_CLK		19200
-#endif
+/* Boards may want to define I2C_INTERNAL_SAMPLING_CLK */
 
 /* These are the trim values for standard and fast speed */
 #ifndef I2C_FASTSPEED_SCLL_TRIM
-#define I2C_FASTSPEED_SCLL_TRIM			6
+#define I2C_FASTSPEED_SCLL_TRIM			7
 #endif
 #ifndef I2C_FASTSPEED_SCLH_TRIM
-#define I2C_FASTSPEED_SCLH_TRIM			6
+#define I2C_FASTSPEED_SCLH_TRIM			5
 #endif
 
 /* These are the trim values for high speed */

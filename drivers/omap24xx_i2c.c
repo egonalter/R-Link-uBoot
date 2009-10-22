@@ -98,8 +98,9 @@ void i2c_init(int speed, int slaveadd)
 {
 	int psc, fsscll, fssclh;
 	int hsscll = 0, hssclh = 0;
-	u32 scll, sclh;
+	u32 scll, sclh, scl;
 	int reset_timeout = 10;
+	unsigned long internal_clk;
 
 	/* Only handle standard, fast and high speeds */
 	if ((speed != OMAP_I2C_STANDARD) &&
@@ -109,7 +110,25 @@ void i2c_init(int speed, int slaveadd)
 		return;
 	}
 
-	psc = I2C_IP_CLK / I2C_INTERNAL_SAMPLING_CLK;
+	/*
+	 * Set the internal sampling clock to what the
+	 * board requires if it is defined.  Else use
+	 * the values in the v2.6.31 kernel.
+	 */
+#if defined(I2C_INTERNAL_SAMPLING_CLK)
+	internal_clk = I2C_INTERNAL_SAMPLING_CLK;
+#else
+	/* standard */
+	internal_clk = 4000;
+	if (speed == OMAP_I2C_HIGH_SPEED)
+		internal_clk = 19200;
+	if (speed == OMAP_I2C_FAST_MODE)
+		internal_clk = 9600;
+	else /* standard */
+		internal_clk = 4000;
+#endif
+
+	psc = I2C_IP_CLK / internal_clk;
 	psc -= 1;
 	if (psc < I2C_PSC_MIN) {
 		printf("Error : I2C unsupported prescalar %d\n", psc);
@@ -120,24 +139,23 @@ void i2c_init(int speed, int slaveadd)
 		/* High speed */
 
 		/* For first phase of HS mode */
-		fsscll = fssclh = I2C_INTERNAL_SAMPLING_CLK /
-			(2 * OMAP_I2C_FAST_MODE);
+		scl = internal_clk / 400;
+		fsscll = scl - (scl / 3) - I2C_HIGHSPEED_PHASE_ONE_SCLL_TRIM;
+		fssclh = (scl / 3) - I2C_HIGHSPEED_PHASE_ONE_SCLH_TRIM;
 
-		fsscll -= I2C_HIGHSPEED_PHASE_ONE_SCLL_TRIM;
-		fssclh -= I2C_HIGHSPEED_PHASE_ONE_SCLH_TRIM;
 		if (((fsscll < 0) || (fssclh < 0)) ||
 		    ((fsscll > 255) || (fssclh > 255))) {
-			printf("Error : I2C initializing first phase clock\n");
+			printf("Error : I2C initializing clock\n");
 			return;
 		}
 
 		/* For second phase of HS mode */
-		hsscll = hssclh = I2C_INTERNAL_SAMPLING_CLK / (2 * speed);
+		scl = I2C_IP_CLK / speed;
+		hsscll = scl - (scl / 3) - I2C_HIGHSPEED_PHASE_TWO_SCLL_TRIM;
+		hssclh = (scl / 3) - I2C_HIGHSPEED_PHASE_TWO_SCLH_TRIM;
 
-		hsscll -= I2C_HIGHSPEED_PHASE_TWO_SCLL_TRIM;
-		hssclh -= I2C_HIGHSPEED_PHASE_TWO_SCLH_TRIM;
-		if (((fsscll < 0) || (fssclh < 0)) ||
-		    ((fsscll > 255) || (fssclh > 255))) {
+		if (((hsscll < 0) || (hssclh < 0)) ||
+		    ((hsscll > 255) || (hssclh > 255))) {
 			printf("Error : I2C initializing second phase clock\n");
 			return;
 		}
@@ -145,12 +163,28 @@ void i2c_init(int speed, int slaveadd)
 		scll = (unsigned int)hsscll << 8 | (unsigned int)fsscll;
 		sclh = (unsigned int)hssclh << 8 | (unsigned int)fssclh;
 
+	} else if (speed == OMAP_I2C_FAST_MODE) {
+		/* Standard speed */
+		scl = internal_clk / speed;
+		fsscll = scl - (scl / 3) - I2C_FASTSPEED_SCLL_TRIM;
+		fssclh = (scl / 3) - I2C_FASTSPEED_SCLH_TRIM;
+
+		if (((fsscll < 0) || (fssclh < 0)) ||
+		    ((fsscll > 255) || (fssclh > 255))) {
+			printf("Error : I2C initializing clock\n");
+			return;
+		}
+
+		scll = (unsigned int)fsscll;
+		sclh = (unsigned int)fssclh;
+
 	} else {
-		/* Standard and fast speed */
-		fsscll = fssclh = I2C_INTERNAL_SAMPLING_CLK / (2 * speed);
+		/* Standard speed */
+		fsscll = fssclh = internal_clk / (2 * speed);
 
 		fsscll -= I2C_FASTSPEED_SCLL_TRIM;
 		fssclh -= I2C_FASTSPEED_SCLH_TRIM;
+
 		if (((fsscll < 0) || (fssclh < 0)) ||
 		    ((fsscll > 255) || (fssclh > 255))) {
 			printf("Error : I2C initializing clock\n");
@@ -160,7 +194,6 @@ void i2c_init(int speed, int slaveadd)
 		scll = (unsigned int)fsscll;
 		sclh = (unsigned int)fssclh;
 	}
-
 
 	/* Execute Soft-reset sequence for I2C controller */
 
