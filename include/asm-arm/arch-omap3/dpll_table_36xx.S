@@ -29,6 +29,8 @@
  * The values are defined for all possible sysclk and for ES1 and ES2.
  */
 
+#if defined(CONFIG_VDD1_1_10) /* Vdd = 1.10 */
+
 mpu_dpll_param:
 /* 12MHz */
 /* ES1 */
@@ -56,7 +58,6 @@ mpu_dpll_param:
 
 /* 26MHz */
 /* ES1 */
-/*.word 0x17D,0x19,0x03,0x01*/
 .word 0x12C,0x0C,0x07,0x01
 /* ES2 */
 .word 0x14A,0x0C,0x07,0x01
@@ -70,6 +71,51 @@ mpu_dpll_param:
 .word 0x110,0x12,0x07,0x01
 /* 3410 */
 .word 0x14C,0x2F,0x03,0x01
+
+#else /* Vddd = 1.20 default */
+
+mpu_dpll_param:
+/* 12MHz */
+/* ES1 */
+.word 60, 0, 7, 1
+/* ES2 */
+.word 60, 0, 7, 1
+/* 3410 */
+.word 60, 0, 7, 1
+
+/* 13MHz */
+/* ES1 */
+.word 720, 12, 4, 1
+/* ES2 */
+.word 720, 12, 4, 1
+/* 3410 */
+.word 720, 12, 4, 1
+
+/* 19.2MHz */
+/* ES1 */
+.word 75, 1, 5, 1
+/* ES2 */
+.word 75, 1, 5, 1
+/* 3410 */
+.word 75, 1, 5, 1
+
+/* 26MHz */
+/* ES1 */
+.word 360, 12, 7, 1
+/* ES2 */
+.word 360, 12, 7, 1
+/* 3410 */
+.word 360, 12, 7, 1
+
+/* 38.4MHz */
+/* ES1 */
+.word 75, 3, 7, 1
+/* ES2 */
+.word 75, 3, 7, 1
+/* 3410 */
+.word 75, 3, 7, 1
+
+#endif
 
 iva_dpll_param:
 /* 12MHz */
