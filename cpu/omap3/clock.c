@@ -422,7 +422,7 @@ void cpu_clock_info(void)
 {
 	u32 osc_clk, clk_index;
 	int sil_index;
-	dpll_param *core, *per;
+	dpll_param *core, *per, *mpu;
 
 	osc_clk = get_osc_clk_speed();
 	get_sys_clkin_sel(osc_clk, &clk_index);
@@ -436,6 +436,9 @@ void cpu_clock_info(void)
 
 	per = _get_per_dpll(clk_index, sil_index);
 	print_dpll_param(per, "per params ");
+
+	mpu = _get_mpu_dpll(clk_index, sil_index);
+	print_dpll_param(mpu, "mpu params ");
 	/* Now verify */
 	{
 		/* System clk */
@@ -445,13 +448,16 @@ void cpu_clock_info(void)
 
 		/* PER / DPLL 4 clk */
 		u32 per_m, per_n, per_fsel;
-		u32 per_m2, per_m3, per_m4, per_m5;
+		u32 per_m2;
 		u32 clk_96m_calc, per_clk_calc;
 #ifdef CONFIG_OMAP36XX
 		u32 per_clk_div;
 		u32 per_dco_sel;
 		u32 per_sd_div;
 #endif
+		/* MPU clk */
+		u32 mpu_m, mpu_n, mpu_fsel;
+		u32 mpu_m2;
 
 		printf("Verifying from hardware registers..\n");
 
@@ -544,8 +550,27 @@ void cpu_clock_info(void)
 			clk_96m_calc = 0;
 
 		printf("\n");
-		printf("DPLL4 base clk %d 96M clk %d\n",
+		printf("dpll4 base clk %d 96M clk %d\n",
 		       per_clk_calc, clk_96m_calc);
+
+		mpu_m = readl(CM_CLKSEL1_PLL_MPU);
+		mpu_m >>= 8;
+		mpu_m &= ((1 << 11) - 1);
+
+		mpu_n = readl(CM_CLKSEL1_PLL_MPU);
+		mpu_n >>= 0;
+		mpu_n &= ((1 << 5) - 1);
+
+		mpu_fsel = readl(CM_CLKEN_PLL_MPU);
+		mpu_fsel >>= 4;
+		mpu_fsel &= ((1 << 4) - 1);
+
+		mpu_m2 = readl(CM_CLKSEL2_PLL_MPU);
+		mpu_m2 >>= 0;
+		mpu_m2 &= ((1 << 5) - 1);
+
+		printf("mpu m %d n %d fsel %d m2 %d\n",
+		       mpu_m, mpu_n, mpu_fsel, mpu_m2);
 	}
 }
 #endif
