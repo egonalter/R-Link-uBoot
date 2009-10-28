@@ -39,6 +39,26 @@ struct dpll_param {
         unsigned int m2;
 };
 
+#ifdef CONFIG_OMAP36XX
+struct dpll_per_param {
+        unsigned int sys_clk;
+        unsigned int m;
+        unsigned int n;
+        unsigned int clkin;
+        unsigned int sd;
+        unsigned int dco;
+        unsigned int m2;
+        unsigned int m3;
+        unsigned int m4;
+        unsigned int m5;
+        unsigned int m6;
+        unsigned int m2div;
+};
+typedef struct dpll_per_param dpll_per_param;
+#else
+typedef struct dpll_param dpll_per_param;
+#endif
+
 #define MAX_SIL_INDEX	3
 typedef struct dpll_param dpll_param;
 
@@ -158,12 +178,84 @@ static dpll_param *_get_mpu_dpll(int clk_index, int sil_index)
 	return ret;
 }
 
-static dpll_param *_get_per_dpll(int clk_index, int sil_index)
+static dpll_per_param *_get_per_dpll(int clk_index)
 {
-	dpll_param *ret = (dpll_param *)get_per_dpll_param();
+	dpll_per_param *ret = (dpll_per_param *)get_per_dpll_param();
 	ret += clk_index;
 	return ret;
 }
+
+#ifdef CONFIG_OMAP36XX
+static void per_dpll_init_36XX(int clk_index)
+{
+	dpll_per_param *per;
+
+	per = _get_per_dpll(clk_index);
+
+	sr32(CM_CLKEN_PLL, 16, 3, PLL_STOP);
+	wait_on_value(BIT1, 0, CM_IDLEST_CKGEN, LDELAY);
+
+	sr32(CM_CLKSEL2_PLL, 8, 11, per->m);
+	sr32(CM_CLKSEL2_PLL, 0, 7, per->n);
+	sr32(PRM_CLKSRC_CTRL, 8, 1, per->clkin);
+	sr32(CM_CLKSEL2_PLL, 24, 7, per->sd);
+	sr32(CM_CLKSEL2_PLL, 21, 3, per->dco);
+	sr32(CM_CLKSEL3_PLL, 0, 5, per->m2);
+	sr32(CM_CLKSEL_DSS, 8, 5, per->m3);
+	sr32(CM_CLKSEL_DSS, 0, 5, per->m4);
+	sr32(CM_CLKSEL_CAM, 0, 5, per->m5);
+	sr32(CM_CLKSEL1_EMU, 24, 5, per->m6);
+	sr32(CM_CLKSEL_CORE, 12, 2, per->m2div);
+
+	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
+	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);
+}
+
+#else /* 34xx */
+
+static void per_dpll_init_34XX(int clk_index)
+{
+	dpll_per_param *dpll_param_p;
+
+	sr32(CM_CLKEN_PLL, 16, 3, PLL_STOP);
+	wait_on_value(BIT1, 0, CM_IDLEST_CKGEN, LDELAY);
+
+	/* Getting the base address to PER  DPLL param table*/
+		/* Set N */
+	dpll_param_p = (dpll_param *)get_per_dpll_param();
+	/* Moving it to the right sysclk base */
+	dpll_param_p = dpll_param_p + clk_index;
+	/* Errata 1.50 Workaround for 3430 ES1.0 only */
+	/* If using default divisors, write default divisor + 1
+	   and then the actual divisor value */
+	/* Need to change it to silicon and revisino check */
+	if(1) {
+		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2 + 1);	/* set M6 */
+		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2);		/* set M6 */
+		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2 + 1);	/* set M5 */
+		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2);		/* set M5 */
+		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2 + 1);	/* set M4 */
+		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2);		/* set M4 */
+		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2 + 1);	/* set M3 */
+		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2);		/* set M3 */
+		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2 + 1);/* set M2 */
+		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2);	/* set M2 */
+	}
+	else {
+		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2);	/* set M6 */
+		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2);	/* set M5 */
+		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2);	/* set M4 */
+		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2);	/* set M3 */
+		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2);	/* set M2 */
+	}
+	sr32(CM_CLKSEL2_PLL, 8, 11, dpll_param_p->m);	/* set m */
+	sr32(CM_CLKSEL2_PLL, 0, 7, dpll_param_p->n);	/* set n */
+	sr32(CM_CLKEN_PLL, 20, 4, dpll_param_p->fsel);/* FREQSEL */
+	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
+	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);
+}
+#endif
+
 
 /******************************************************************************
  * prcm_init() - inits clocks for PRCM as defined in clocks.h
@@ -253,47 +345,12 @@ void prcm_init(void)
 	}
 
 	/* PER DPLL */
-	sr32(CM_CLKEN_PLL, 16, 3, PLL_STOP);
-	wait_on_value(BIT1, 0, CM_IDLEST_CKGEN, LDELAY);
-
-	/* Getting the base address to PER  DPLL param table*/
-		/* Set N */
-	dpll_param_p = (dpll_param *)get_per_dpll_param();
-	/* Moving it to the right sysclk base */
-	dpll_param_p = dpll_param_p + clk_index;
-	/* Errata 1.50 Workaround for 3430 ES1.0 only */
-	/* If using default divisors, write default divisor + 1
-	   and then the actual divisor value */
-	/* Need to change it to silicon and revisino check */
-	if(1) {
-		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2 + 1);	/* set M6 */
-		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2);		/* set M6 */
-		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2 + 1);	/* set M5 */
-		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2);		/* set M5 */
-		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2 + 1);	/* set M4 */
-		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2);		/* set M4 */
-		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2 + 1);	/* set M3 */
-		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2);		/* set M3 */
-		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2 + 1);/* set M2 */
-		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2);	/* set M2 */
-	}
-	else {
-		sr32(CM_CLKSEL1_EMU, 24, 5, PER_M6X2);	/* set M6 */
-		sr32(CM_CLKSEL_CAM, 0, 5, PER_M5X2);	/* set M5 */
-		sr32(CM_CLKSEL_DSS, 0, 5, PER_M4X2);	/* set M4 */
-		sr32(CM_CLKSEL_DSS, 8, 5, PER_M3X2);	/* set M3 */
-		sr32(CM_CLKSEL3_PLL, 0, 5, dpll_param_p->m2);	/* set M2 */
-	}	
-	sr32(CM_CLKSEL2_PLL, 8, 11, dpll_param_p->m);	/* set m */
-	sr32(CM_CLKSEL2_PLL, 0, 7, dpll_param_p->n);	/* set n */
 #ifdef CONFIG_OMAP36XX
-	sr32(CM_CLKSEL2_PLL, 21, 3, PER_DCO_SEL);	/* DCO_SEL */
-	sr32(CM_CLKSEL2_PLL, 24, 7, PER_SD_DIV);	/* SD_DIV */
+	per_dpll_init_36XX(clk_index);
+#else
+	per_dpll_init_34XX(clk_index);
 #endif
-	sr32(CM_CLKEN_PLL, 20, 4, dpll_param_p->fsel);/* FREQSEL */
-	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
-	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);
-	
+
 	/* Getting the base address to MPU DPLL param table*/
 	dpll_param_p = (dpll_param *)get_mpu_dpll_param();
 	/* Moving it to the right sysclk and ES rev base */
@@ -418,11 +475,26 @@ static void print_dpll_param(dpll_param *r, char *s)
 	printf("m %d n %d fsel %d m2 %d\n", r->m, r->n, r->fsel, r->m2);
 }
 
+static void print_dpll_per_param(dpll_per_param *r, char *s)
+{
+	printf("DPLL %s ", s);
+#ifdef CONFIG_OMAP36XX
+	printf("sys clk %d m %d n %d clkin_div %d sd_div %d dco_sel %d"
+	       "\n\tm2 %d m3 %d m4 %d m5 %d m6 %d m2div %d\n",
+	       r->sys_clk, r->m, r->n, r->clkin, r->sd, r->dco,
+	       r->m2, r->m3, r->m4, r->m5, r->m6, r->m2div);
+#else
+	printf("m %d n %d fsel %d m2 %d\n", r->m, r->n, r->fsel, r->m2);
+#endif
+
+}
+
 void cpu_clock_info(void)
 {
 	u32 osc_clk, clk_index;
 	int sil_index;
-	dpll_param *core, *per, *mpu;
+	dpll_param *core, *mpu;
+	dpll_per_param *per;
 
 	osc_clk = get_osc_clk_speed();
 	get_sys_clkin_sel(osc_clk, &clk_index);
@@ -434,8 +506,8 @@ void cpu_clock_info(void)
 	core = _get_core_dpll(clk_index, sil_index);
 	print_dpll_param(core, "core params");
 
-	per = _get_per_dpll(clk_index, sil_index);
-	print_dpll_param(per, "per params ");
+	per = _get_per_dpll(clk_index);
+	print_dpll_per_param(per, "per params ");
 
 	mpu = _get_mpu_dpll(clk_index, sil_index);
 	print_dpll_param(mpu, "mpu params ");
@@ -447,13 +519,20 @@ void cpu_clock_info(void)
 		u32 sys_clk_calc;
 
 		/* PER / DPLL 4 clk */
-		u32 per_m, per_n, per_fsel;
+		u32 per_m, per_n;
 		u32 per_m2;
 		u32 clk_96m_calc, per_clk_calc;
+		u32 per_m3;
+		u32 per_m4;
+		u32 per_m5;
+		u32 per_m6;
 #ifdef CONFIG_OMAP36XX
 		u32 per_clk_div;
 		u32 per_dco_sel;
 		u32 per_sd_div;
+		u32 per_m2_div;
+#else
+		u32 per_fsel;
 #endif
 		/* MPU clk */
 		u32 mpu_m, mpu_n, mpu_fsel;
@@ -492,6 +571,8 @@ void cpu_clock_info(void)
 		printf("sys_clk %d sys_clk_div %d\n", sys_clk, sys_clk_div);
 		printf("calculated system clock %d\n", sys_clk_calc);
 
+		per_clk_calc = sys_clk_calc;
+
 		/* Per clk */
 		per_m = readl(CM_CLKSEL2_PLL);
 		per_m >>= 8;
@@ -501,18 +582,35 @@ void cpu_clock_info(void)
 		per_n >>= 0;
 		per_n &= ((1 << 7) - 1);
 
+		printf("per m %d n %d ", per_m, per_n);
+
+#ifndef CONFIG_OMAP36XX
 		per_fsel = readl(CM_CLKEN_PLL);
 		per_fsel >>= 20;
 		per_fsel &= ((1 << 4) - 1);
+
+		printf("fsel %d ", per_fsel);
+#endif
 
 		per_m2 = readl(CM_CLKSEL3_PLL);
 		per_m2 >>= 0;
 		per_m2 &= ((1 << 8) - 1);
 
-		printf("per m %d n %d fsel %d m2 %d",
-		       per_m, per_n, per_fsel, per_m2);
+		per_m3 = readl(CM_CLKSEL_DSS);
+		per_m3 >>= 8;
+		per_m3 &= ((1 << 5) - 1);
 
-		per_clk_calc = sys_clk_calc;
+		per_m4 = readl(CM_CLKSEL_DSS);
+		per_m4 >>= 0;
+		per_m4 &= ((1 << 5) - 1);
+
+		per_m5 = readl(CM_CLKSEL_CAM);
+		per_m5 >>= 0;
+		per_m5 &= ((1 << 5) - 1);
+
+		per_m6 = readl(CM_CLKSEL1_EMU);
+		per_m6 >>= 24;
+		per_m6 &= ((1 << 5) - 1);
 
 #ifdef CONFIG_OMAP36XX
 		per_clk_div = readl(PRM_CLKSRC_CTRL);
@@ -527,9 +625,6 @@ void cpu_clock_info(void)
 		per_sd_div >>= 24;
 		per_sd_div &= ((1 << 7) - 1);
 
-		printf(" per clkdiv %d dco_sel %d sd_div %d ",
-		       per_clk_div, per_dco_sel, per_sd_div);
-
 		/* Div by 6.5 */
 		if (per_clk_div) {
 			per_clk_calc *= 2;
@@ -537,12 +632,25 @@ void cpu_clock_info(void)
 		} else {
 			per_clk_calc /= (per_n + 1);
 		}
+
+		/* M2 div */
+		per_m2_div = readl(CM_CLKSEL_CORE);
+		per_m2_div >>= 12;
+		per_m2_div &= 3;
+
+		per_m2 *= per_m2_div;
+
+		printf("clkdiv %d dco_sel %d sd_div %d m2_div %d ",
+		       per_clk_div, per_dco_sel, per_sd_div, per_m2_div);
+
 #else
 		per_clk_calc /= (per_n + 1);
 #endif
 
-		per_clk_calc *= per_m;
+		printf("m2 %d m3 %d m4 %d m5 %d m6 %d",
+		       per_m2, per_m3, per_m4, per_m5, per_m6);
 
+		per_clk_calc *= per_m;
 
 		if (per_m2)
 			clk_96m_calc = per_clk_calc / per_m2;
@@ -550,9 +658,22 @@ void cpu_clock_info(void)
 			clk_96m_calc = 0;
 
 		printf("\n");
-		printf("dpll4 base clk %d 96M clk %d\n",
-		       per_clk_calc, clk_96m_calc);
+		if (!(per_clk_calc % 1000000))
+			printf("dpll4 base clk %d MHz\n",
+			       per_clk_calc / 1000000);
+		else if (!(per_clk_calc % 1000))
+			printf("dpll4 base clk %d KHz\n", per_clk_calc / 1000);
+		else
+			printf("dpll4 base clk %d Hz\n", per_clk_calc);
 
+		if (!(clk_96m_calc % 1000000))
+			printf("\t96M clk %d MHz\n", clk_96m_calc / 1000000);
+		else if (!(clk_96m_calc % 1000))
+			printf("\t96M clk %d KHz\n", clk_96m_calc / 1000);
+		else
+			printf("\t96M clk %d Hz\n", clk_96m_calc);
+
+		/* MPU */
 		mpu_m = readl(CM_CLKSEL1_PLL_MPU);
 		mpu_m >>= 8;
 		mpu_m &= ((1 << 11) - 1);

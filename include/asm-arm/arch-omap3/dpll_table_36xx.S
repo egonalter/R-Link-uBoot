@@ -29,6 +29,8 @@
  * The values are defined for all possible sysclk and for ES1 and ES2.
  */
 
+/* WARNING : Only the 26MHz timing has been tested */
+
 #if defined(CONFIG_VDD1_1_10) /* Vdd = 1.10 */
 
 mpu_dpll_param:
@@ -250,17 +252,14 @@ core_dpll_param:
 #error "Undefined memory speed"
 #endif /* PRCM_CLK_CFG2_* */
 
-/* PER DPLL values are same for both ES1 and ES2 */
+
 per_dpll_param:
-/* 12MHz */
-.word 0xD8,0x05,0x07,0x09
-/* 13MHz */
-.word 0x1B0,0x0C,0x03,0x09
-/* 19.2MHz */
-.word 0xE1,0x09,0x07,0x09
-/* 26MHz */
-.word 0x1B0,0x0C,0x07,0x09
-/* 38.4MHz */
-.word 0xE1,0x13,0x07,0x09
+/*	sys(kHz), m,	n,	clkin,	sd,	dco,	m2,	m3,	m4,	m5,	m6,	m2div */
+.word 12000,	360,	4,	0,	4,	2,	9,	16,	5,	4,	3,	1
+.word 13000,	432,	0,	1,	4,	2,	9,	16,	5,	4,	3,	1
+.word 19200,	360,	7,	0,	4,	2,	9,	16,	5,	4,	3,	1
+.word 26000,	432,	12,	0,	4,	2,	9,	16,	5,	4,	3,	1
+.word 38400,	360,	15,	0,	4,	2,	9,	16,	5,	4,	3,	1
+.word 0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0	
 
 
