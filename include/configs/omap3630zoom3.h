@@ -54,6 +54,14 @@
 //#define PRCM_CLK_CFG2_332MHZ     1    /* VDD2=1.15v - 166MHz DDR */
 #define PRCM_PCLK_OPP2           1    /* ARM=500MHz - VDD1=1.20v */
 
+/* PER clock options, only uncomment 1 */
+/* Uncomment to run PER M2 at 2x 96MHz */
+/* #define CONFIG_PER_M2_192 */
+/* Uncomment to run PER SGX at 192MHz */
+#define CONFIG_PER_SGX_192
+
+/* Uncommend to run PER at 2x 96MHz */
+
 #undef CONFIG_USE_IRQ                 /* no support for IRQs */
 #define CONFIG_MISC_INIT_R
 
