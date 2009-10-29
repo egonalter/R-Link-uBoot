@@ -185,6 +185,13 @@ static dpll_per_param *_get_per_dpll(int clk_index)
 	return ret;
 }
 
+static dpll_param *_get_iva_dpll(int clk_index, int sil_index)
+{
+	dpll_param *ret = (dpll_param *)get_iva_dpll_param();
+	ret += (MAX_SIL_INDEX * clk_index) + sil_index;
+	return ret;
+}
+
 #ifdef CONFIG_OMAP36XX
 
 #define PER_M_BITS 12
@@ -217,6 +224,23 @@ static void per_dpll_init_36XX(int clk_index)
 
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
 	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);
+}
+
+static void iva_dpll_init_36XX(int clk_index, int sil_index)
+{
+	dpll_param *iva;
+
+	iva = _get_iva_dpll(clk_index, sil_index);
+
+	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_STOP);
+	wait_on_value(BIT0, 0, CM_IDLEST_PLL_IVA2, LDELAY);
+
+	sr32(CM_CLKSEL1_PLL_IVA2, 8, 11, iva->m);
+	sr32(CM_CLKSEL1_PLL_IVA2, 0,  7, iva->n);
+	sr32(CM_CLKSEL2_PLL_IVA2, 0,  5, iva->m2);
+
+	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_LOCK);	/* lock mode */
+	wait_on_value(BIT0, 1, CM_IDLEST_PLL_IVA2, LDELAY);
 }
 
 #else /* 34xx */
@@ -269,6 +293,26 @@ static void per_dpll_init_34XX(int clk_index)
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
 	wait_on_value(BIT1, 2, CM_IDLEST_CKGEN, LDELAY);
 }
+
+static void iva_dpll_init_34XX(int clk_index, int sil_index)
+{
+	dpll_param *dpll_param_p;
+
+	/* Getting the base address to IVA DPLL param table*/
+	dpll_param_p = (dpll_param *)get_iva_dpll_param();
+	/* Moving it to the right sysclk and ES rev base */
+	dpll_param_p = dpll_param_p + MAX_SIL_INDEX*clk_index + sil_index;
+	/* IVA DPLL (set to 12*20=240MHz) */
+	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_STOP);
+	wait_on_value(BIT0, 0, CM_IDLEST_PLL_IVA2, LDELAY);
+	sr32(CM_CLKSEL2_PLL_IVA2, 0, 5, dpll_param_p->m2);	/* set M2 */
+	sr32(CM_CLKSEL1_PLL_IVA2, 8, 11, dpll_param_p->m);	/* set M */
+	sr32(CM_CLKSEL1_PLL_IVA2, 0, 7, dpll_param_p->n);	/* set N */
+	sr32(CM_CLKEN_PLL_IVA2, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
+	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_LOCK);	/* lock mode */
+	wait_on_value(BIT0, 1, CM_IDLEST_PLL_IVA2, LDELAY);
+}
+
 #endif
 
 
@@ -378,19 +422,12 @@ void prcm_init(void)
 	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOCK); /* lock mode */
 	wait_on_value(BIT0, 1, CM_IDLEST_PLL_MPU, LDELAY);
 
-	/* Getting the base address to IVA DPLL param table*/
-	dpll_param_p = (dpll_param *)get_iva_dpll_param();
-	/* Moving it to the right sysclk and ES rev base */
-	dpll_param_p = dpll_param_p + MAX_SIL_INDEX*clk_index + sil_index;
-	/* IVA DPLL (set to 12*20=240MHz) */
-	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_STOP);
-	wait_on_value(BIT0, 0, CM_IDLEST_PLL_IVA2, LDELAY);
-	sr32(CM_CLKSEL2_PLL_IVA2, 0, 5, dpll_param_p->m2);	/* set M2 */
-	sr32(CM_CLKSEL1_PLL_IVA2, 8, 11, dpll_param_p->m);	/* set M */
-  	sr32(CM_CLKSEL1_PLL_IVA2, 0, 7, dpll_param_p->n);	/* set N */
-	sr32(CM_CLKEN_PLL_IVA2, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
-	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_LOCK);	/* lock mode */
-	wait_on_value(BIT0, 1, CM_IDLEST_PLL_IVA2, LDELAY);
+	/* IVA */
+#ifdef CONFIG_OMAP36XX
+	iva_dpll_init_36XX(clk_index, sil_index);
+#else
+	iva_dpll_init_34XX(clk_index, sil_index);
+#endif
 
 	/* Set up GPTimers to sys_clk source only */
  	sr32(CM_CLKSEL_PER, 0, 8, 0xff);
@@ -508,7 +545,7 @@ void cpu_clock_info(void)
 {
 	u32 osc_clk, clk_index;
 	int sil_index;
-	dpll_param *core, *mpu;
+	dpll_param *core, *mpu, *iva;
 	dpll_per_param *per;
 
 	osc_clk = get_osc_clk_speed();
@@ -526,6 +563,10 @@ void cpu_clock_info(void)
 
 	mpu = _get_mpu_dpll(clk_index, sil_index);
 	print_dpll_param(mpu, "mpu params ");
+
+	iva = _get_iva_dpll(clk_index, sil_index);
+	print_dpll_param(iva, "iva params ");
+
 	/* Now verify */
 	{
 		/* System clk */
@@ -550,8 +591,16 @@ void cpu_clock_info(void)
 		u32 per_fsel;
 #endif
 		/* MPU clk */
-		u32 mpu_m, mpu_n, mpu_fsel;
-		u32 mpu_m2;
+		u32 mpu_m, mpu_n, mpu_m2;
+#ifndef CONFIG_OMAP36XX
+		u32 mpu_fsel;
+#endif
+
+		/* IVA clk */
+		u32 iva_m, iva_n, iva_m2;
+#ifndef CONFIG_OMAP36XX
+		u32 iva_fsel;
+#endif
 
 		printf("Verifying from hardware registers..\n");
 
@@ -697,16 +746,46 @@ void cpu_clock_info(void)
 		mpu_n >>= 0;
 		mpu_n &= ((1 << 5) - 1);
 
+		printf("mpu m %d n %d ", mpu_m, mpu_n);
+
+#ifndef CONFIG_OMAP36XX
 		mpu_fsel = readl(CM_CLKEN_PLL_MPU);
 		mpu_fsel >>= 4;
 		mpu_fsel &= ((1 << 4) - 1);
+
+		printf("fsel %d ", mpu_fsel);
+#endif
 
 		mpu_m2 = readl(CM_CLKSEL2_PLL_MPU);
 		mpu_m2 >>= 0;
 		mpu_m2 &= ((1 << 5) - 1);
 
-		printf("mpu m %d n %d fsel %d m2 %d\n",
-		       mpu_m, mpu_n, mpu_fsel, mpu_m2);
+		printf("m2 %d\n", mpu_m2);
+
+		/* IVA */
+		iva_m = readl(CM_CLKSEL1_PLL_IVA2);
+		iva_m >>= 8;
+		iva_m &= ((1 << 11) - 1);
+
+		iva_n = readl(CM_CLKSEL1_PLL_IVA2);
+		iva_n >>= 0;
+		iva_n &= ((1 << 7) - 1);
+
+		printf("iva m %d n %d ", iva_m, iva_n);
+
+#ifndef CONFIG_OMAP36XX
+		iva_fsel = readl(CM_CLKEN_PLL_IVA2);
+		iva_fsel >>= 4;
+		iva_fsel &= ((1 << 4) - 1);
+
+		printf("fsel %d ", iva_fsel);
+#endif
+
+		iva_m2 = readl(CM_CLKSEL2_PLL_IVA2);
+		iva_m2 >>= 0;
+		iva_m2 &= ((1 << 5) - 1);
+
+		printf("m2 %d\n", iva_m2);
 	}
 }
 #endif
