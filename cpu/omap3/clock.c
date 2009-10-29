@@ -186,6 +186,14 @@ static dpll_per_param *_get_per_dpll(int clk_index)
 }
 
 #ifdef CONFIG_OMAP36XX
+
+#define PER_M_BITS 12
+#define PER_M2_BITS 5
+#define PER_M3_BITS 6
+#define PER_M4_BITS 6
+#define PER_M5_BITS 6
+#define PER_M6_BITS 6
+
 static void per_dpll_init_36XX(int clk_index)
 {
 	dpll_per_param *per;
@@ -195,16 +203,16 @@ static void per_dpll_init_36XX(int clk_index)
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_STOP);
 	wait_on_value(BIT1, 0, CM_IDLEST_CKGEN, LDELAY);
 
-	sr32(CM_CLKSEL2_PLL, 8, 11, per->m);
-	sr32(CM_CLKSEL2_PLL, 0, 7, per->n);
+	sr32(CM_CLKSEL2_PLL,  8, PER_M_BITS, per->m);
+	sr32(CM_CLKSEL2_PLL,  0, 7, per->n);
 	sr32(PRM_CLKSRC_CTRL, 8, 1, per->clkin);
 	sr32(CM_CLKSEL2_PLL, 24, 7, per->sd);
 	sr32(CM_CLKSEL2_PLL, 21, 3, per->dco);
-	sr32(CM_CLKSEL3_PLL, 0, 5, per->m2);
-	sr32(CM_CLKSEL_DSS, 8, 5, per->m3);
-	sr32(CM_CLKSEL_DSS, 0, 5, per->m4);
-	sr32(CM_CLKSEL_CAM, 0, 5, per->m5);
-	sr32(CM_CLKSEL1_EMU, 24, 5, per->m6);
+	sr32(CM_CLKSEL3_PLL,  0, PER_M2_BITS, per->m2);
+	sr32(CM_CLKSEL_DSS,   8, PER_M3_BITS, per->m3);
+	sr32(CM_CLKSEL_DSS,   0, PER_M4_BITS, per->m4);
+	sr32(CM_CLKSEL_CAM,   0, PER_M5_BITS, per->m5);
+	sr32(CM_CLKSEL1_EMU, 24, PER_M6_BITS, per->m6);
 	sr32(CM_CLKSEL_CORE, 12, 2, per->m2div);
 
 	sr32(CM_CLKEN_PLL, 16, 3, PLL_LOCK);	/* lock mode */
@@ -212,6 +220,13 @@ static void per_dpll_init_36XX(int clk_index)
 }
 
 #else /* 34xx */
+
+#define PER_M_BITS 11
+#define PER_M2_BITS 5
+#define PER_M3_BITS 5
+#define PER_M4_BITS 5
+#define PER_M5_BITS 5
+#define PER_M6_BITS 5
 
 static void per_dpll_init_34XX(int clk_index)
 {
@@ -576,7 +591,7 @@ void cpu_clock_info(void)
 		/* Per clk */
 		per_m = readl(CM_CLKSEL2_PLL);
 		per_m >>= 8;
-		per_m &= ((1 << 11) - 1);
+		per_m &= ((1 << PER_M_BITS) - 1);
 
 		per_n = readl(CM_CLKSEL2_PLL);
 		per_n >>= 0;
@@ -594,23 +609,23 @@ void cpu_clock_info(void)
 
 		per_m2 = readl(CM_CLKSEL3_PLL);
 		per_m2 >>= 0;
-		per_m2 &= ((1 << 8) - 1);
+		per_m2 &= ((1 << PER_M2_BITS) - 1);
 
 		per_m3 = readl(CM_CLKSEL_DSS);
 		per_m3 >>= 8;
-		per_m3 &= ((1 << 5) - 1);
+		per_m3 &= ((1 << PER_M3_BITS) - 1);
 
 		per_m4 = readl(CM_CLKSEL_DSS);
 		per_m4 >>= 0;
-		per_m4 &= ((1 << 5) - 1);
+		per_m4 &= ((1 << PER_M4_BITS) - 1);
 
 		per_m5 = readl(CM_CLKSEL_CAM);
 		per_m5 >>= 0;
-		per_m5 &= ((1 << 5) - 1);
+		per_m5 &= ((1 << PER_M5_BITS) - 1);
 
 		per_m6 = readl(CM_CLKSEL1_EMU);
 		per_m6 >>= 24;
-		per_m6 &= ((1 << 5) - 1);
+		per_m6 &= ((1 << PER_M6_BITS) - 1);
 
 #ifdef CONFIG_OMAP36XX
 		per_clk_div = readl(PRM_CLKSRC_CTRL);
