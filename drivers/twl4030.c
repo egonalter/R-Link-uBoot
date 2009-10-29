@@ -685,3 +685,140 @@ void twl4030_power_reset_init(void)
 		    PM_MASTER_P1_SW_EVENTS);
 #endif
 }
+
+#ifdef CONFIG_CMD_VOLTAGE
+
+/* Override the weakly defined voltage_info function */
+void voltage_info (void)
+{
+	u8 vdd1_dev_grp, vdd1_type, vdd1_remap, vdd1_cfg, vdd1_misc_cfg;
+	u8 vdd1_test1, vdd1_test2, vdd1_osc, vdd1_vsel, vdd1_vmode_cfg;
+	u8 vdd1_vfloor, vdd1_vroof, vdd1_step;
+	u8 vdd2_dev_grp, vdd2_type, vdd2_remap, vdd2_cfg, vdd2_misc_cfg;
+	u8 vdd2_test1, vdd2_test2, vdd2_osc, vdd2_vsel, vdd2_vmode_cfg;
+	u8 vdd2_vfloor, vdd2_vroof, vdd2_step;
+	unsigned int vdd1 = 0;
+	unsigned int vdd2 = 0;
+	/* Units are in micro volts */
+	unsigned int base = 600000;
+	unsigned int scale = 12500;
+
+	/* VDD1 */
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_dev_grp,
+			    PM_RECEIVER_VDD1_DEV_GRP);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_type,
+			    PM_RECEIVER_VDD1_TYPE);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_remap,
+			    PM_RECEIVER_VDD1_REMAP);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_cfg,
+			    PM_RECEIVER_VDD1_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_misc_cfg,
+			    PM_RECEIVER_VDD1_MISC_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_test1,
+			    PM_RECEIVER_VDD1_TEST1);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_test2,
+			    PM_RECEIVER_VDD1_TEST2);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_osc,
+			    PM_RECEIVER_VDD1_OSC);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_vsel,
+			    PM_RECEIVER_VDD1_VSEL);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_vmode_cfg,
+			    PM_RECEIVER_VDD1_VMODE_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_vfloor,
+			    PM_RECEIVER_VDD1_VFLOOR);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_vroof,
+			    PM_RECEIVER_VDD1_VROOF);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd1_step,
+			    PM_RECEIVER_VDD1_STEP);
+
+	printf("VDD1 Regs\n");
+	printf("\tDEV_GRP   0x%x\n", vdd1_dev_grp);
+	printf("\tTYPE      0x%x\n", vdd1_type);
+	printf("\tREMAP     0x%x\n", vdd1_remap);
+	printf("\tCFG       0x%x\n", vdd1_cfg);
+	printf("\tMISC_CFG  0x%x\n", vdd1_misc_cfg);
+	printf("\tTEST1     0x%x\n", vdd1_test1);
+	printf("\tTEST2     0x%x\n", vdd1_test2);
+	printf("\tOSC       0x%x\n", vdd1_osc);
+	printf("\tVSEL      0x%x\n", vdd1_vsel);
+	printf("\tVMODE_CFG 0x%x\n", vdd1_vmode_cfg);
+	printf("\tVFLOOR    0x%x\n", vdd1_vfloor);
+	printf("\tVROOF     0x%x\n", vdd1_vroof);
+	printf("\tSTEP      0x%x\n", vdd1_step);
+
+	/* VDD2 */
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_dev_grp,
+			    PM_RECEIVER_VDD2_DEV_GRP);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_type,
+			    PM_RECEIVER_VDD2_TYPE);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_remap,
+			    PM_RECEIVER_VDD2_REMAP);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_cfg,
+			    PM_RECEIVER_VDD2_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_misc_cfg,
+			    PM_RECEIVER_VDD2_MISC_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_test1,
+			    PM_RECEIVER_VDD2_TEST1);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_test2,
+			    PM_RECEIVER_VDD2_TEST2);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_osc,
+			    PM_RECEIVER_VDD2_OSC);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_vsel,
+			    PM_RECEIVER_VDD2_VSEL);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_vmode_cfg,
+			    PM_RECEIVER_VDD2_VMODE_CFG);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_vfloor,
+			    PM_RECEIVER_VDD2_VFLOOR);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_vroof,
+			    PM_RECEIVER_VDD2_VROOF);
+	twl4030_i2c_read_u8(TWL4030_CHIP_PM_RECEIVER, &vdd2_step,
+			    PM_RECEIVER_VDD2_STEP);
+
+	printf("VDD2 Regs\n");
+	printf("\tDEV_GRP   0x%x\n", vdd2_dev_grp);
+	printf("\tTYPE      0x%x\n", vdd2_type);
+	printf("\tREMAP     0x%x\n", vdd2_remap);
+	printf("\tCFG       0x%x\n", vdd2_cfg);
+	printf("\tMISC_CFG  0x%x\n", vdd2_misc_cfg);
+	printf("\tTEST1     0x%x\n", vdd2_test1);
+	printf("\tTEST2     0x%x\n", vdd2_test2);
+	printf("\tOSC       0x%x\n", vdd2_osc);
+	printf("\tVSEL      0x%x\n", vdd2_vsel);
+	printf("\tVMODE_CFG 0x%x\n", vdd2_vmode_cfg);
+	printf("\tVFLOOR    0x%x\n", vdd2_vfloor);
+	printf("\tVROOF     0x%x\n", vdd2_vroof);
+	printf("\tSTEP      0x%x\n", vdd2_step);
+
+	/* Calculated the voltages */
+	printf("\n");
+	if (!(vdd1_cfg & 1))
+	{
+		/* voltage controled by vsel */
+		vdd1 = scale * vdd1_vsel + base;
+		printf("VDD1 calculated to be ");
+		if (!(vdd1 % 1000)) {
+			printf("%d mV\n", vdd1 / 1000);
+		} else {
+			printf("%d uV\n", vdd1);
+		}
+	} else {
+		printf("VDD1 calculation unsupport for this mode\n");
+	}
+
+	if (!(vdd2_cfg & 1))
+	{
+		/* voltage controled by vsel */
+		vdd2 = scale * vdd2_vsel + base;
+		printf("VDD2 calculated to be ");
+		if (!(vdd2 % 1000)) {
+			printf("%d mV\n", vdd2 / 1000);
+		} else {
+			printf("%d uV\n", vdd2);
+		}
+	} else {
+		printf("VDD2 calculation unsupport for this mode\n");
+	}
+}
+
+
+#endif

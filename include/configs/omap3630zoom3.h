@@ -386,4 +386,7 @@ extern unsigned int boot_flash_type;
 #define CONFIG_CMD_CLOCK		1
 #define CONFIG_CMD_CLOCK_INFO_CPU	1
 
+/* Voltage command */
+#define CONFIG_CMD_VOLTAGE		1
+
 #endif                           /* __CONFIG_H */

@@ -44,6 +44,7 @@ COBJS	= main.o ACEX1K.o altera.o bedbug.o circbuf.o \
 	  cmd_pci.o cmd_pcmcia.o cmd_portio.o \
 	  cmd_reginfo.o cmd_reiser.o cmd_scsi.o cmd_spi.o cmd_universe.o \
 	  cmd_usb.o cmd_vfd.o \
+	  cmd_voltage.o \
 	  command.o console.o devices.o dlmalloc.o docecc.o \
 	  environment.o env_common.o \
 	  env_nand.o env_dataflash.o env_flash.o env_eeprom.o \
