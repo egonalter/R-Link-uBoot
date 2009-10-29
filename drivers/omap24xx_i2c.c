@@ -261,8 +261,7 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 
 	if (!i2c_error) {
 		int err = 10;
-		/* free bus, otherwise we can't use a combined transction */
-		outw(0, I2C_CON);
+		outw(I2C_CON_EN, I2C_CON);
 		while (inw(I2C_STAT) || (inw(I2C_CON) & I2C_CON_MST)) {
 			udelay(10000);
 			/* Have to clear pending interrupt to clear I2C_STAT */
@@ -272,7 +271,6 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 			}
 		}
 
-		wait_for_bb();
 		/* set slave address */
 		outw(devaddr, I2C_SA);
 		/* read one byte from slave */
