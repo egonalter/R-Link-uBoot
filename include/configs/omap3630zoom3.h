@@ -50,8 +50,7 @@
 
 #define V_SCLK                   (V_OSCK >> 1)
 
-#define PRCM_CLK_CFG2_400MHZ   1    /* VDD2=1.15v - 200MHz DDR */
-//#define PRCM_CLK_CFG2_332MHZ     1    /* VDD2=1.15v - 166MHz DDR */
+#define PRCM_CLK_CFG2_400MHZ   1    /* VDD2=1.2v - 200MHz DDR */
 #define PRCM_PCLK_OPP2           1    /* ARM=500MHz - VDD1=1.20v */
 
 /* PER clock options, only uncomment 1 */
