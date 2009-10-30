@@ -243,6 +243,21 @@ static void iva_dpll_init_36XX(int clk_index, int sil_index)
 	wait_on_value(BIT0, 1, CM_IDLEST_PLL_IVA2, LDELAY);
 }
 
+static void mpu_dpll_init_36XX(int clk_index, int sil_index)
+{
+	dpll_param *mpu;
+
+	mpu = _get_mpu_dpll(clk_index, sil_index);
+
+	/* MPU DPLL (unlocked already) */
+	sr32(CM_CLKSEL1_PLL_MPU, 8, 11, mpu->m);
+	sr32(CM_CLKSEL1_PLL_MPU, 0,  7, mpu->n);
+	sr32(CM_CLKSEL2_PLL_MPU, 0,  5, mpu->m2);
+
+	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOCK); /* lock mode */
+	wait_on_value(BIT0, 1, CM_IDLEST_PLL_MPU, LDELAY);
+}
+
 #else /* 34xx */
 
 #define PER_M_BITS 11
@@ -311,6 +326,23 @@ static void iva_dpll_init_34XX(int clk_index, int sil_index)
 	sr32(CM_CLKEN_PLL_IVA2, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
 	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_LOCK);	/* lock mode */
 	wait_on_value(BIT0, 1, CM_IDLEST_PLL_IVA2, LDELAY);
+}
+
+static void mpu_dpll_init_34XX(int clk_index, int sil_index)
+{
+	dpll_param *dpll_param_p;
+
+	/* Getting the base address to MPU DPLL param table*/
+	dpll_param_p = (dpll_param *)get_mpu_dpll_param();
+	/* Moving it to the right sysclk and ES rev base */
+	dpll_param_p = dpll_param_p + MAX_SIL_INDEX*clk_index + sil_index;
+	/* MPU DPLL (unlocked already) */
+	sr32(CM_CLKSEL2_PLL_MPU, 0, 5, dpll_param_p->m2);	/* Set M2 */
+	sr32(CM_CLKSEL1_PLL_MPU, 8, 11, dpll_param_p->m);	/* Set M */
+	sr32(CM_CLKSEL1_PLL_MPU, 0, 7, dpll_param_p->n);	/* Set N */
+	sr32(CM_CLKEN_PLL_MPU, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
+	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOCK); /* lock mode */
+	wait_on_value(BIT0, 1, CM_IDLEST_PLL_MPU, LDELAY);
 }
 
 #endif
@@ -403,30 +435,14 @@ void prcm_init(void)
 		(*f_lock_pll) (p0, p1, p2, p3);
 	}
 
-	/* PER DPLL */
 #ifdef CONFIG_OMAP36XX
 	per_dpll_init_36XX(clk_index);
+	iva_dpll_init_36XX(clk_index, sil_index);
+	mpu_dpll_init_36XX(clk_index, sil_index);
 #else
 	per_dpll_init_34XX(clk_index);
-#endif
-
-	/* Getting the base address to MPU DPLL param table*/
-	dpll_param_p = (dpll_param *)get_mpu_dpll_param();
-	/* Moving it to the right sysclk and ES rev base */
-	dpll_param_p = dpll_param_p + MAX_SIL_INDEX*clk_index + sil_index;
-	/* MPU DPLL (unlocked already) */
-	sr32(CM_CLKSEL2_PLL_MPU, 0, 5, dpll_param_p->m2);	/* Set M2 */
-	sr32(CM_CLKSEL1_PLL_MPU, 8, 11, dpll_param_p->m);	/* Set M */
-	sr32(CM_CLKSEL1_PLL_MPU, 0, 7, dpll_param_p->n);	/* Set N */
-	sr32(CM_CLKEN_PLL_MPU, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
-	sr32(CM_CLKEN_PLL_MPU, 0, 3, PLL_LOCK); /* lock mode */
-	wait_on_value(BIT0, 1, CM_IDLEST_PLL_MPU, LDELAY);
-
-	/* IVA */
-#ifdef CONFIG_OMAP36XX
-	iva_dpll_init_36XX(clk_index, sil_index);
-#else
 	iva_dpll_init_34XX(clk_index, sil_index);
+	mpu_dpll_init_34XX(clk_index, sil_index);
 #endif
 
 	/* Set up GPTimers to sys_clk source only */
