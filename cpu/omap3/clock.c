@@ -40,6 +40,7 @@ struct dpll_param {
 };
 
 #ifdef CONFIG_OMAP36XX
+
 struct dpll_per_param {
         unsigned int sys_clk;
         unsigned int m;
@@ -55,11 +56,15 @@ struct dpll_per_param {
         unsigned int m2div;
 };
 typedef struct dpll_per_param dpll_per_param;
-#else
-typedef struct dpll_param dpll_per_param;
-#endif
+#define MAX_SIL_INDEX	1
 
+#else
+
+typedef struct dpll_param dpll_per_param;
 #define MAX_SIL_INDEX	3
+
+#endif /* CONFIG_OMAP36XX */
+
 typedef struct dpll_param dpll_param;
 
 /* Following functions are exported from lowlevel_init.S */
@@ -150,7 +155,7 @@ static int get_silindex(void)
 	 * appropriate silicon rev.
 	 */
 #ifdef CONFIG_OMAP36XX
-	sil_index = 1;
+	sil_index = 0;
 #else
 	if (cpu_is_3410()) {
 		sil_index = 2;
