@@ -297,7 +297,7 @@ int misc_init_r(void)
 	if (ZOOM2_BOARD_REVISION_PRODUCTION_1 <= zoom2_board_revision())
 		twl4030_power_reset_init();
 #endif
-
+	twl4030_usb_init();
 	twl4030_init_battery_charging();
 	/* see if we need to activate the power button startup */
 	char *s = getenv("pbboot");
@@ -330,7 +330,6 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
-	twl4030_usb_init();
 	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	dieid_num_r();
