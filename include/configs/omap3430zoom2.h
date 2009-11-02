@@ -371,4 +371,10 @@ extern unsigned int boot_flash_type;
 /* Command shell */
 #define CFG_HUSH_PARSER
 #define CFG_PROMPT_HUSH_PS2 "> "
+
+/* Clock command */
+#define CONFIG_CMD_CLOCK		1
+#define CONFIG_CMD_CLOCK_INFO_CPU	1
+
 #endif                           /* __CONFIG_H */
+
