@@ -274,7 +274,7 @@ int misc_init_r(void)
 	extern int twl4030_init_battery_charging(void);
 
 	i2c_init(CFG_I2C_SPEED, CFG_I2C_SLAVE);
-
+	twl4030_usb_init();
 	twl4030_power_reset_init();
 	twl4030_init_battery_charging();
 	/* see if we need to activate the power button startup */
@@ -308,7 +308,6 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
-	twl4030_usb_init();
 	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	dieid_num_r();
