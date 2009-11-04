@@ -129,7 +129,7 @@ int cleanup_before_linux (void)
 #endif
 
 {
-	unsigned int i, external_boot;
+	unsigned int i;
 
 	/* turn off I/D-cache */
 	asm ("mrc p15, 0, %0, c1, c0, 0":"=r" (i));
