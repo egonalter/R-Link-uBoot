@@ -946,7 +946,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				 * for the kernel.
 				 */
 				struct fastboot_boot_img_hdr *fb_hdr =
-					(image_header_t *) interface.transfer_buffer;
+					(struct fastboot_boot_img_hdr *) interface.transfer_buffer;
 
 				/* Skip the mkbootimage header */
 				image_header_t *hdr =
