@@ -553,7 +553,6 @@ int dram_init(void)
 	MUX_VAL(CP(DSS_DATA22),     (IDIS | PTD | DIS | M3)) /*DSS_DATA22*/\
 	MUX_VAL(CP(DSS_DATA23),     (IDIS | PTD | DIS | M3)) /*DSS_DATA23*/\
 	/*CAMERA*/\
-	MUX_VAL(CP(CAM_HS ),        (IDIS | PTD | DIS | M7)) /*CAM_HS */\
 	MUX_VAL(CP(CAM_VS ),        (IDIS | PTD | DIS | M7)) /*CAM_VS */\
 	MUX_VAL(CP(CAM_XCLKA),      (IDIS | PTD | DIS | M0)) /*CAM_XCLKA*/\
 	MUX_VAL(CP(CAM_PCLK),       (IEN  | PTD | DIS | M0)) /*CAM_PCLK*/\
@@ -811,9 +810,6 @@ void set_muxconf_regs(void)
 		 * Crashs have been seen on Zoom2 otherwise
 		 */
 	MUX_VAL(CP(UART3_RX_IRRX),(IEN  | PTU | DIS | M0)) /*UART3_RX_IRRX*/
-
-	/* gpio 94 is used to detect preproduction vs production boards */
-       MUX_VAL(CP(CAM_HS),          (IEN | PTD | DIS | M4)) /*gpio_94 */
 
 #endif
 }
