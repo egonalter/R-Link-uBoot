@@ -249,6 +249,7 @@ int misc_init_r(void)
 		   154 blue , bank 5, index 26
 		   173 red  , bank 6, index 13
 		    61 blue2, bank 2, index 29
+		   94 green,  bank 3, index 30
 
 		   GPIO to query for debug board
 		   158 db board query, bank 5, index 30
@@ -257,15 +258,18 @@ int misc_init_r(void)
 		gpio_t *gpio2_base = (gpio_t *)OMAP34XX_GPIO2_BASE;
 		gpio_t *gpio5_base = (gpio_t *)OMAP34XX_GPIO5_BASE;
 		gpio_t *gpio6_base = (gpio_t *)OMAP34XX_GPIO6_BASE;
+		gpio_t *gpio3_base = (gpio_t *)OMAP34XX_GPIO3_BASE;
 
 		/* Configure GPIOs to output */
 		sr32((u32)&gpio2_base->oe, 29, 1, 0);
 		sr32((u32)&gpio5_base->oe, 26, 1, 0);
 		sr32((u32)&gpio6_base->oe, 13, 1, 0);
+		sr32((u32)&gpio3_base->oe, 30, 1, 0);
 
 		sr32((u32)&gpio6_base->cleardataout, 13, 1, 1); /* red off */
 		sr32((u32)&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
 		sr32((u32)&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
+		sr32((u32)&gpio3_base->cleardataout, 30, 1, 1); /* green off */
 	}
 
 #endif
@@ -806,6 +810,7 @@ void set_muxconf_regs(void)
 	MUX_VAL(CP(McSPI1_SOMI),  (IEN | PTD | EN | M4))  /* gpio_173 red */
 	MUX_VAL(CP(McBSP4_DX),    (IEN  | PTD | EN | M4))  /* gpio_154 blue */
 	MUX_VAL(CP(GPMC_nBE1),    (IEN  | PTD | EN | M4))  /* gpio_61 blue2 */
+	MUX_VAL(CP(CAM_HS),       (IEN  | PTD | EN | M4))  /* gpio_94 green */
 		/* Keep UART3 RX line pulled-up:
 		 * Crashs have been seen on Zoom2 otherwise
 		 */
