@@ -598,12 +598,12 @@ int dram_init(void)
 	MUX_VAL(CP(MMC1_DAT6),      (IDIS | PTU | EN | M0)) /*MMC1_DAT6*/\
 	MUX_VAL(CP(MMC1_DAT7),      (IEN  | PTU | EN | M0)) /*MMC1_DAT7*/\
 	/*uP_spi lab */\
-	MUX_VAL(CP(MMC2_CLK),       (IEN  | PTD | DIS | M1)) /*mcspi3_ck lab*/\
-	MUX_VAL(CP(MMC2_CMD),       (IEN  | PTD | DIS | M1)) /*mcspi3_simo lab*/\
-	MUX_VAL(CP(MMC2_DAT0),      (IEN  | PTD | DIS | M1)) /*mcspi3_somi lab*/\
-	MUX_VAL(CP(MMC2_DAT1),      (IEN  | PTU | EN  | M4)) /*gpio_133 lab*/\
-	MUX_VAL(CP(MMC2_DAT2),      (IDIS | PTD | EN  | M1)) /*mcspi3_cs1 lab*/\
-	MUX_VAL(CP(MMC2_DAT3),      (IEN  | PTD | EN  | M1)) /*mcspi3_cs0 lab*/\
+	MUX_VAL(CP(MMC2_CLK), (OFF_IN_PD | IEN | PTD | DIS | M0)) /*MMC2_CLK*/\
+	MUX_VAL(CP(MMC2_CMD),      (IEN  | PTU | EN  | M0)) /*MMC2_CMD*/\
+	MUX_VAL(CP(MMC2_DAT0),     (IEN  | PTU | EN  | M0)) /*MMC2_DAT0*/\
+	MUX_VAL(CP(MMC2_DAT1),     (IEN  | PTU | EN  | M0)) /*MMC2_DAT1*/\
+	MUX_VAL(CP(MMC2_DAT2),     (IEN  | PTU | EN  | M0)) /*MMC2_DAT2*/\
+	MUX_VAL(CP(MMC2_DAT3),     (IEN  | PTU | EN  | M0)) /*MMC2_DAT3*/\
 	/* MMC3 lab  */\
 	MUX_VAL(CP(MMC2_DAT4),      (IEN | PTU | EN | M3)) /*mmc3_dat0 lab*/\
 	MUX_VAL(CP(MMC2_DAT5),      (IEN | PTU | EN | M3)) /*mmc3_dat1 lab*/\
