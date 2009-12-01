@@ -415,14 +415,18 @@ void prcm_init(void)
 		sr32(CM_CLKSEL_CORE, 0, 2, CORE_L3_DIV);	/* l3 */
 		sr32(CM_CLKSEL_GFX, 0, 3, GFX_DIV);		/* gfx */
 		sr32(CM_CLKSEL_WKUP, 1, 2, WKUP_RSM);		/* reset mgr */
+#ifndef CONFIG_OMAP36XX
 		sr32(CM_CLKEN_PLL, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
+#endif
 		sr32(CM_CLKEN_PLL, 0, 3, PLL_LOCK);		/* lock mode */
 		wait_on_value(BIT0, 1, CM_IDLEST_CKGEN, LDELAY);
 	} else if(running_in_flash()){
 		/* if running from flash, jump to small relocated code area in SRAM.*/
 		p0 = __raw_readl(CM_CLKEN_PLL);
 		sr32((u32)&p0, 0, 3, PLL_FAST_RELOCK_BYPASS);
+#ifndef CONFIG_OMAP36XX
 		sr32((u32)&p0, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
+#endif
 
 		p1 = __raw_readl(CM_CLKSEL1_PLL);
 		sr32((u32)&p1, 27, 2, dpll_param_p->m2);	/* Set M2 */

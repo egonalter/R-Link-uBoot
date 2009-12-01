@@ -35,41 +35,41 @@
 
 mpu_dpll_param:
 /* 12MHz */
-.word 60, 0, 7, 1
+.word 50, 0, 0, 1
 /* 13MHz */
-.word 720, 12, 4, 1
+.word 600, 12, 0, 1
 /* 19.2MHz */
-.word 75, 1, 5, 1
+.word 125, 3, 0, 1
 /* 26MHz */
-.word 360, 12, 7, 1
+.word 300, 12, 0, 1
 /* 38.4MHz */
-.word 75, 3, 7, 1
+.word 125, 7, 0, 1
 
 iva_dpll_param:
 /* 12MHz */
-.word 50, 0, 7, 1
+.word 130, 2, 0, 1
 /* 13MHz */
-.word 600, 12, 3, 1
+.word 40, 0, 0, 1
 /* 19.2MHz */
-.word 125, 3, 7, 1
+.word 325, 11, 0, 1
 /* 26MHz */
-.word 300, 12, 7, 1
+.word 20, 0, 0, 1
 /* 38.4MHz */
-.word 125, 7, 3, 1
+.word 325, 23, 0, 1
 
 #if defined(PRCM_CLK_CFG2_400MHZ)
 
 core_dpll_param:
 /* 12MHz */
-.word 100, 2, 7, 1
+.word 100, 2, 0, 1
 /* 13MHz */
-.word 400, 12, 3, 1
+.word 400, 12, 0, 1
 /* 19.2MHz */
-.word 375, 17, 3, 1
+.word 375, 17, 0, 1
 /* 26MHz */
-.word 200, 12, 7, 1
+.word 200, 12, 0, 1
 /* 38.4MHz */
-.word 375, 35, 3, 1
+.word 375, 35, 0, 1
 
 #else
 #error "Undefined memory speed"
