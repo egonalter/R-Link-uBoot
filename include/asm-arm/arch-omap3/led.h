@@ -28,11 +28,21 @@ extern void omap3_zoom2_led_red_on(void);
 extern void omap3_zoom2_led_red_off(void);
 extern void omap3_zoom2_led_blue_on(void);
 extern void omap3_zoom2_led_blue_off(void);
+#if defined(CONFIG_3630ZOOM3)
+extern void omap3_zoom2_led_green_on(void);
+extern void omap3_zoom2_led_green_off(void);
+#endif
 
 #define OMAP3_LED_OK_ON() omap3_zoom2_led_blue_on ()
 #define OMAP3_LED_OK_OFF() omap3_zoom2_led_blue_off ()
+
+#if defined(CONFIG_3630ZOOM3)
+#define OMAP3_LED_ERROR_ON() omap3_zoom2_led_green_on()
+#define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_green_off()
+#else if defined(CONFIG_3430ZOOM2) & !defined(CONFIG_3630ZOOM3)
 #define OMAP3_LED_ERROR_ON() omap3_zoom2_led_red_on ()
 #define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_red_off()
+#endif
 
 #endif /* CONFIG_ZOOM2_LED */
 

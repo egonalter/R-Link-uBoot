@@ -198,6 +198,12 @@ struct fastboot_ptentry
    using the setenv and saveenv commands */
 #define FASTBOOT_PTENTRY_FLAGS_WRITE_ENV              0x00000400
 
+/* Status values */
+#define FASTBOOT_OK			0
+#define FASTBOOT_ERROR			-1
+#define FASTBOOT_DISCONNECT		1
+#define FASTBOOT_INACTIVE		2
+
 /* Android bootimage file format */
 #define FASTBOOT_BOOT_MAGIC "ANDROID!"
 #define FASTBOOT_BOOT_MAGIC_SIZE 8
@@ -242,10 +248,13 @@ extern int fastboot_init(struct cmd_fastboot_interface *interface);
 /* Cleans up the board specific fastboot */
 extern void fastboot_shutdown(void);
 
-/* Handles board specific usb protocol exchanges
-   Returns 0 on success
-   Returns 1 on disconnects, break out of loop
-   Returns -1 on failure, unhandled usb requests and other error conditions */
+/*
+ * Handles board specific usb protocol exchanges
+ * Returns 0 on success
+ * Returns 1 on disconnects, break out of loop
+ * Returns 2 if no USB activity detected
+ * Returns -1 on failure, unhandled usb requests and other error conditions
+*/
 extern int fastboot_poll(void);
 
 /* Is this high speed (2.0) or full speed (1.1) ? 

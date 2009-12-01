@@ -277,6 +277,14 @@ int misc_init_r(void)
 		sr32((u32)&gpio5_base->setdataout, 26, 1, 1);   /* blue on */
 		sr32((u32)&gpio2_base->setdataout, 29, 1, 1);   /* blue 2 on */
 	}
+#endif
+#ifdef CONFIG_DRIVER_OMAP34XX_I2C
+       unsigned char data;
+       extern int twl4030_init_battery_charging(void);
+
+       i2c_init(CFG_I2C_SPEED, CFG_I2C_SLAVE);
+
+#ifdef CONFIG_3430ZOOM2
 	/*
 	 * Board Reset
 	 * Enable resetting the board by pressing the large button
@@ -289,11 +297,7 @@ int misc_init_r(void)
 	if (ZOOM2_BOARD_REVISION_PRODUCTION_1 <= zoom2_board_revision())
 		twl4030_power_reset_init();
 #endif
-#ifdef CONFIG_DRIVER_OMAP34XX_I2C
-	unsigned char data;
-	extern int twl4030_init_battery_charging(void);
-
-	i2c_init(CFG_I2C_SPEED, CFG_I2C_SLAVE);
+	twl4030_usb_init();
 	twl4030_init_battery_charging();
 	/* see if we need to activate the power button startup */
 	char *s = getenv("pbboot");
@@ -326,7 +330,6 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
-	twl4030_usb_init();
 	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	dieid_num_r();

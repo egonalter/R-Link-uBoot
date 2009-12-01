@@ -29,7 +29,7 @@ extern void board_clock_info();
 #endif
 
 #ifdef CONFIG_CMD_CLOCK_INFO_CPU
-extern void cpu_clock_info();
+extern void cpu_clock_info(void);
 #else
 #define cpu_clock_info()
 #endif

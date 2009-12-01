@@ -508,6 +508,12 @@ void per_clocks_enable(void)
 	sr32(CM_FCLKEN1_CORE, 15, 3, 0x7);
 	sr32(CM_ICLKEN1_CORE, 15, 3, 0x7); /* I2C1,2,3 = on */
 #endif
+
+#ifdef CONFIG_MMC
+	sr32(CM_FCLKEN1_CORE, 24, 1, 1);
+	sr32(CM_ICLKEN1_CORE, 24, 1, 1);
+#endif /* CONFIG_MMC */
+
 	/* Enable the ICLK for 32K Sync Timer as its used in udelay */
 	sr32(CM_ICLKEN_WKUP,2, 1, 0x1);
 

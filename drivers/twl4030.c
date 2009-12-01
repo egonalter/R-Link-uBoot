@@ -351,8 +351,7 @@ int twl4030_init_battery_charging(void)
 	 * by enabling MADC clocks
 	 */
 
-	/* Red LED - on  */
-	omap3_zoom2_led_red_on();
+	OMAP3_LED_ERROR_ON();
 
 	/* Disable USB, enable AC: 0x35 defalut */
 	ret = clear_n_set(TWL4030_CHIP_PM_MASTER, BCIAUTOUSB,
@@ -472,7 +471,7 @@ int twl4030_init_battery_charging(void)
 				OMAP3_LED_OK_OFF(); /* Blue LED - off */
 				charger_present = 1;
 			}	else {
-				OMAP3_LED_ERROR_OFF(); /* Red LED - off */
+				OMAP3_LED_ERROR_OFF();
 				udelay(500000); /* 0.5 sec */
 			}
 
@@ -480,7 +479,7 @@ int twl4030_init_battery_charging(void)
 				OMAP3_LED_OK_ON(); /* Blue LED - on */
 				udelay(500000); /* 0.5 sec */
 			}	else
-				OMAP3_LED_ERROR_ON(); /* Red LED - on */
+				OMAP3_LED_ERROR_ON();
 
 			charger_tries++;
 
@@ -503,7 +502,7 @@ int twl4030_init_battery_charging(void)
 	}
 
 	OMAP3_LED_OK_OFF(); /* Blue LED - off */
-	OMAP3_LED_ERROR_OFF(); /* Red LED - off */
+	OMAP3_LED_ERROR_OFF();
 
 #endif
 

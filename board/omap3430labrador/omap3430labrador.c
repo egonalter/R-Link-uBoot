@@ -284,20 +284,18 @@ int misc_init_r(void)
 
 	i2c_init(CFG_I2C_SPEED, CFG_I2C_SLAVE);
 
-#ifdef CONFIG_3430ZOOM2
 	/*
 	 * Board Reset
-	 * Enable resetting the board by pressing the large button
-	 * on the top right side of the main board and holding for
-	 * eight seconds.
 	 *
-	 * There are reported problems of some preproduction boards
-	 * continously resetting.  For those boards, disable resetting.
+	 * For Zoom1:
+	 *
+	 * Enable resetting the board by pressing the red button
+	 * on the top right on the front side of the main board and
+	 * holding for eight seconds.
 	 */
-	if (ZOOM2_BOARD_REVISION_PRODUCTION_1 <= zoom2_board_revision())
-		twl4030_power_reset_init();
-#endif
+	twl4030_power_reset_init();
 	twl4030_usb_init();
+	twl4030_keypad_init();
 	twl4030_init_battery_charging();
 	/* see if we need to activate the power button startup */
 	char *s = getenv("pbboot");
@@ -330,7 +328,6 @@ int misc_init_r(void)
 		printf("Power Button Active\n");
 	}
 #endif
-	twl4030_keypad_init();
 	ether_init();	/* better done here so timers are init'ed */
 	dieid_num_r();
 	return (0);

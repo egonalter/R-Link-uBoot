@@ -58,6 +58,16 @@ static volatile u16 *peri_txcsr = (volatile u16 *) OMAP34XX_USB_TXCSR(BULK_ENDPO
 static volatile u16 *txmaxp     = (volatile u16 *) OMAP34XX_USB_TXMAXP(BULK_ENDPOINT);
 static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOINT);
 
+#define DMA_CHANNEL 1
+static volatile u8  *peri_dma_intr	= (volatile u8  *) OMAP34XX_USB_DMA_INTR;
+static volatile u16 *peri_dma_cntl	= (volatile u16 *) OMAP34XX_USB_DMA_CNTL_CH(DMA_CHANNEL);
+static volatile u32 *peri_dma_addr	= (volatile u32 *) OMAP34XX_USB_DMA_ADDR_CH(DMA_CHANNEL);
+static volatile u32 *peri_dma_count	= (volatile u32 *) OMAP34XX_USB_DMA_COUNT_CH(DMA_CHANNEL);
+
+static volatile u32 *otg_sysconfig	= (volatile u32 *) OMAP34XX_OTG_SYSCONFIG;
+static volatile u32 *otg_interfsel	= (volatile u32 *) OMAP34XX_OTG_INTERFSEL;
+static volatile u32 *otg_forcestdby	= (volatile u32 *) OMAP34XX_OTG_FORCESTDBY;
+
 /* This is the TI USB vendor id */
 #define DEVICE_VENDOR_ID  0x0451
 /* This is just made up.. */
@@ -81,13 +91,15 @@ static volatile u8  *bulk_fifo  = (volatile u8  *) OMAP34XX_USB_FIFO(BULK_ENDPOI
    In full speed mode packets are 64 */
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0  (0x0200)
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1  (0x0040)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE      (0x0040)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0  (0x0200)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1  (0x0040)
 
 /* Same, just repackaged as 
    2^(m+3), 64 = 2^6, m = 3 */
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 (6)
 #define RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 (3)
-#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS (3)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 (6)
+#define TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 (3)
 
 #define CONFIGURATION_NORMAL      1
 
@@ -162,6 +174,21 @@ static void fastboot_db_regs(void)
 	s = *peri_txcsr;
 	PRINT_TXCSR(s);
 }
+
+static void fastboot_db_otg_regs(void)
+{
+	u32 v;
+	v = __raw_readl(OMAP34XX_OTG_REVISION);
+	printf("OTG_REVISION 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_SYSCONFIG);
+	printf("OTG_SYSCONFIG 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_SYSSTATUS);
+	printf("OTG_SYSSTATUS 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_INTERFSEL);
+	printf("OTG_INTERFSEL 0x%x\n", v);
+	v = __raw_readl(OMAP34XX_OTG_FORCESTDBY);
+	printf("OTG_FORCESTDBY 0x%x\n", v);
+}
 #endif
 
 static void fastboot_bulk_endpoint_reset (void)
@@ -170,19 +197,35 @@ static void fastboot_bulk_endpoint_reset (void)
 	/* save old index */
 	old_index = *index;
 
-	/* set index to endpoint */
+	/* set index to tx/rx endpoint */
 	*index = BULK_ENDPOINT;
-  
+
 	/* Address starts at the end of EP0 fifo, shifted right 3 (8 bytes) */
 	*txfifoadd = MUSB_EP0_FIFOSIZE >> 3;
-	*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS) >> 3;
 
 	/* Size depends on the mode.  Do not double buffer */
-	*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS;
-	if (high_speed)
-		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
-	else
-		*rxfifosz = RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
+	if (high_speed) {
+		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0;
+	} else {
+		*txfifosz = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1;
+	}
+
+	/*
+	 * Double buffer the rx fifo because it handles the large transfers
+	 * The extent is now double and must be considered if another fifo is
+	 * added to the end of this one.
+	 */
+	if (high_speed) {
+		*rxfifosz =
+			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_2_0 |
+			MUSB_RXFIFOSZ_DPB;
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0) >> 3;
+	} else {
+		*rxfifosz =
+			RX_ENDPOINT_MAXIMUM_PACKET_SIZE_BITS_1_1 |
+			MUSB_RXFIFOSZ_DPB;
+		*rxfifoadd = (MUSB_EP0_FIFOSIZE + TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1) >> 3;
+	}
 
 	/* restore index */
 	*index = old_index;
@@ -203,7 +246,7 @@ static void fastboot_bulk_endpoint_reset (void)
   
 	/* Setup Tx endpoint for Bulk IN */
 	/* Set max packet size per usb 1.1 / 2.0 */
-	*txmaxp = TX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+	*txmaxp = fastboot_fifo_size();
 
 	/* Flush anything on fifo */
 	while (*peri_txcsr & MUSB_TXCSR_FIFONOTEMPTY)
@@ -222,7 +265,18 @@ static void fastboot_reset (void)
 {
 	OMAP3_LED_ERROR_ON ();
 
-	/* Kill the power */
+	/* Reset OTG */
+	/* Set OTG to always be on */
+	*otg_sysconfig = (OMAP34XX_OTG_SYSCONFIG_NO_STANDBY_MODE |
+			  OMAP34XX_OTG_SYSCONFIG_NO_IDLE_MODE);
+
+	/* Set the interface */
+	*otg_interfsel = OMAP34XX_OTG_INTERFSEL_OMAP;
+
+	/* Clear force standby */
+	*otg_forcestdby &= ~OMAP34XX_OTG_FORCESTDBY_STANDBY;
+
+	/* Reset MUSB */
 	*pwr &= ~MUSB_POWER_SOFTCONN;
 	udelay(2 * 500000); /* 1 sec */
 
@@ -240,11 +294,8 @@ static void fastboot_reset (void)
 #endif
 	/* Bulk endpoint fifo */
 	fastboot_bulk_endpoint_reset ();
-	
 
 	OMAP3_LED_ERROR_ON ();
-
-	/* fastboot_db_regs(); */
 }
 
 static u8 read_fifo_8(void)
@@ -261,6 +312,39 @@ static u8 read_bulk_fifo_8(void)
   
 	val = *bulk_fifo;
 	return val;
+}
+
+static int read_bulk_fifo_dma(u8 *buf, u32 size)
+{
+	int ret = 0;
+
+	/* Set the address */
+	*peri_dma_addr = (u32) buf;
+	/* Set the transfer size */
+	*peri_dma_count = size;
+	/*
+	 * Set the control parts,
+	 * The size is either going to be 64 or 512 which
+	 * is ok for burst mode 3 which does increment by 16.
+	 */
+	*peri_dma_cntl =
+		MUSB_DMA_CNTL_BUSRT_MODE_3 |
+		MUSB_DMA_CNTL_END_POINT(BULK_ENDPOINT) |
+		MUSB_DMA_CNTL_MODE_1 |
+		MUSB_DMA_CNTL_WRITE |
+		MUSB_DMA_CNTL_ENABLE;
+
+	while (1) {
+
+		if (MUSB_DMA_CNTL_ERR & *peri_dma_cntl) {
+			ret = 1;
+			break;
+		}
+
+		if (0 == *peri_dma_count)
+			break;
+	}
+	return ret;
 }
 
 static void write_fifo_8(u8 val)
@@ -291,7 +375,7 @@ static void read_request(void)
 
 static int do_usb_req_set_interface(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	/* Only support interface 0, alternate 0 */
 	if ((0 == req.wIndex) &&
@@ -310,7 +394,7 @@ static int do_usb_req_set_interface(void)
 
 static int do_usb_req_set_address(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	if (0xff == faddr) 
 	{
@@ -336,7 +420,7 @@ static int do_usb_req_set_address(void)
 
 static int do_usb_req_set_configuration(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	if (0xff == faddr) {
 		NAK_REQ(); 
@@ -363,7 +447,7 @@ static int do_usb_req_set_configuration(void)
 
 static int do_usb_req_set_feature(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	NAK_REQ();
 
@@ -372,7 +456,7 @@ static int do_usb_req_set_feature(void)
 
 static int do_usb_req_get_descriptor(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
   
 	if (0 == req.wLength)
 	{
@@ -451,7 +535,10 @@ static int do_usb_req_get_descriptor(void)
 			e1.bDescriptorType    = USB_DT_ENDPOINT;
 			e1.bEndpointAddress   = 0x80 | BULK_ENDPOINT; /* IN */
 			e1.bmAttributes       = USB_ENDPOINT_XFER_BULK;
-			e1.wMaxPacketSize     = TX_ENDPOINT_MAXIMUM_PACKET_SIZE;
+			if (high_speed)
+				e1.wMaxPacketSize = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_2_0;
+			else
+				e1.wMaxPacketSize = TX_ENDPOINT_MAXIMUM_PACKET_SIZE_1_1;
 			e1.bInterval          = 0x00;
 
 			bytes_remaining -= e1.bLength;
@@ -567,7 +654,7 @@ static int do_usb_req_get_descriptor(void)
 
 static int do_usb_req_get_status(void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_OK;
 
 	if (0 == req.wLength)
 	{
@@ -595,18 +682,19 @@ static int do_usb_req_get_status(void)
 
 static int fastboot_poll_h (void)
 {
-	int ret = 0;
+	int ret = FASTBOOT_INACTIVE;
 	u16 count0;
 
 	if (*csr0 & MUSB_CSR0_RXPKTRDY) 
 	{
 		count0 = inw (OMAP34XX_USB_COUNT0);
+		ret = FASTBOOT_OK;
 
 		if (count0 != 8) 
 		{
 			OMAP3_LED_ERROR_ON ();
 			CONFUSED();
-			ret = 1;
+			ret = FASTBOOT_ERROR;
 		}
 		else
 		{
@@ -638,7 +726,7 @@ static int fastboot_poll_h (void)
 			  
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
@@ -652,14 +740,14 @@ static int fastboot_poll_h (void)
 			      
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
 					else
 					{
 						NAK_REQ();
-						ret = -1;
+						ret = FASTBOOT_ERROR;
 					}
 				}
 				else
@@ -679,14 +767,14 @@ static int fastboot_poll_h (void)
 
 						default:
 							NAK_REQ();
-							ret = -1;
+							ret = FASTBOOT_ERROR;
 							break;
 						}
 					}
 					else
 					{
 						NAK_REQ();
-						ret = -1;
+						ret = FASTBOOT_ERROR;
 					}
 				}
 			}
@@ -694,10 +782,10 @@ static int fastboot_poll_h (void)
 			{
 				/* Non-Standard Req */
 				NAK_REQ();
-				ret = -1;
+				ret = FASTBOOT_ERROR;
 			}
 		}
-		if (0 > ret)
+		if (FASTBOOT_OK > ret)
 		{
 			printf ("Unhandled req\n");
 			PRINT_REQ (req);
@@ -713,7 +801,7 @@ static int fastboot_resume (void)
 	if (*csr0 & MUSB_CSR0_P_SENTSTALL)
 	{
 		*csr0 &= ~MUSB_CSR0_P_SENTSTALL;
-		return 0;
+		return FASTBOOT_OK;
 	}
 
 	/* Host stopped last transaction */
@@ -742,70 +830,116 @@ static int fastboot_resume (void)
 	}
 
 	/* Should we change the address ? */
-	if (set_address) 
+	if (set_address)
 	{
 		outb (faddr, OMAP34XX_USB_FADDR);
 		set_address = 0;
 
 		/* If you have gotten here you are mostly ok */
-		OMAP3_LED_OK_ON ();
+		OMAP3_LED_OK_ON();
 	}
-  
+
 	return fastboot_poll_h();
 }
-  
+
+static void fastboot_rx_error(void)
+{
+	/* Clear the RXPKTRDY bit */
+	*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
+
+	/* Send stall */
+	*peri_rxcsr |= MUSB_RXCSR_P_SENDSTALL;
+
+	/* Wait till stall is sent.. */
+	while (!(*peri_rxcsr & MUSB_RXCSR_P_SENTSTALL))
+		udelay(1);
+
+	/* Clear stall */
+	*peri_rxcsr &= ~MUSB_RXCSR_P_SENTSTALL;
+
+}
+
 static int fastboot_rx (void)
 {
+	int ret = FASTBOOT_INACTIVE;
+
 	if (*peri_rxcsr & MUSB_RXCSR_RXPKTRDY)
 	{
 		u16 count = *rxcount;
 		int fifo_size = fastboot_fifo_size();
+		ret = FASTBOOT_OK;
 
 		if (0 == *rxcount) {
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
 		} else if (fifo_size < count) {
-			/* Clear the RXPKTRDY bit */
-			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
-
-			/* Send stall */
-			*peri_rxcsr |= MUSB_RXCSR_P_SENDSTALL;
-
-			/* Wait till stall is sent.. */
-			while (! (*peri_rxcsr & MUSB_RXCSR_P_SENTSTALL))
-			  udelay(1);
-			
-			/* Clear stall */
-			*peri_rxcsr &= ~MUSB_RXCSR_P_SENTSTALL;
+			fastboot_rx_error();
 		} else {
-			int i;
+			int i = 0;
 			int err = 1;
-	  
-			for (i = 0; i < count; i++)
-				fastboot_bulk_fifo[i] = read_bulk_fifo_8 ();
 
+			/*
+			 * If the fifo is full, it is likely we are going to
+			 * do a multiple packet transfere.  To speed this up
+			 * do a DMA for full packets.  To keep the handling
+			 * of the end packet simple, just do it by manually
+			 * reading the fifo
+			 */
+			if (fifo_size == count) {
+				/* Mode 1
+				 *
+				 * The setup is not as simple as
+				 * *peri_rxcsr |=
+				 * (MUSB_RXCSR_DMAENAB | MUSB_RXCSR_DMAMODE)
+				 *
+				 * There is a special sequence needed to
+				 * enable mode 1.  This was take from
+				 * musb_gadget.c in the 2.6.27 kernel
+				 */
+				*peri_rxcsr &= ~MUSB_RXCSR_AUTOCLEAR;
+				*peri_rxcsr |= MUSB_RXCSR_DMAENAB;
+				*peri_rxcsr |= MUSB_RXCSR_DMAMODE;
+				*peri_rxcsr |= MUSB_RXCSR_DMAENAB;
+
+				if (read_bulk_fifo_dma
+				    (fastboot_bulk_fifo, fifo_size)) {
+					/* Failure */
+					fastboot_rx_error();
+				}
+
+				/* Disable DMA in peri_rxcsr */
+				*peri_rxcsr &= ~(MUSB_RXCSR_DMAENAB |
+						 MUSB_RXCSR_DMAMODE);
+
+			} else {
+				for (i = 0; i < count; i++)
+					fastboot_bulk_fifo[i] =
+						read_bulk_fifo_8();
+			}
 			/* Clear the RXPKTRDY bit */
 			*peri_rxcsr &= ~MUSB_RXCSR_RXPKTRDY;
 
 			/* Pass this up to the interface's handler */
 			if (fastboot_interface &&
 			    fastboot_interface->rx_handler) {
-				if (!fastboot_interface->rx_handler (&fastboot_bulk_fifo[0], count))
+				if (!fastboot_interface->rx_handler
+				    (&fastboot_bulk_fifo[0], count))
 					err = 0;
 			}
-			
-			/* Since the buffer is not null terminated, poison the buffer */
+
+			/* Since the buffer is not null terminated,
+			 * poison the buffer */
 			memset(&fastboot_bulk_fifo[0], 0, fifo_size);
 
 			/* If the interface did not handle the command */
 			if (err) {
 				OMAP3_LED_ERROR_ON ();
 				CONFUSED();
+				ret = FASTBOOT_ERROR;
 			}
 		}
 	}
-  
-	return 0;
+	return ret;
 }
 
 static int fastboot_suspend (void)
@@ -813,16 +947,20 @@ static int fastboot_suspend (void)
 	/* No suspending going on here! 
 	   We are polling for all its worth */
 
-	return 0;
+	return FASTBOOT_OK;
 }
 
 int fastboot_poll(void) 
 {
-	int ret = 0;
+	/* No activity */
+	int ret = FASTBOOT_INACTIVE;
 
 	u8 intrusb;
 	u16 intrtx;
 	u16 intrrx;
+
+	if (deferred_rx)
+		ret = FASTBOOT_OK;
 
 	/* Look at the interrupt registers */
 	intrusb = inb (OMAP34XX_USB_INTRUSB);
@@ -830,14 +968,12 @@ int fastboot_poll(void)
 	/* A disconnect happended, this signals that the cable
 	   has been disconnected, return immediately */
 	if (intrusb & OMAP34XX_USB_INTRUSB_DISCON)
-	{
-		return 1;
-	}
+		return FASTBOOT_DISCONNECT;
 
 	if (intrusb & OMAP34XX_USB_INTRUSB_RESUME)
 	{
 		ret = fastboot_resume ();
-		if (ret)
+		if (FASTBOOT_OK > ret)
 			return ret;
 	}
 	else 
@@ -845,7 +981,7 @@ int fastboot_poll(void)
 		if (intrusb & OMAP34XX_USB_INTRUSB_SOF)
 		{
 			ret = fastboot_resume ();
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
 
 			/* The fastboot client blocks of read and 
@@ -854,15 +990,13 @@ int fastboot_poll(void)
 			if (deferred_rx)
 				ret = fastboot_rx ();
 			deferred_rx = 0;
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
-			
-
 		}
 		if (intrusb & OMAP34XX_USB_INTRUSB_SUSPEND)
 		{
 			ret = fastboot_suspend ();
-			if (ret)
+			if (FASTBOOT_OK > ret)
 				return ret;
 		}
 
@@ -891,6 +1025,12 @@ int fastboot_poll(void)
 
 void fastboot_shutdown(void)
 {
+	/* Let the cmd layer know that we are shutting down */
+	if (fastboot_interface &&
+	    fastboot_interface->reset_handler) {
+		fastboot_interface->reset_handler();
+	}
+
 	/* Clear the SOFTCONN bit to disconnect */
 	*pwr &= ~MUSB_POWER_SOFTCONN;
 
@@ -898,6 +1038,9 @@ void fastboot_shutdown(void)
 	faddr = 0xff;
 	fastboot_interface = NULL;
 	high_speed = 0;
+	deferred_rx = 0;
+
+	OMAP3_LED_ERROR_ON ();
 }
 
 int fastboot_is_highspeed(void)
@@ -971,6 +1114,27 @@ int fastboot_preboot(void)
 	return 0;
 }
 
+static void set_serial_number(void)
+{
+	char *dieid = getenv("dieid#");
+	if (dieid == NULL) {
+		device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] = "00123";
+	} else {
+		static char serial_number[32];
+		int len;
+
+		memset(&serial_number[0], 0, 32);
+		len = strlen(dieid);
+		if (len > 30)
+			len = 30;
+
+		strncpy(&serial_number[0], dieid, len);
+
+		device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] =
+			&serial_number[0];
+	}
+}
+
 int fastboot_init(struct cmd_fastboot_interface *interface) 
 {
 	int ret = 1;
@@ -986,8 +1150,8 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 #error "Need a product name for fastboot"
 
 #endif
+	set_serial_number();
 	/* These are just made up */
-	device_strings[DEVICE_STRING_SERIAL_NUMBER_INDEX] = "00123";
 	device_strings[DEVICE_STRING_CONFIG_INDEX]        = "Android Fastboot";
 	device_strings[DEVICE_STRING_INTERFACE_INDEX]     = "Android Fastboot";
 

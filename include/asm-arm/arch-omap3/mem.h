@@ -61,6 +61,7 @@ typedef enum {
 #define SDP_SDRC_MDCFG_0_DDR	(0x02582019|B_ALL) /* Infin ddr module */
 #elif CONFIG_3430SDP
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584019|B_ALL) /* Infin ddr module */
+#define SDP_SDRC_MDCFG_0_DDR_2G	(0x03588019|B_ALL) /* QIMONDA ddr module */
 #elif CONFIG_OMAP3_BEAGLE
 #define SDP_SDRC_MDCFG_0_DDR	(0x00D04019|B_ALL) /* Samsung MCP ddr module */
 #elif defined(CONFIG_3430ZOOM2_512M) || defined(CONFIG_3630ZOOM3)

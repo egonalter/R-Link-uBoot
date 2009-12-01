@@ -93,6 +93,12 @@ static unsigned int download_bytes;
 static unsigned int download_bytes_unpadded;
 static unsigned int download_error;
 
+/* To support the Android-style naming of flash */
+#define MAX_PTN 16
+static fastboot_ptentry ptable[MAX_PTN];
+static unsigned int pcount;
+static int static_pcount = -1;
+
 static void set_env(char *var, char *val)
 {
 	char *setenv[4]  = { "setenv", NULL, NULL, NULL, };
@@ -256,6 +262,7 @@ static int parse_env(void *ptn, char *err_string, int save, int debug)
 {
 	int ret = 1;
 	unsigned int sets = 0;
+	unsigned int comment_start = 0;
 	char *var = NULL;
 	char *var_end = NULL;
 	char *val = NULL;
@@ -276,12 +283,34 @@ static int parse_env(void *ptn, char *err_string, int save, int debug)
 		buff[size] = 0;
 
 	for (i = 0; i < size; i++) {
+
 		if (NULL == var) {
-			if (!((buff[i] == ' ') ||
-			      (buff[i] == '\t') ||
-			      (buff[i] == '\r') ||
-			      (buff[i] == '\n')))
-				var = &buff[i];
+
+			/*
+			 * Check for comments, comment ok only on
+			 * mostly empty lines
+			 */
+			if (buff[i] == '#')
+				comment_start = 1;
+
+			if (comment_start) {
+				if  ((buff[i] == '\r') ||
+				     (buff[i] == '\n')) {
+					comment_start = 0;
+				}
+			} else {
+				if (!((buff[i] == ' ') ||
+				      (buff[i] == '\t') ||
+				      (buff[i] == '\r') ||
+				      (buff[i] == '\n'))) {
+					/*
+					 * Normal whitespace before the
+					 * variable
+					 */
+					var = &buff[i];
+				}
+			}
+
 		} else if (((NULL == var_end) || (NULL == val)) &&
 			   ((buff[i] == '\r') || (buff[i] == '\n'))) {
 
@@ -946,7 +975,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				 * for the kernel.
 				 */
 				struct fastboot_boot_img_hdr *fb_hdr =
-					(image_header_t *) interface.transfer_buffer;
+					(struct fastboot_boot_img_hdr *) interface.transfer_buffer;
 
 				/* Skip the mkbootimage header */
 				image_header_t *hdr =
@@ -1044,47 +1073,320 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 	return ret;
 }
 
+static int check_against_static_partition(struct fastboot_ptentry *ptn)
+{
+	int ret = 0;
+	struct fastboot_ptentry *c;
+	int i;
 
-	
+	for (i = 0; i < static_pcount; i++) {
+		c = fastboot_flash_get_ptn((unsigned int) i);
+
+		if (0 == ptn->length)
+			break;
+
+		if ((ptn->start >= c->start) &&
+		    (ptn->start < c->start + c->length))
+			break;
+
+		if ((ptn->start + ptn->length > c->start) &&
+		    (ptn->start + ptn->length <= c->start + c->length))
+			break;
+
+		if ((0 == strcmp(ptn->name, c->name)) &&
+		    (0 == strcmp(c->name, ptn->name)))
+			break;
+	}
+
+	if (i >= static_pcount)
+		ret = 1;
+	return ret;
+}
+
+static unsigned long long memparse(char *ptr, char **retptr)
+{
+	char *endptr;	/* local pointer to end of parsed string */
+
+	unsigned long ret = simple_strtoul(ptr, &endptr, 0);
+
+	switch (*endptr) {
+	case 'M':
+	case 'm':
+		ret <<= 10;
+	case 'K':
+	case 'k':
+		ret <<= 10;
+		endptr++;
+	default:
+		break;
+	}
+
+	if (retptr)
+		*retptr = endptr;
+
+	return ret;
+}
+
+static int add_partition_from_environment(char *s, char **retptr)
+{
+	unsigned long size;
+	unsigned long offset = 0;
+	char *name;
+	int name_len;
+	int delim;
+	unsigned int flags;
+	struct fastboot_ptentry part;
+
+	size = memparse(s, &s);
+	if (0 == size) {
+		printf("Error:FASTBOOT size of parition is 0\n");
+		return 1;
+	}
+
+	/* fetch partition name and flags */
+	flags = 0; /* this is going to be a regular partition */
+	delim = 0;
+	/* check for offset */
+	if (*s == '@') {
+		s++;
+		offset = memparse(s, &s);
+	} else {
+		printf("Error:FASTBOOT offset of parition is not given\n");
+		return 1;
+	}
+
+	/* now look for name */
+	if (*s == '(')
+		delim = ')';
+
+	if (delim) {
+		char *p;
+
+		name = ++s;
+		p = strchr((const char *)name, delim);
+		if (!p) {
+			printf("Error:FASTBOOT no closing %c found in partition name\n", delim);
+			return 1;
+		}
+		name_len = p - name;
+		s = p + 1;
+	} else {
+		printf("Error:FASTBOOT no partition name for \'%s\'\n", s);
+		return 1;
+	}
+
+	/* test for options */
+	while (1) {
+		if (strncmp(s, "i", 1) == 0) {
+			flags |= FASTBOOT_PTENTRY_FLAGS_WRITE_I;
+			s += 1;
+		} else if (strncmp(s, "yaffs", 5) == 0) {
+			/* yaffs */
+			flags |= FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS;
+			s += 5;
+		} else if (strncmp(s, "swecc", 5) == 0) {
+			/* swecc */
+			flags |= FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC;
+			s += 5;
+		} else if (strncmp(s, "hwecc", 5) == 0) {
+			/* hwecc */
+			flags |= FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC;
+			s += 5;
+		} else {
+			break;
+		}
+		if (strncmp(s, "|", 1) == 0)
+			s += 1;
+	}
+
+	/* enter this partition (offset will be calculated later if it is zero at this point) */
+	part.length = size;
+	part.start = offset;
+	part.flags = flags;
+
+	if (name) {
+		if (name_len >= sizeof(part.name)) {
+			printf("Error:FASTBOOT partition name is too long\n");
+			return 1;
+		}
+		strncpy(&part.name[0], name, name_len);
+		/* name is not null terminated */
+		part.name[name_len] = '\0';
+	} else {
+		printf("Error:FASTBOOT no name\n");
+		return 1;
+	}
+
+
+	/* Check if this overlaps a static partition */
+	if (check_against_static_partition(&part)) {
+		printf("Adding: %s, offset 0x%8.8x, size 0x%8.8x, flags 0x%8.8x\n",
+		       part.name, part.start, part.length, part.flags);
+		fastboot_flash_add_ptn(&part);
+	}
+
+	/* return (updated) pointer command line string */
+	*retptr = s;
+
+	/* return partition table */
+	return 0;
+}
+
+
+
 int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int ret = 1;
+	char fbparts[4096], *env;
+	int check_timeout = 0;
+	uint64_t timeout_endtime = 0;
+	uint64_t timeout_ticks = 0;
+	long timeout_seconds = -1;
+	int continue_from_disconnect = 0;
 
-	/* Initialize the board specific support */
-	if (0 == fastboot_init(&interface))
-	{
-		printf ("Disconnect USB cable to finish fastboot..\n");
-		
-		/* If we got this far, we are a success */
-		ret = 0;
+	/*
+	 * Place the runtime partitions at the end of the
+	 * static paritions.  First save the start off so
+	 * it can be saved from run to run.
+	 */
+	if (static_pcount >= 0) {
+		/* Reset */
+		pcount = static_pcount;
+	} else {
+		/* Save */
+		static_pcount = pcount;
+	}
+	env = getenv("fbparts");
+	if (env) {
+		unsigned int len;
+		len = strlen(env);
+		if (len && len < 4096) {
+			char *s, *e;
 
-		/* On disconnect or error, polling returns non zero */
-		while (1)
-		{
-			if (fastboot_poll())
-				break;
+			memcpy(&fbparts[0], env, len + 1);
+			printf("Fastboot: Adding partitions from environment\n");
+			s = &fbparts[0];
+			e = s + len;
+			while (s < e) {
+				if (add_partition_from_environment(s, &s)) {
+					printf("Error:Fastboot: Abort adding partitions\n");
+					/* reset back to static */
+					pcount = static_pcount;
+					break;
+				}
+				/* Skip a bunch of delimiters */
+				while (s < e) {
+					if ((' ' == *s) ||
+					    ('\t' == *s) ||
+					    ('\n' == *s) ||
+					    ('\r' == *s) ||
+					    (',' == *s)) {
+						s++;
+					} else {
+						break;
+					}
+				}
+			}
 		}
 	}
 
-	/* Reset the board specific support */
-	fastboot_shutdown();
-	
+	/* Time out */
+	if (2 == argc) {
+		long try_seconds;
+		char *try_seconds_end;
+		/* Check for timeout */
+		try_seconds = simple_strtol(argv[1],
+					    &try_seconds_end, 10);
+		if ((try_seconds_end != argv[1]) &&
+		    (try_seconds >= 0)) {
+			check_timeout = 1;
+			timeout_seconds = try_seconds;
+			printf("Fastboot inactivity timeout %ld seconds\n", timeout_seconds);
+		}
+	}
+
+	if (1 == check_timeout) {
+		timeout_ticks = (uint64_t)
+			(timeout_seconds * get_tbclk());
+	}
+
+
+	do {
+		continue_from_disconnect = 0;
+
+		/* Initialize the board specific support */
+		if (0 == fastboot_init(&interface)) {
+
+			int poll_status;
+
+			/* If we got this far, we are a success */
+			ret = 0;
+
+			timeout_endtime = get_ticks();
+			timeout_endtime += timeout_ticks;
+
+			while (1) {
+				uint64_t current_time = 0;
+				poll_status = fastboot_poll();
+
+				if (1 == check_timeout)
+					current_time = get_ticks();
+
+				if (FASTBOOT_ERROR == poll_status) {
+					/* Error */
+					break;
+				} else if (FASTBOOT_DISCONNECT == poll_status) {
+					/* beak, cleanup and re-init */
+					printf("Fastboot disconnect detected\n");
+					continue_from_disconnect = 1;
+					break;
+				} else if ((1 == check_timeout) &&
+					   (FASTBOOT_INACTIVE == poll_status)) {
+
+					/* No activity */
+					if (current_time >= timeout_endtime) {
+						printf("Fastboot inactivity detected\n");
+						break;
+					}
+				} else {
+					/* Something happened */
+					if (1 == check_timeout) {
+						/* Update the timeout endtime */
+						timeout_endtime = current_time;
+						timeout_endtime += timeout_ticks;
+					}
+				}
+
+				/* Check if the user wanted to terminate with ^C */
+				if ((FASTBOOT_INACTIVE == poll_status) &&
+				    (ctrlc())) {
+					printf("Fastboot ended by user\n");
+					break;
+				}
+			}
+		}
+
+		/* Reset the board specific support */
+		fastboot_shutdown();
+
+		/* restart the loop if a disconnect was detected */
+	} while (continue_from_disconnect);
+
 	return ret;
 }
 
 U_BOOT_CMD(
-	fastboot,	1,	1,	do_fastboot,
+	fastboot,	2,	1,	do_fastboot,
 	"fastboot- use USB Fastboot protocol\n",
-	NULL
+	"[inactive timeout]\n"
+	"    - Run as a fastboot usb device.\n"
+	"    - The optional inactive timeout is the decimal seconds before\n"
+	"    - the normal console resumes\n"
 );
 
 
-/* To support the Android-style naming of flash */
-#define MAX_PTN 16
-
-static fastboot_ptentry ptable[MAX_PTN];
-static unsigned int pcount = 0;
-
+/*
+ * Android style flash utilties */
 void fastboot_flash_add_ptn(fastboot_ptentry *ptn)
 {
     if(pcount < MAX_PTN){

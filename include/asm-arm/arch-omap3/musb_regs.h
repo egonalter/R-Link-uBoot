@@ -117,6 +117,12 @@
 #define MUSB_BUSCTL_OFFSET(_epnum, _offset) \
 	(0x80 + (8*(_epnum)) + (_offset))
 
+/* DMA Control Registers */
+#define MUSB_DMA_INTR			0x200
+#define MUSB_DMA_CNTL_CH(n)		(0x204 + ((n-1)*0x10))
+#define MUSB_DMA_ADDR_CH(n)		(0x208 + ((n-1)*0x10))
+#define MUSB_DMA_COUNT_CH(n)		(0x20C + ((n-1)*0x10))
+
 /*
  * MUSB Register bits
  */
@@ -286,4 +292,21 @@
 /* HUBADDR */
 #define MUSB_HUBADDR_MULTI_TT		0x80
 
+/* DMA Control */
+#define MUSB_DMA_CNTL_BUSRT_MODE_0      0x0000
+#define MUSB_DMA_CNTL_BUSRT_MODE_1      0x0200
+#define MUSB_DMA_CNTL_BUSRT_MODE_2      0x0400
+#define MUSB_DMA_CNTL_BUSRT_MODE_3      0x0600
+#define MUSB_DMA_CNTL_ERR		0x0100
+#define MUSB_DMA_CNTL_END_POINT(n)	((n)<<4)
+#define MUSB_DMA_CNTL_INTERRUPT_ENABLE	0x0008
+#define MUSB_DMA_CNTL_MODE_0		0x0000
+#define MUSB_DMA_CNTL_MODE_1		0x0004
+#define MUSB_DMA_CNTL_WRITE		0x0000
+#define MUSB_DMA_CNTL_READ		0x0002
+#define MUSB_DMA_CNTL_ENABLE		0x0001
+
+/* Tx/Rx fifo size */
+#define MUSB_TXFIFOSZ_DPB		0x0010
+#define MUSB_RXFIFOSZ_DPB		0x0010
 #endif	/* __MUSB_REGS_H__ */
