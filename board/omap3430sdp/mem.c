@@ -314,9 +314,22 @@ void do_sdrc_init(u32 offset, u32 early)
 
 next_mem_type:
 	if (common) { /* do a SDRC reset between types to clear regs */
-		__raw_writel(SOFTRESET, SDRC_SYSCONFIG);	/* reset sdrc */
-		wait_on_value(BIT0, BIT0, SDRC_STATUS, 12000000);	/* wait on reset */
-		__raw_writel(0, SDRC_SYSCONFIG);	/* clear soft reset */
+
+		/* check if its h/w or s/w reset for warm reset workaround */
+		if (__raw_readl(PRM_RSTTST) & 0x2) {
+			/* Enable SDRC clock & wait SDRC idle status to access*/
+			sr32(CM_ICLKEN1_CORE, 1, 1, 0x1);
+			wait_on_value(BIT1, 0, CM_IDLEST1_CORE, LDELAY);
+		} else {
+			/* do a SDRC reset between types to clear regs */
+			__raw_writel(SOFTRESET, SDRC_SYSCONFIG);/* reset sdrc */
+			/* wait on reset */
+			wait_on_value(BIT0, BIT0, SDRC_STATUS, 12000000);
+			__raw_writel(0, SDRC_SYSCONFIG);/* clear soft reset */
+		}
+		/* Clear reset sources */
+		__raw_writel(0xfff, PRM_RSTTST);
+
 		__raw_writel(SDP_SDRC_SHARING, SDRC_SHARING);
 		/* If its a 3430 ES1.0 silicon, configure WAKEUPPROC to 1 as
 		per Errata 1.22 */

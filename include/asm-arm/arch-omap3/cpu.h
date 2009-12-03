@@ -195,6 +195,7 @@ typedef struct ctrl_id {
 #define CM_FCLKEN1_CORE     0x48004a00
 #define CM_ICLKEN1_CORE     0x48004a10
 #define CM_ICLKEN2_CORE     0x48004a14
+#define CM_IDLEST1_CORE     0x48004a20
 #define CM_CLKSEL_CORE      0x48004a40
 #define CM_FCLKEN_GFX       0x48004b00
 #define CM_ICLKEN_GFX       0x48004b10
@@ -222,6 +223,7 @@ typedef struct ctrl_id {
 #define PRM_CLKSEL           0x48306d40
 #define PRM_RSTCTRL          0x48307250
 #define PRM_CLKSRC_CTRL      0x48307270
+#define PRM_RSTTST           0x48307258
 
 /* SMX-APE */
 #define PM_RT_APE_BASE_ADDR_ARM		(SMX_APE_BASE + 0x10000)
