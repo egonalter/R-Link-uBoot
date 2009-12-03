@@ -240,6 +240,8 @@ static void iva_dpll_init_36XX(int clk_index, int sil_index)
 	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_STOP);
 	wait_on_value(BIT0, 0, CM_IDLEST_PLL_IVA2, LDELAY);
 
+	/* IVA bypass clock set to CORECLK/2=(100) at OPP1 */
+	sr32(CM_CLKSEL1_PLL_IVA2, 19, 3, 2);	/* set CLK_SRC */
 	sr32(CM_CLKSEL1_PLL_IVA2, 8, 11, iva->m);
 	sr32(CM_CLKSEL1_PLL_IVA2, 0,  7, iva->n);
 	sr32(CM_CLKSEL2_PLL_IVA2, 0,  5, iva->m2);
@@ -326,6 +328,9 @@ static void iva_dpll_init_34XX(int clk_index, int sil_index)
 	sr32(CM_CLKEN_PLL_IVA2, 0, 3, PLL_STOP);
 	wait_on_value(BIT0, 0, CM_IDLEST_PLL_IVA2, LDELAY);
 	sr32(CM_CLKSEL2_PLL_IVA2, 0, 5, dpll_param_p->m2);	/* set M2 */
+
+	/* IVA bypass clock set to CORECLK/4=(83Mhz) at OPP1 */
+	sr32(CM_CLKSEL1_PLL_IVA2, 19, 3, 4);		/* set CLK_SRC */
 	sr32(CM_CLKSEL1_PLL_IVA2, 8, 11, dpll_param_p->m);	/* set M */
 	sr32(CM_CLKSEL1_PLL_IVA2, 0, 7, dpll_param_p->n);	/* set N */
 	sr32(CM_CLKEN_PLL_IVA2, 4, 4, dpll_param_p->fsel);	/* FREQSEL */
