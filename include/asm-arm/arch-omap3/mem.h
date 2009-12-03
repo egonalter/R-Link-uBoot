@@ -64,7 +64,8 @@ typedef enum {
 #define SDP_SDRC_MDCFG_0_DDR_2G	(0x03588019|B_ALL) /* QIMONDA ddr module */
 #elif CONFIG_OMAP3_BEAGLE
 #define SDP_SDRC_MDCFG_0_DDR	(0x00D04019|B_ALL) /* Samsung MCP ddr module */
-#elif defined(CONFIG_3430ZOOM2_512M) || defined(CONFIG_3630ZOOM3)
+#elif defined(CONFIG_3430ZOOM2_512M) ||\
+			defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
 #else
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
@@ -196,7 +197,8 @@ typedef enum {
 #define V_ACTIMB_165 ((TCKE_165 << 12) | (XSR_165 << 0)) | \
 	                                (TXP_165 << 8) | (TWTR_165 << 16)
 
-#elif defined(CONFIG_3430ZOOM2_512M) || defined(CONFIG_3630ZOOM3)
+#elif defined(CONFIG_3430ZOOM2_512M) ||\
+		defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)
 
 /* Hynix part of 3430 Zoom2 (166MHz optimized) 6.02ns
  *     ACTIMA

@@ -186,7 +186,7 @@ typedef struct gpio {
 #define LOW_LEVEL_SRAM_STACK		0x4020FFFC
 #endif
 
-#if defined(CONFIG_3430SDP) 
+#if defined(CONFIG_3430SDP) || defined(CONFIG_3630SDP)
 /* FPGA on Debug board.*/
 # define ETH_CONTROL_REG			(DEBUG_BASE+0x30b)
 # define LAN_RESET_REGISTER		(DEBUG_BASE+0x1c)

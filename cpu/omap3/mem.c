@@ -41,11 +41,11 @@ unsigned int boot_flash_base = 0;
 unsigned int boot_flash_off = 0;
 unsigned int boot_flash_sec = 0;
 volatile unsigned int boot_flash_env_addr = 0;
+
 /* help common/env_flash.c */
 #ifdef ENV_IS_VARIABLE
 
 ulong NOR_FLASH_BANKS_LIST[CFG_MAX_FLASH_BANKS];
-
 int NOR_MAX_FLASH_BANKS = 0 ;           /* max number of flash banks */
 
 uchar(*boot_env_get_char_spec) (int index);
@@ -67,6 +67,16 @@ extern int nand_saveenv(void);
 extern void nand_env_relocate_spec(void);
 extern char *nand_env_name_spec;
 
+/* OneNAND */
+#if (CONFIG_COMMANDS & CFG_CMD_ONENAND)
+extern char *onenand_env;
+extern uchar onenand_env_get_char_spec(int index);
+extern int onenand_env_init(void);
+extern int onenand_saveenv(void);
+extern void onenand_env_relocate_spec(void);
+extern char *onenand_env_name_spec;
+#endif
+
 /* Global fellows */
 #if (CONFIG_COMMANDS & CFG_CMD_NAND)
 u8 is_nand = 0;
@@ -76,8 +86,11 @@ u8 is_nand = 0;
 u8 is_flash = 0;
 #endif
 
+#if (CONFIG_COMMANDS & CFG_CMD_ONENAND)
+u8 is_onenand = 0;
+#endif
+
 char *env_name_spec = 0;
-/* update these elsewhere */
 env_t *env_ptr = 0;
 
 #if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_FLASH)) == (CFG_CMD_ENV|CFG_CMD_FLASH))
@@ -86,6 +99,36 @@ extern env_t *flash_addr;
 
 #endif				/* ENV_IS_VARIABLE */
 
+/* Following CS organization may Different from Board to Board */
+static const unsigned char chip_sel[][GPMC_MAX_CS] = {
+#ifdef CONFIG_3630SDP
+/* GPMC CS Indices (ON=0, OFF=1)*/
+/* S8-1 2 3 4 IDX   CS0,       CS1,      CS2 ..                    CS7  */
+/*0 0 0 0*/{PISMO1_NOR, PISMO1_NAND, PISMO1_ONENAND, DBG_MPDB, 0, 0, 0, 0},
+/*0 0 0 1*/{PISMO1_ONENAND, PISMO1_NAND, PISMO1_NOR, DBG_MPDB, 0, 0, 0, 0},
+/*0 0 1 0*/{PISMO1_NAND, PISMO1_ONENAND, PISMO1_NOR, DBG_MPDB, 0, 0, 0, 0},
+/*0 0 1 1*/{PISMO1_NOR, PISMO2_CS0, PISMO2_CS1, DBG_MPDB, 0, 0, 0, 0},
+/*0 1 0 0*/{PISMO1_ONENAND, PISMO2_CS0, PISMO2_CS1, DBG_MPDB, 0, 0, 0, 0},
+/*0 1 0 1*/{PISMO1_NAND, PISMO2_CS0, PISMO2_CS1, DBG_MPDB, 0, 0, 0, 0},
+/*0 1 1 0*/{PISMO1_NOR, PISMO2_NAND_CS0, PISMO2_NAND_CS1, DBG_MPDB, 0, 0, 0, 0},
+/*0 1 1 1*/
+	{PISMO1_ONENAND, PISMO2_NAND_CS0, PISMO2_NAND_CS1, DBG_MPDB, 0, 0, 0, 0}
+#else
+/*ON OFF ON OFF*/{PISMO1_NAND, 0, 0, 0, 0, 0, 0, 0}
+#endif
+};
+
+/* Values for each of the chips */
+#ifdef CONFIG_3630SDP
+static u32 gpmc_mpdb[GPMC_MAX_REG] = {
+	SDPV2_MPDB_GPMC_CONFIG1,
+	SDPV2_MPDB_GPMC_CONFIG2,
+	SDPV2_MPDB_GPMC_CONFIG3,
+	SDPV2_MPDB_GPMC_CONFIG4,
+	SDPV2_MPDB_GPMC_CONFIG5,
+	SDPV2_MPDB_GPMC_CONFIG6, 0
+};
+#else
 static u32 gpmc_enet[GPMC_MAX_REG] = {
 	LAB_ENET_GPMC_CONFIG1,
 	LAB_ENET_GPMC_CONFIG2,
@@ -94,7 +137,9 @@ static u32 gpmc_enet[GPMC_MAX_REG] = {
 	LAB_ENET_GPMC_CONFIG5,
 	LAB_ENET_GPMC_CONFIG6, 0
 };
+#endif
 
+#ifdef CONFIG_3430ZOOM2
 static u32 gpmc_serial_TL16CP754C[GPMC_MAX_REG] = {
 	0x00011000,
 	0x001F1F01,
@@ -103,6 +148,38 @@ static u32 gpmc_serial_TL16CP754C[GPMC_MAX_REG] = {
 	0x041D1F1F,
 	0x1D0904C4, 0
 };
+#endif
+
+#if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+static u32 gpmc_sibnor[GPMC_MAX_REG] = {
+	SIBNOR_GPMC_CONFIG1,
+	SIBNOR_GPMC_CONFIG2,
+	SIBNOR_GPMC_CONFIG3,
+	SIBNOR_GPMC_CONFIG4,
+	SIBNOR_GPMC_CONFIG5,
+	SIBNOR_GPMC_CONFIG6, 0
+};
+#endif
+
+static u32 gpmc_pismo2[GPMC_MAX_REG] = {
+	P2_GPMC_CONFIG1,
+	P2_GPMC_CONFIG2,
+	P2_GPMC_CONFIG3,
+	P2_GPMC_CONFIG4,
+	P2_GPMC_CONFIG5,
+	P2_GPMC_CONFIG6, 0
+};
+
+#if (CONFIG_COMMANDS & CFG_CMD_ONENAND)
+static u32 gpmc_onenand[GPMC_MAX_REG] = {
+	ONENAND_GPMC_CONFIG1,
+	ONENAND_GPMC_CONFIG2,
+	ONENAND_GPMC_CONFIG3,
+	ONENAND_GPMC_CONFIG4,
+	ONENAND_GPMC_CONFIG5,
+	ONENAND_GPMC_CONFIG6, 0
+};
+#endif
 
 static u32 gpmc_m_nand[GPMC_MAX_REG] = {
 	M_NAND_GPMC_CONFIG1,
@@ -339,10 +416,13 @@ void gpmc_init(void)
 	u32 *gpmc_config = NULL;
 	u32 gpmc_base = 0;
 	u32 base = 0;
+	u8 idx = 0;
 	u32 size = 0;
 	u32 f_off = CFG_MONITOR_LEN;
 	u32 f_sec = 0;
 	u32 config = 0;
+	unsigned char *config_sel = NULL;
+	u32 i = 0;
 	
 	mux = BIT9;
 	mwidth = get_gpmc0_width();
@@ -362,41 +442,19 @@ void gpmc_init(void)
 	__raw_writel(0 , GPMC_CONFIG7 + GPMC_CONFIG_CS0);
 	sdelay(1000);
 	
-	/* CS 0 */
-	gpmc_config = gpmc_m_nand;
-	gpmc_base = GPMC_CONFIG_CS0 + (0 * GPMC_CONFIG_WIDTH);
-	base = PISMO1_NAND_BASE;
-	size = PISMO1_NAND_SIZE;
-	enable_gpmc_config(gpmc_config, gpmc_base, base, size);
-
-	f_off = SMNAND_ENV_OFFSET;
-	f_sec = SZ_128K;
-	is_nand = 1;
-	nand_cs_base = gpmc_base;
-
-	/* env setup */
-	boot_flash_base = base;
-	boot_flash_off = f_off;
-	boot_flash_sec = f_sec;
-	boot_flash_env_addr = f_off;
-
-#ifdef ENV_IS_VARIABLE
-	boot_env_get_char_spec = nand_env_get_char_spec;
-	boot_env_init = nand_env_init;
-	boot_saveenv = nand_saveenv;
-	boot_env_relocate_spec = nand_env_relocate_spec;
-	env_ptr = 0;	/* This gets filled elsewhere!! */
-	env_name_spec = nand_env_name_spec;
-#endif
-
-#ifdef CONFIG_3430ZOOM2
+#ifdef CONFIG_3630SDP
+	gpmc_config = gpmc_mpdb;
+	/* GPMC3 is always MPDB.. need to know the chip info */
+	gpmc_base = GPMC_CONFIG_CS0 + (3 * GPMC_CONFIG_WIDTH);
+	gpmc_config[0] |= mux;
+#elif defined(CONFIG_3430ZOOM2)
 	/* LAN9221 is on CS 7 on Zoom2 */
 	gpmc_config = gpmc_enet;
 	gpmc_base = GPMC_CONFIG_CS0 + (7 * GPMC_CONFIG_WIDTH);	
 #else
 	/* LAN9x18 is on CS 1 on Zoom1 */
 	gpmc_config = gpmc_enet;
-	gpmc_base = GPMC_CONFIG_CS0 + (1 * GPMC_CONFIG_WIDTH);	
+	gpmc_base = GPMC_CONFIG_CS0 + (1 * GPMC_CONFIG_WIDTH);
 #endif
 	enable_gpmc_config(gpmc_config, gpmc_base, DEBUG_BASE, DBG_MPDB_SIZE);
 
@@ -409,6 +467,113 @@ void gpmc_init(void)
 				SERIAL_TL16CP754C_BASE,
 				SERIAL_TL16CP754C_SIZE);
 #endif
+
+	/* Look up chip select map */
+	i = 0;
+	idx = get_gpmc0_type();
+	config_sel = (unsigned char *)(chip_sel[idx]);
+	/* Initialize each chip selects timings (may be to 0) */
+	for (idx = 0; idx < GPMC_MAX_CS; idx++) {
+		gpmc_base = GPMC_CONFIG_CS0 + (idx * GPMC_CONFIG_WIDTH);
+		switch (config_sel[idx]) {
+#if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+		case PISMO1_NOR:
+			gpmc_config = gpmc_sibnor;
+			f_sec = SZ_256K;
+			NOR_MAX_FLASH_BANKS = 1;
+			size = PISMO1_NOR_SIZE_SDPV2;
+			for (i = 0; i < NOR_MAX_FLASH_BANKS; i++)
+				NOR_FLASH_BANKS_LIST[i] =
+				FLASH_BASE_SDPV2 + PHYS_FLASH_SIZE_SDPV2*i;
+			gpmc_config[0] |= mux | TYPE_NOR | mwidth;
+			base = NOR_FLASH_BANKS_LIST[0];
+			is_flash = 1;
+			break;
+#endif
+#if (CONFIG_COMMANDS & CFG_CMD_NAND)
+		case PISMO1_NAND:
+			base = PISMO1_NAND_BASE;
+			size = PISMO1_NAND_SIZE;
+			gpmc_config = gpmc_m_nand;
+			nand_cs_base = gpmc_base;
+			f_off = SMNAND_ENV_OFFSET;
+			is_nand = 1;
+			break;
+#endif
+		case PISMO2_CS0:
+		case PISMO2_CS1:
+			base = PISMO2_BASE;
+			size = PISMO2_SIZE;
+			gpmc_config = gpmc_pismo2;
+			gpmc_config[0] |= mux | TYPE_NOR | mwidth;
+			break;
+/* Either OneNand or Normal Nand at a time!! */
+#if (CONFIG_COMMANDS & CFG_CMD_ONENAND)
+		case PISMO1_ONENAND:
+			base = PISMO1_ONEN_BASE;
+			size = PISMO1_ONEN_SIZE;
+			gpmc_config = gpmc_onenand;
+			onenand_cs_base = gpmc_base;
+			f_off = ONENAND_ENV_OFFSET;
+			is_onenand = 1;
+			break;
+#endif
+
+		default:
+		/* MPDB/Unsupported/Corrupt config- try Next GPMC CS!!!! */
+			continue;
+		}
+
+		/* handle boot CS0 */
+		if (idx == 0) {
+			boot_flash_base = base;
+			boot_flash_off = f_off;
+			boot_flash_sec = f_sec;
+			/* boot_flash_type = config_sel[idx]; */
+			boot_flash_env_addr = f_off;
+#ifdef ENV_IS_VARIABLE
+			switch (config_sel[0]) {
+#if (CONFIG_COMMANDS & CFG_CMD_FLASH)
+			case PISMO1_NOR:
+			boot_env_get_char_spec = flash_env_get_char_spec;
+			boot_env_init = flash_env_init;
+			boot_saveenv = flash_saveenv;
+			boot_env_relocate_spec = flash_env_relocate_spec;
+			flash_addr = env_ptr =
+			(env_t *) (boot_flash_base + boot_flash_off);
+			env_name_spec = flash_env_name_spec;
+			boot_flash_env_addr = (u32) flash_addr;
+			break;
+#endif
+#if (CONFIG_COMMANDS & CFG_CMD_NAND)
+			case PISMO1_NAND:
+			boot_env_get_char_spec = nand_env_get_char_spec;
+			boot_env_init = nand_env_init;
+			boot_saveenv = nand_saveenv;
+			boot_env_relocate_spec = nand_env_relocate_spec;
+			env_ptr = 0;	/* This gets filled elsewhere!! */
+			env_name_spec = nand_env_name_spec;
+			break;
+#endif
+#if (CONFIG_COMMANDS & CFG_CMD_ONENAND)
+			case PISMO1_ONENAND:
+			boot_env_get_char_spec = onenand_env_get_char_spec;
+			boot_env_init = onenand_env_init;
+			boot_saveenv = onenand_saveenv;
+			boot_env_relocate_spec = onenand_env_relocate_spec;
+			env_ptr = (env_t *) onenand_env;
+			env_name_spec = onenand_env_name_spec;
+			break;
+#endif
+			default:
+			/* unknown variant!! */
+			puts("Unknown Boot chip!!!\n");
+			break;
+			}
+#endif			/* ENV_IS_VARIABLE */
+		}
+		enable_gpmc_config(gpmc_config, gpmc_base, base, size);
+	}
 
 #ifdef OPTIONAL_NOR
 	/* CS 2 (fixme -- sizes for optional s-nor)*/

@@ -1144,7 +1144,9 @@ int fastboot_init(struct cmd_fastboot_interface *interface)
 	u8 devctl;
 
 	device_strings[DEVICE_STRING_MANUFACTURER_INDEX]  = "Texas Instruments";
-#if defined (CONFIG_3430ZOOM2)
+#if defined(CONFIG_3630SDP)
+	device_strings[DEVICE_STRING_PRODUCT_INDEX]       = "SDP3630";
+#elif defined(CONFIG_3430ZOOM2)
 	device_strings[DEVICE_STRING_PRODUCT_INDEX]       = "Zoom2";
 #elif defined (CONFIG_3430LABRADOR)
 	device_strings[DEVICE_STRING_PRODUCT_INDEX]       = "Zoom";
