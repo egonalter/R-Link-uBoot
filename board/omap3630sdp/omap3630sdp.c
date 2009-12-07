@@ -539,10 +539,10 @@ int dram_init(void)
 	MUX_VAL(CP(CAM_D3),        (IEN  | PTD | DIS | M4)) /*GPIO_102 */\
 	MUX_VAL(CP(CAM_D4),        (IEN  | PTD | DIS | M4)) /*GPIO_103 */\
 	MUX_VAL(CP(CAM_D5),        (IEN  | PTD | DIS | M4)) /*GPIO_104 */\
-	MUX_VAL(CP(CAM_D6),        (IEN  | PTD | DIS | M4)) /*GPIO_105 */\
-	MUX_VAL(CP(CAM_D7),        (IEN  | PTD | DIS | M4)) /*GPIO_106 */\
-	MUX_VAL(CP(CAM_D8),        (IEN  | PTD | DIS | M4)) /*GPIO_107 */\
-	MUX_VAL(CP(CAM_D9),        (IEN  | PTD | DIS | M4)) /*GPIO_108 */\
+	MUX_VAL(CP(CAM_D6),        (IEN  | PTD | DIS | M0)) /*CAM_D6*/\
+	MUX_VAL(CP(CAM_D7),        (IEN  | PTD | DIS | M0)) /*CAM_D7*/\
+	MUX_VAL(CP(CAM_D8),        (IEN  | PTD | DIS | M0)) /*CAM_D8*/\
+	MUX_VAL(CP(CAM_D9),        (IEN  | PTD | DIS | M0)) /*CAM_D9*/\
 	MUX_VAL(CP(CAM_D10),        (IEN  | PTD | DIS | M4)) /*GPIO_109*/\
 	MUX_VAL(CP(CAM_D11),        (IEN  | PTD | DIS | M7)) /*CAM_D11*/\
 	MUX_VAL(CP(CAM_XCLKB),      (IEN  | PTD | DIS | M0)) /*CAM_XCLKB*/\
@@ -759,7 +759,6 @@ void set_muxconf_regs(void)
 {
 	MUX_DEFAULT_ES2();
 
-	/* Set ZOOM2 specific mux */
 	/* IDCC modem Power On */
 	MUX_VAL(CP(CAM_D11), (IEN  | PTU | EN | M4)) /*gpio_110*/
 	MUX_VAL(CP(CAM_D4),  (IEN  | PTU | EN | M4)) /*GPIO_103 */
@@ -774,8 +773,9 @@ void set_muxconf_regs(void)
 	 */
 	MUX_VAL(CP(UART3_RX_IRRX), (IEN  | PTU | DIS | M0)) /*UART3_RX_IRRX*/
 
-	/* hdmi*/
-	MUX_VAL(CP(CAM_PCLK), (IEN  | PTU | DIS | M4)); /*CAM_PCLK*/
+	MUX_VAL(CP(CAM_XCLKA), (IDIS | PTD | DIS | M4)) /*gpio_96 LCD reset*/
+	MUX_VAL(CP(CAM_VS),   (IEN  | PTU | DIS | M4)) /*gpio_95 for TVOut*/
+	MUX_VAL(CP(CAM_PCLK),  (IEN  | PTU | DIS | M4)) /*gpio_97 for HDMI*/
 }
 
 /******************************************************************************

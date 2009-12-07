@@ -512,7 +512,7 @@ int dram_init(void)
 	MUX_VAL(CP(GPMC_nCS1),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS1*/\
 	MUX_VAL(CP(GPMC_nCS2),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS2*/\
 	MUX_VAL(CP(GPMC_nCS3),      (IEN  | PTD | DIS | M4)) /*GPIO_54 lab*/\
-	MUX_VAL(CP(GPMC_nCS4),      (IDIS | PTD | DIS | M4)) /*GPIO_55 lab*/\
+	MUX_VAL(CP(GPMC_nCS4),      (IDIS | PTD | DIS | M0)) /*GPMC_nCS4*/\
 	MUX_VAL(CP(GPMC_nCS5),      (IDIS | PTD | DIS | M4)) /*GPIO_56 lab*/\
 	MUX_VAL(CP(GPMC_nCS6),      (IEN  | PTD | DIS | M1)) /*sys_ndmareq1 lab*/\
 	MUX_VAL(CP(GPMC_nCS7),      (IEN  | PTU | EN  | M1)) /*GPMC_IO_DIR lab*/\
@@ -567,10 +567,10 @@ int dram_init(void)
 	MUX_VAL(CP(CAM_D3 ),        (IEN  | PTD | DIS | M4)) /*GPIO_102 */\
 	MUX_VAL(CP(CAM_D4 ),        (IEN  | PTD | DIS | M4)) /*GPIO_103 */\
 	MUX_VAL(CP(CAM_D5 ),        (IEN  | PTD | DIS | M4)) /*GPIO_104 */\
-	MUX_VAL(CP(CAM_D6 ),        (IEN  | PTD | DIS | M4)) /*GPIO_105 */\
-	MUX_VAL(CP(CAM_D7 ),        (IEN  | PTD | DIS | M4)) /*GPIO_106 */\
-	MUX_VAL(CP(CAM_D8 ),        (IEN  | PTD | DIS | M4)) /*GPIO_107 */\
-	MUX_VAL(CP(CAM_D9 ),        (IEN  | PTD | DIS | M4)) /*GPIO_108 */\
+	MUX_VAL(CP(CAM_D6),        (IEN  | PTD | DIS | M0)) /*CAM_D6*/\
+	MUX_VAL(CP(CAM_D7),        (IEN  | PTD | DIS | M0)) /*CAM_D7*/\
+	MUX_VAL(CP(CAM_D8),        (IEN  | PTD | DIS | M0)) /*CAM_D8*/\
+	MUX_VAL(CP(CAM_D9),        (IEN  | PTD | DIS | M0)) /*CAM_D9*/\
 	MUX_VAL(CP(CAM_D10),        (IEN  | PTD | DIS | M4)) /*GPIO_109*/\
 	MUX_VAL(CP(CAM_D11),        (IEN  | PTD | DIS | M7)) /*CAM_D11*/\
 	MUX_VAL(CP(CAM_XCLKB),      (IEN  | PTD | DIS | M0)) /*CAM_XCLKB*/\
@@ -816,6 +816,9 @@ void set_muxconf_regs(void)
 		 */
 	MUX_VAL(CP(UART3_RX_IRRX),(IEN  | PTU | DIS | M0)) /*UART3_RX_IRRX*/
 
+	MUX_VAL(CP(CAM_XCLKA), (IDIS | PTD | DIS | M4)) /*gpio_96 LCD reset*/
+	MUX_VAL(CP(CAM_VS),    (IEN  | PTU | DIS | M4)) /*gpio_95 for TVOut*/
+	MUX_VAL(CP(CAM_PCLK),  (IEN  | PTU | DIS | M4)) /*gpio_97 for HDMI*/
 #endif
 }
 

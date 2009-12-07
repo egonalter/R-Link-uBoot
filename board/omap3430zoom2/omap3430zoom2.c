@@ -577,7 +577,7 @@ int dram_init(void)
 	/*CAMERA*/\
 	MUX_VAL(CP(CAM_HS ),        (IDIS | PTD | DIS | M7)) /*CAM_HS */\
 	MUX_VAL(CP(CAM_VS ),        (IDIS | PTD | DIS | M7)) /*CAM_VS */\
-	MUX_VAL(CP(CAM_XCLKA),      (IDIS | PTD | DIS | M0)) /*CAM_XCLKA*/\
+	MUX_VAL(CP(CAM_XCLKA),      (IDIS | PTD | DIS | M4)) /*gpio_96 LCD*/\
 	MUX_VAL(CP(CAM_PCLK),       (IEN  | PTD | DIS | M0)) /*CAM_PCLK*/\
 	MUX_VAL(CP(CAM_FLD),        (IEN  | PTD | DIS | M4)) /*GPIO_98 */\
 	MUX_VAL(CP(CAM_D0 ),        (IEN  | PTD | DIS | M2)) /*CAM_D0 */\
