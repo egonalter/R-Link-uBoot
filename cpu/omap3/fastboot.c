@@ -129,7 +129,10 @@ static struct usb_device_request req;
    In high speed mode packets are 512
    In full speed mode packets are 64
    Set to maximum of 512 */
-static u8 fastboot_bulk_fifo[0x0200];
+
+/* Note: The start address (written to the MUSB_DMA_ADDR_CH(n) register)
+   must be word aligned */
+static u8 fastboot_bulk_fifo[0x0200] __attribute__ ((aligned(0x4)));
 static char *device_strings[DEVICE_STRING_MANUFACTURER_INDEX+1];
 
 static struct cmd_fastboot_interface *fastboot_interface = NULL;
