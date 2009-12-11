@@ -162,7 +162,9 @@ out:
 		printf("offset 0x%x, size 0x%x\n", *off, *size);
 	return 0;
 }
-#if defined(CONFIG_OMAP) && (defined(CONFIG_3430LABRADOR) || defined(CONFIG_OMAP3EVM)) || defined(CONFIG_3430ZOOM2)
+#if defined(CONFIG_OMAP) && \
+		(defined(CONFIG_3430LABRADOR) || defined(CONFIG_OMAP3EVM)) || \
+		defined(CONFIG_3430ZOOM2) || defined(CONFIG_3630SDP)
 extern void omap_nand_switch_ecc(nand_info_t *nand, int hardware);
 extern int nand_unlock(nand_info_t *nand, ulong off, ulong size);
 #else
