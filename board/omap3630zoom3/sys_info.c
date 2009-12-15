@@ -209,11 +209,6 @@ void display_board_info(u32 btype)
 		"NOR",
 		"ONND",
 		"NAND",
-		"P2a",
-		"NOR",
-		"NOR",
-		"P2a",
-		"P2b",
 	};
 	u32 brev = get_board_rev();
 	char cpu_3430s[] = "3630";
@@ -288,13 +283,13 @@ void display_board_info(u32 btype)
 	printf("OMAP%s-%s rev %d, CPU-OPP%s L3-%sMHz\n", cpu_s, sec_s, rev,
 		p_cpu, p_l3);
 	printf("OMAP3630Zoom3 %s Version + %s (Boot %s)\n", db_s,
-		mem_s, bootmode[get_gpmc0_type()]);
+		mem_s, bootmode[2]);
 #ifdef CONFIG_LED_INFO
 	/* Format: 0123456789ABCDEF
 	 *         3430C GP L3-100 NAND
 	 */
 	sprintf(led_string, "%5s%3s%3s %4s", cpu_s, sec_s, p_l3,
-		bootmode[get_gpmc0_type()]);
+		bootmode[2]);
 	/* reuse sec */
 	for (sec = 0; sec < CONFIG_LED_LEN; sec += 2) {
 		/* invert byte loc */
