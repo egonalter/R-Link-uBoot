@@ -24,10 +24,21 @@
 #ifndef _MMC_H_
 #define _MMC_H_
 #include <asm/arch/mmc.h>
+#include <part.h>
 
-int mmc_init(int verbose);
+int mmc_init(int slot);
 int mmc_read(unsigned int src, unsigned char *dst, int size);
 int mmc_write(unsigned char *src, unsigned long dst, int size);
+int mmc_read_block(int slot, unsigned int blknr,
+				unsigned int blkcnt, unsigned char *buf);
+int mmc_write_block(int slot, unsigned int blknr, unsigned int blkcnt,
+				unsigned char *buf, unsigned int *total);
+int mmc_read_opts(int dev_num, unsigned int bytepos,
+				unsigned int bytecnt, unsigned char *dst);
+int mmc_write_opts(int dev_num, unsigned int bytepos, unsigned int bytecnt,
+				unsigned char *src, unsigned int *total);
+int mmc_support_rawboot_check(int dev);
 int mmc2info(unsigned int addr);
+block_dev_desc_t *mmc_get_dev(int dev);
 
 #endif /* _MMC_H_ */
