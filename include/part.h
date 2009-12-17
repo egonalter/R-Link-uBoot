@@ -54,6 +54,7 @@ typedef struct block_dev_desc {
 #define IF_TYPE_USB		4
 #define IF_TYPE_DOC		5
 #define IF_TYPE_MMC		6
+#define IF_TYPE_MMC2		7
 
 /* Part types */
 #define PART_TYPE_UNKNOWN	0x00
