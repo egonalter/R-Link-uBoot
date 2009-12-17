@@ -57,7 +57,7 @@
 /* Uncomment to run PER M2 at 2x 96MHz */
 /* #define CONFIG_PER_M2_192 */
 /* Uncomment to run PER SGX at 192MHz */
-#define CONFIG_PER_SGX_192
+/*define CONFIG_PER_SGX_192*/
 
 /* Uncommend to run PER at 2x 96MHz */
 
