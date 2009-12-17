@@ -183,7 +183,7 @@
 		" ${kernel_nand_size};"		\
 		" run nandargs;"		\
 		" bootm ${nandloadaddr}\0"	\
-"autoboot=if mmcinit; then" 			\
+"autoboot=if mmc init 0; then" 			\
 		" run loaduimage;" 		\
 		" run mmcboot;" 		\
 	" else nandboot;"			\
