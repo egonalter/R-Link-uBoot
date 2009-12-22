@@ -314,7 +314,7 @@ static struct nand_oobinfo hw_nand_oob_64 = {
 			6, 7, 8, 9, 
 			10, 11, 12, 13
 		},
-	.oobfree = { {20, 50} }  /* don't care */
+	.oobfree = { {14, 50} }  /* don't care */
 };
 
 static struct nand_oobinfo sw_nand_oob_64 = {
@@ -426,11 +426,25 @@ void board_nand_init(struct nand_chip *nand)
 					NAND_BUSWIDTH_16 | NAND_NO_AUTOINCR;
 	nand->read_buf          = omap_nand_read_buf;
 	nand->write_buf         = omap_nand_write_buf;
+
+#if (CFG_HW_ECC_ROMCODE)
+	nand->eccmode           = NAND_ECC_HW3_512;
+	nand->autooob 		= &hw_nand_oob_64;
+	nand->eccsize		= 512;
+	nand->eccbytes		= 3;
+	nand->eccsteps		= 4;
+	nand->enable_hwecc	= omap_enable_hwecc;
+	nand->correct_data	= omap_correct_data;
+	nand->calculate_ecc	= omap_calculate_ecc;
+
+	omap_hwecc_init(nand);
+#else
 	nand->eccmode           = NAND_ECC_SOFT;
 #if (CFG_SW_ECC_512)
 	nand->eccsize           = 512;
 #else
 	nand->eccsize           = 256;
+#endif
 #endif
 /* if RDY/BSY line is connected to OMAP then use the omap ready funcrtion
  * and the generic nand_wait function which reads the status register after
