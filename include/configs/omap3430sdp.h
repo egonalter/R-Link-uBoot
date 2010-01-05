@@ -151,6 +151,9 @@
 #define CFG_MAX_NAND_DEVICE      1 /* Max number of NAND devices */
 #define SECTORSIZE               512
 
+/* Use the 512 byte ROM CODE HW ecc */
+#define CFG_HW_ECC_ROMCODE	1
+
 #define NAND_ALLOW_ERASE_ALL
 #define ADDR_COLUMN              1
 #define ADDR_PAGE                2
