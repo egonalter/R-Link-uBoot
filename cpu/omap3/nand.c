@@ -469,7 +469,7 @@ void board_nand_init(struct nand_chip *nand)
 			.length = 0x0020000,
 			/* Written into the first 4 0x20000 blocks 
 			   Use HW ECC */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_REPEAT(4) | 
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_I |
 			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC, 
 		},
 
@@ -479,7 +479,7 @@ void board_nand_init(struct nand_chip *nand)
 			.length = 0x0180000, /* 1.5 M */
 			/* Skip bad blocks on write 
 			   Use HW ECC */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_I |
 			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC,
 		},
 		{
