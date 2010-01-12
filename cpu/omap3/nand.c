@@ -478,15 +478,15 @@ void board_nand_init(struct nand_chip *nand)
 			.start  = 0x0080000,
 			.length = 0x0180000, /* 1.5 M */
 			/* Skip bad blocks on write 
-			   Use SW ECC */
+			   Use HW ECC */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK |
-			          FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
+			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC,
 		},
 		{
 			.name   = "environment",
 			.start  = SMNAND_ENV_OFFSET,  /* set in config file */
 			.length = 0x0040000,
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_ENV,
 		},
 
@@ -500,7 +500,7 @@ void board_nand_init(struct nand_chip *nand)
 			/* The real start */
 			.start  = 0x0200000,
 			.length = 0x1D00000, /* 30M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_I,
 		},
 #ifndef CFG_NAND_YAFFS_WRITE
@@ -510,21 +510,21 @@ void board_nand_init(struct nand_chip *nand)
 			.name   = "system",
 			.start  = 0x2000000,
 			.length = 0xA000000, /* 160M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "userdata",
 			.start  = 0xC000000,
 			.length = 0x2000000, /* 32M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "cache",
 			.start  = 0xE000000,
 			.length = 0x2000000, /* 32M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 	};
