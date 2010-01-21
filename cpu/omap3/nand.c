@@ -314,7 +314,7 @@ static struct nand_oobinfo hw_nand_oob_64 = {
 			6, 7, 8, 9, 
 			10, 11, 12, 13
 		},
-	.oobfree = { {20, 50} }  /* don't care */
+	.oobfree = { {14, 50} }  /* don't care */
 };
 
 static struct nand_oobinfo sw_nand_oob_64 = {
@@ -426,11 +426,25 @@ void board_nand_init(struct nand_chip *nand)
 					NAND_BUSWIDTH_16 | NAND_NO_AUTOINCR;
 	nand->read_buf          = omap_nand_read_buf;
 	nand->write_buf         = omap_nand_write_buf;
+
+#if (CFG_HW_ECC_ROMCODE)
+	nand->eccmode           = NAND_ECC_HW3_512;
+	nand->autooob 		= &hw_nand_oob_64;
+	nand->eccsize		= 512;
+	nand->eccbytes		= 3;
+	nand->eccsteps		= 4;
+	nand->enable_hwecc	= omap_enable_hwecc;
+	nand->correct_data	= omap_correct_data;
+	nand->calculate_ecc	= omap_calculate_ecc;
+
+	omap_hwecc_init(nand);
+#else
 	nand->eccmode           = NAND_ECC_SOFT;
 #if (CFG_SW_ECC_512)
 	nand->eccsize           = 512;
 #else
 	nand->eccsize           = 256;
+#endif
 #endif
 /* if RDY/BSY line is connected to OMAP then use the omap ready funcrtion
  * and the generic nand_wait function which reads the status register after
@@ -455,7 +469,7 @@ void board_nand_init(struct nand_chip *nand)
 			.length = 0x0020000,
 			/* Written into the first 4 0x20000 blocks 
 			   Use HW ECC */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_REPEAT(4) | 
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_I |
 			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC, 
 		},
 
@@ -464,15 +478,15 @@ void board_nand_init(struct nand_chip *nand)
 			.start  = 0x0080000,
 			.length = 0x0180000, /* 1.5 M */
 			/* Skip bad blocks on write 
-			   Use SW ECC */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_NEXT_GOOD_BLOCK |
-			          FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC,
+			   Use HW ECC */
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_I |
+			          FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC,
 		},
 		{
 			.name   = "environment",
 			.start  = SMNAND_ENV_OFFSET,  /* set in config file */
 			.length = 0x0040000,
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_ENV,
 		},
 
@@ -486,7 +500,7 @@ void board_nand_init(struct nand_chip *nand)
 			/* The real start */
 			.start  = 0x0200000,
 			.length = 0x1D00000, /* 30M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_I,
 		},
 #ifndef CFG_NAND_YAFFS_WRITE
@@ -496,21 +510,21 @@ void board_nand_init(struct nand_chip *nand)
 			.name   = "system",
 			.start  = 0x2000000,
 			.length = 0xA000000, /* 160M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "userdata",
 			.start  = 0xC000000,
 			.length = 0x2000000, /* 32M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "cache",
 			.start  = 0xE000000,
 			.length = 0x2000000, /* 32M */
-			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC |
+			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 	};
