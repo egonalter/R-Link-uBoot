@@ -60,7 +60,8 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return ret;
 		}
 		break;
-	case 3:
+
+	default:
 	if ((strncmp(argv[0], "mmc", 3) == 0) && (argv[0][3] == '\0')) {
 
 		if ((strncmp(argv[1], "init", 4) == 0)
@@ -135,10 +136,6 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return ret;
 		}
 
-		break;
-
-	default:
-		goto usage;
 		break;
 	}
 
