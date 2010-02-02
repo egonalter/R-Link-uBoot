@@ -115,13 +115,17 @@ static int omap_nand_wait(struct mtd_info *mtd, struct nand_chip *chip, int stat
 {
 	register struct nand_chip *this = mtd->priv;
 	int status = 0;
+	void *nand_ptr_r, *nand_ptr_w;
 
 	this->IO_ADDR_W = (void *) gpmc_cs_base_add + GPMC_NAND_CMD;
 	this->IO_ADDR_R = (void *) gpmc_cs_base_add + GPMC_NAND_DAT;
+	nand_ptr_w = this->IO_ADDR_W;
+	nand_ptr_r = this->IO_ADDR_R;
+
 	/* Send the status command and loop until the device is free */
 	while(!(status & 0x40)){
-		__raw_writeb(NAND_CMD_STATUS & 0xFF, this->IO_ADDR_W);
-		status = __raw_readb(this->IO_ADDR_R);
+		__raw_writeb(NAND_CMD_STATUS & 0xFF, nand_ptr_w);
+		status = __raw_readb(nand_ptr_r);
 	}
 	return status;	
 }
@@ -140,10 +144,12 @@ static void omap_nand_write_buf(struct mtd_info *mtd, const u_char *buf, int len
 	int i;
 	struct nand_chip *this = mtd->priv;
 	u16 *p = (u16 *) buf;
+	void *nand_ptr_w = this->IO_ADDR_W;
+
 	len >>= 1;
 
 	for (i=0; i<len; i++){
-		writew(p[i], this->IO_ADDR_W);
+		writew(p[i], nand_ptr_w);
 		while (GPMC_BUF_EMPTY == (readl(GPMC_STATUS) & GPMC_BUF_FULL));
 	}
 }
@@ -162,10 +168,12 @@ static void omap_nand_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 	int i;
 	struct nand_chip *this = mtd->priv;
 	u16 *p = (u16 *) buf;
+	void *nand_ptr_r = this->IO_ADDR_R;
+
 	len >>= 1;
 
 	for (i=0; i<len; i++)
-		p[i] = readw(this->IO_ADDR_R);
+		p[i] = readw(nand_ptr_r);
 }
 
 #else
@@ -183,9 +191,10 @@ static void omap_nand_write_buf(struct mtd_info *mtd, const uint8_t * buf,
 	int i;
 	int j=0;
 	struct nand_chip *chip = mtd->priv;
+	void *nand_ptr_w = this->IO_ADDR_W;
 
 	for (i = 0; i < len; i++) {
-		writeb(buf[i], chip->IO_ADDR_W);
+		writeb(buf[i], nand_ptr_w);
 		for(j=0;j<10;j++);
         }
 
@@ -204,9 +213,10 @@ static void omap_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
 	int i;
 	int j=0;
 	struct nand_chip *chip = mtd->priv;
+	void *nand_ptr_r = this->IO_ADDR_R;
 
 	for (i = 0; i < len; i++) {
-		buf[i] = readb(chip->IO_ADDR_R);
+		buf[i] = readb(nand_ptr_r);
 		while (GPMC_BUF_EMPTY == (readl(GPMC_STATUS) & GPMC_BUF_FULL));
 	}
 }
