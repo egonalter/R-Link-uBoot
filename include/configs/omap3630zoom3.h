@@ -213,7 +213,7 @@
 #define CFG_CBSIZE               256  /* Console I/O Buffer Size */
 /* Print Buffer Size */
 #define CFG_PBSIZE               (CFG_CBSIZE+sizeof(CFG_PROMPT)+16)
-#define CFG_MAXARGS              16          /* max number of command args */
+#define CFG_MAXARGS              24          /* max number of command args */
 #define CFG_BARGSIZE             CFG_CBSIZE  /* Boot Argument Buffer Size */
 
 #define CFG_MEMTEST_START        (OMAP34XX_SDRC_CS0)  /* memtest works on */
