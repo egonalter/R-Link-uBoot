@@ -451,5 +451,6 @@
 #define  CONTROL_PADCONF_d2d_sbusflag        0x0260     
 #define  CONTROL_PADCONF_sdrc_cke0	     0x0262     
 #define  CONTROL_PADCONF_sdrc_cke1	     0x0264     
-                                                       
+#define	 CONTROL_PADCONF_gpmc_a11	     0x0266
+
 #endif

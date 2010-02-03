@@ -775,7 +775,8 @@ int dram_init(void)
 	MUX_VAL(CP(d2d_mbusflag),   (IEN  | PTD | DIS | M0)) /*d2d_mbusflag */\
 	MUX_VAL(CP(d2d_sbusflag),   (IEN  | PTD | DIS | M0)) /*d2d_sbusflag */\
 	MUX_VAL(CP(sdrc_cke0),      (IDIS | PTU | EN  | M0)) /*sdrc_cke0 */\
-	MUX_VAL(CP(sdrc_cke1),      (IDIS | PTD | DIS | M7)) /*sdrc_cke1 unused*/
+	MUX_VAL(CP(sdrc_cke1),      (IDIS | PTD | DIS | M7)) /*sdrc_cke1 unused*/\
+	MUX_VAL(CP(gpmc_a11),       (IEN  | PTD | EN  | M4))/*gpmc_all unused*/
 
 /**********************************************************
  * Routine: set_muxconf_regs
