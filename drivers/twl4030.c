@@ -405,7 +405,7 @@ int twl4030_init_battery_charging(void)
 		ret = twl4030_ac_charger_enable(1);
 		if (ret)
 			return ret;
-		udelay(500000); /* 0.5 sec */
+		udelay(10000); /* 0.01 sec */
 		charger_present = 1;
 		ac_t2_enabled = 1;
 		OMAP3_LED_OK_OFF(); /* Blue LED - off */
@@ -430,7 +430,7 @@ int twl4030_init_battery_charging(void)
 	ret = twl4030_usb_charger_enable(1);
 	if (ret)
 		return ret;
-	udelay(250000); /* 0.25 sec */
+	udelay(10000); /* 0.01 sec */
 	OMAP3_LED_OK_OFF(); /* Blue LED - off */
 
 	/* AC charging is enabled regardless of the whether the
@@ -472,12 +472,12 @@ int twl4030_init_battery_charging(void)
 				charger_present = 1;
 			}	else {
 				OMAP3_LED_ERROR_OFF();
-				udelay(500000); /* 0.5 sec */
+				udelay(10000); /* 0.01 sec */
 			}
 
 			if (charger_present)	{
 				OMAP3_LED_OK_ON(); /* Blue LED - on */
-				udelay(500000); /* 0.5 sec */
+				udelay(10000); /* 0.01 sec */
 			}	else
 				OMAP3_LED_ERROR_ON();
 

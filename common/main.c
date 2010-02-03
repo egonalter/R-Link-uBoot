@@ -365,9 +365,12 @@ void main_loop (void)
 #ifdef CONFIG_AUTO_COMPLETE
 	install_auto_complete();
 #endif
+/* Disabling the check of 'OK' key press to reduce the boot time. */
+#if 0
 	if (fastboot_preboot())
 		run_command("fastboot", 0);
 
+#endif
 #ifdef CONFIG_PREBOOT
 	if ((p = getenv ("preboot")) != NULL) {
 # ifdef CONFIG_AUTOBOOT_KEYED

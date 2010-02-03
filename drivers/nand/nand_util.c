@@ -662,9 +662,9 @@ int nand_read_opts(nand_info_t *meminfo, const nand_read_options_t *opts)
 			 */
 			if ((int)percent != percent_complete) {
 			if (!opts->quiet)
-				printf("\rReading data from 0x%x "
+				/*printf("\rReading data from 0x%x "
 				       "-- %3d%% complete.",
-				       mtdoffset, (int)percent);
+				       mtdoffset, (int)percent);*/
 				percent_complete = (int)percent;
 			}
 		}
