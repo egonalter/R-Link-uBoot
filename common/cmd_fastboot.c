@@ -1321,6 +1321,7 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 			/* If we got this far, we are a success */
 			ret = 0;
+			printf("fastboot initialized\n");
 
 			timeout_endtime = get_ticks();
 			timeout_endtime += timeout_ticks;
