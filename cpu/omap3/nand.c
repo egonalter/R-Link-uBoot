@@ -190,7 +190,7 @@ static void omap_nand_write_buf(struct mtd_info *mtd, const uint8_t * buf,
 {
 	int i;
 	int j=0;
-	struct nand_chip *chip = mtd->priv;
+	struct nand_chip *this = mtd->priv;
 	void *nand_ptr_w = this->IO_ADDR_W;
 
 	for (i = 0; i < len; i++) {
@@ -212,7 +212,7 @@ static void omap_nand_read_buf(struct mtd_info *mtd, uint8_t * buf, int len)
 {
 	int i;
 	int j=0;
-	struct nand_chip *chip = mtd->priv;
+	struct nand_chip *this = mtd->priv;
 	void *nand_ptr_r = this->IO_ADDR_R;
 
 	for (i = 0; i < len; i++) {
