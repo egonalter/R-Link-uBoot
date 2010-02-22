@@ -50,7 +50,8 @@ block_dev_desc_t *mmc_get_dev(int dev)
 
 	if ((dev == 0) || (dev == 1)) {
 		if (cur_card_data[dev].size == 0)
-			printf("Card is not Initalized (e.g. mmc init 0)\n");
+			printf("Card#%d is not Initalized"
+				"(Usage: mmcinit 0/1)\n", dev);
 		else
 			return &mmc_blk_dev[dev];
 	}
@@ -507,9 +508,15 @@ int mmc_read_block(int dev_num, unsigned int blknr,
 	unsigned int num_sec_val =
 	    (num_bytes + (MMCSD_SECTOR_SIZE - 1)) / MMCSD_SECTOR_SIZE;
 	unsigned int sec_inc_val;
+	unsigned int percent_complete = 0, percent = 0;
 
 	MMC_DPRINT("mmc_read_block Pos=0x%x 0x%x-bytes Add=0x%x\n",
 					start_sec, num_bytes, output_buf);
+	if (cur_card_data[dev_num].size == 0) {
+		printf("Card#%d is not Initalized(e.g mmcinit 0/1)\n", dev_num);
+		return 1;
+	}
+
 	if (num_sec_val == 0)
 		return 1;
 
@@ -523,6 +530,7 @@ int mmc_read_block(int dev_num, unsigned int blknr,
 		MMC_DPRINT("BYTE_MODE\n");
 	}
 
+	percent = num_sec_val;
 	while (num_sec_val) {
 		err = mmc_send_cmd(mmc_c->base, MMC_CMD17, argument, resp);
 		if (err)
@@ -535,6 +543,13 @@ int mmc_read_block(int dev_num, unsigned int blknr,
 		output_buf += (MMCSD_SECTOR_SIZE / 4);
 		argument += sec_inc_val;
 		num_sec_val--;
+
+		if ((blkcnt > 0x1800) &&
+		(percent_complete < ((percent - num_sec_val)*100/percent))) {
+			percent_complete = (percent - num_sec_val)*100/percent;
+			printf("\rReading data at 0x%x --  %3d%% complete.",
+				argument, percent_complete);
+		}
 	}
 	/* FAT file system expects 1 as success */
 	if (err == 1)
@@ -543,7 +558,7 @@ int mmc_read_block(int dev_num, unsigned int blknr,
 		return 1;
 }
 
-unsigned char configure_mmc(mmc_card_data *mmc_card_cur)
+unsigned int configure_mmc(mmc_card_data *mmc_card_cur)
 {
 	int ret_val;
 	unsigned int argument;
@@ -650,8 +665,15 @@ int mmc_write_block(int dev_num, unsigned int blknr, unsigned int blkcnt,
 	unsigned int sec_inc_val;
 	unsigned int num_sec_val = (num_bytes + (MMCSD_SECTOR_SIZE - 1)) /
 							MMCSD_SECTOR_SIZE;
+	unsigned int percent_complete = 0, percent = 0;
 
 	MMC_DPRINT("+mmc_write_block(0x%x sector)\n", num_sec_val);
+
+	if (cur_card_data[dev_num].size == 0) {
+		printf("Card#%d is not Initalized(e.g mmcinit 0/1)\n", dev_num);
+		return 1;
+	}
+
 	if (blkcnt == 0)
 		return 1;
 
@@ -675,6 +697,13 @@ int mmc_write_block(int dev_num, unsigned int blknr, unsigned int blkcnt,
 		output_buf += (MMCSD_SECTOR_SIZE / 4);
 		argument += sec_inc_val;
 		num_sec_val--;
+
+		if ((blkcnt > 0x1800) &&
+		(percent_complete < ((percent - num_sec_val)*100/percent))) {
+			percent_complete = (percent - num_sec_val)*100/percent;
+			printf("\rWriting data at 0x%x --  %3d%% complete.",
+				argument, percent_complete);
+		}
 	}
 	*total = blkcnt - num_sec_val;
 
@@ -714,7 +743,7 @@ int mmc_init(int slot)
 				(slot == 0) ? IF_TYPE_MMC : IF_TYPE_MMC2;
 
 		mmc_blk_dev[slot].part_type = PART_TYPE_DOS;
-		mmc_blk_dev[slot].dev = 0;
+		mmc_blk_dev[slot].dev = slot;
 		mmc_blk_dev[slot].lun = 0;
 		mmc_blk_dev[slot].type = 0;
 
@@ -802,10 +831,10 @@ int mmc_write_opts(int dev_num, unsigned int bytepos, unsigned int bytecnt,
 	unsigned int i, startsec, pos, cursize = 0, blkcnt, tmptotal;
 	unsigned char buf[MMCSD_SECTOR_SIZE];
 
-	MMC_DPRINT("+mmc_read_opts dev=%d\n", dev_num);
+	MMC_DPRINT("+mmc_write_opts dev=%d\n", dev_num);
 
 	/* check, if length is not larger than device */
-	MMC_DPRINT("mmc_read_opts Pos=0x%x 0x%x-bytes Add=0x%x\n",
+	MMC_DPRINT("mmc_write_opts Pos=0x%x 0x%x-bytes Add=0x%x\n",
 					bytepos, bytecnt, src);
 	if (bytecnt == 0)
 		return 1;
@@ -849,9 +878,9 @@ int mmc_write_opts(int dev_num, unsigned int bytepos, unsigned int bytecnt,
 		}
 	}
 
-	/* check if any fraction to read */
+	/* check if any fraction to write */
 	if ((err == 0x01) && (bytecnt > 0)) {
-		err = mmc_read_block(dev_num, startsec, 1, src);
+		err = mmc_read_block(dev_num, startsec, 1, buf);
 		if (err == 0x01) {
 			/* make the buffer */
 			for (i = 0; i < bytecnt; i++)

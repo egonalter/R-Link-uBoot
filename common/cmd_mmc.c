@@ -95,6 +95,12 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				printf("'%s' is not a number\n", argv[5]);
 				goto usage;
 			}
+
+			if (offset%4 != 0) {
+				printf("Offset is not WORD boundary\n");
+				goto usage;
+			}
+
 			/* validate the params */
 			if (((dev_num != 0) && (dev_num != 1)) || (size == 0))
 				ret = -1;
@@ -107,31 +113,44 @@ int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 		if ((strncmp(argv[1], "write.i", 7) == 0)
 						&& (argv[1][7] == '\0')) {
+
+			printf("MMC%d Write: offset 0x%08x, size 0x%x\n",
+							dev_num, offset, size);
 			ret = mmc_write_opts(dev_num,
 				offset, size, (unsigned char *)addr, &total);
 			printf("%d bytes written: %s\n",
 				total, ret ? "OK" : "ERROR");
 		} else if ((strncmp(argv[1], "read.i", 6) == 0) &&
 						(argv[1][6] == '\0')) {
+
+			printf("MMC%d Read: offset 0x%08x, size 0x%x\n",
+							dev_num, offset, size);
 			ret = mmc_read_opts(dev_num, offset, size,
 				(unsigned char *)addr);
 			printf("%d bytes read: %s\n",
 				size, ret ? "OK" : "ERROR");
 		} else if ((strncmp(argv[1], "write", 5) == 0) &&
 				(argv[1][5] == '\0')) {
-			ret = mmc_write_block(dev_num, offset, size,
+
+			printf("MMC%d Write: offset 0x%08x, size 0x%x\n",
+							dev_num, offset, size);
+			ret = mmc_write_opts(dev_num, offset, size,
 						(unsigned char *)addr, &total);
-			printf("%d sectors written: %s\n",
+			printf("%d bytes written: %s\n",
 				total, ret ? "OK" : "ERROR");
 		} else if ((strncmp(argv[1], "read", 4) == 0) &&
 							(argv[1][4] == '\0')) {
-			ret = mmc_read_block(dev_num, offset, size,
+
+			printf("MMC%d Read: offset 0x%08x, size 0x%x\n",
+							dev_num, offset, size);
+			ret = mmc_read_opts(dev_num, offset, size,
 						(unsigned char *)addr);
-			printf("Sectors read: %s\n", ret ? "OK" : "ERROR");
-			} else {
+			printf("%d bytes read: %s\n",
+						size, ret ? "OK" : "ERROR");
+		} else {
 
 			goto usage;
-			}
+		}
 		/* status of the operation */
 		return ret;
 		}
@@ -148,11 +167,10 @@ U_BOOT_CMD(
 	mmc, 6, 1, do_mmc,
 	"mmc - MMC sub-system\n"
 	"mmc init <dev>\n"
-	"mmc read[.i]/write[.i] <dev> <addr> <block offset> [size]\n",
+	"mmc read[.i]/write[.i] <dev> <addr> <offset> [size]\n",
 	"mmc init - device (0 for MMC1, 1 for MMC2)\n"
-	"mmc read[.i] device addr offset size - \n"
-	"mmc write[.i] device addr offset size - \n"
-	"--- write `size' starting at offset `offset' to/from eMMC device\n"
+	"mmc read[.i]/write[.i] device addr offset size - \n"
+	"--- write `size' starting at offset `offset' to/from device\n"
 	"device - 0/1 for MMC1/MMC2\n" "`addr' is memory location\n"
 );
 U_BOOT_CMD(
