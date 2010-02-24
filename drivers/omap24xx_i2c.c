@@ -33,7 +33,7 @@ static u32 i2c_speed = CFG_I2C_SPEED;
 
 //#define DEBUG
 
-#if DEBUG
+#ifdef DEBUG
 
 #define DBG(ARGS...) {printf ("[%d]",__LINE__);printf(ARGS);}
 #define inb(a) ({u8 v=__raw_readb(i2c_base + (a));printf("%d:Rb[%x<=%x]\n",__LINE__,a,v);v;})
@@ -122,7 +122,7 @@ void i2c_init(int speed, int slaveadd)
 	internal_clk = 4000;
 	if (speed == OMAP_I2C_HIGH_SPEED)
 		internal_clk = 19200;
-	if (speed == OMAP_I2C_FAST_MODE)
+	else if (speed == OMAP_I2C_FAST_MODE)
 		internal_clk = 9600;
 	else /* standard */
 		internal_clk = 4000;
@@ -196,19 +196,22 @@ void i2c_init(int speed, int slaveadd)
 	}
 
 	/* Execute Soft-reset sequence for I2C controller */
-
-	if (inw(I2C_CON) & I2C_CON_EN) {   /* Ensure that the module is disabled */
+	reset_timeout = 100;
+	while ((inw(I2C_CON) & I2C_CON_EN) && reset_timeout--) {
+		/* Ensure that the module is disabled */
 		outw(0, I2C_CON);
-		udelay(50000);
 	}
+	if (reset_timeout <= 0)
+		printf("ERROR: Timeout to Disable the Module\n");
+
 	outw(I2C_SYSC_SRST, I2C_SYSC);  /* Set the I2Ci.I2C_SYSC[1] SRST bit to 1 */
 	udelay(1000);
 	outw(I2C_CON_EN, I2C_CON);  /* Enable the module */
 
+	reset_timeout = 100;
 	while (!(inw(I2C_SYSS) & I2C_SYSS_RDONE) && reset_timeout--) {
 		if (reset_timeout <= 0)
 			printf("ERROR: Timeout while waiting for soft-reset to complete\n");
-		udelay(1000);
 	}
 
 	outw(0, I2C_CON);  /* Disable I2C controller before writing
@@ -232,6 +235,7 @@ void i2c_init(int speed, int slaveadd)
 
 static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 {
+	int err;
 	int i2c_error = 0;
 	u16 status;
 
@@ -251,7 +255,14 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 	if (status & I2C_STAT_XRDY) {
 		/* Important: have to use byte access */
 		outb(regoffset, I2C_DATA);
-		udelay(20000);
+
+		/* Important: wait for ARDY bit to set */
+		err = 2000;
+		while (!(inw(I2C_STAT) & I2C_STAT_ARDY) && err--)
+			;
+		if (err <= 0)
+			i2c_error = 1;
+
 		if (inw(I2C_STAT) & I2C_STAT_NACK) {
 			i2c_error = 1;
 		}
@@ -260,10 +271,9 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 	}
 
 	if (!i2c_error) {
-		int err = 10;
+		err = 2000;
 		outw(I2C_CON_EN, I2C_CON);
 		while (inw(I2C_STAT) || (inw(I2C_CON) & I2C_CON_MST)) {
-			udelay(10000);
 			/* Have to clear pending interrupt to clear I2C_STAT */
 			outw(0xFFFF, I2C_STAT);
 			if (!err--) {
@@ -288,17 +298,23 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 #else
 			*value = inw(I2C_DATA);
 #endif
-			udelay(20000);
+		/* Important: wait for ARDY bit to set */
+		err = 20000;
+		while (!(inw(I2C_STAT) & I2C_STAT_ARDY) && err--)
+			;
+		if (err <= 0){
+printf("i2c_read_byte -- I2C_STAT_ARDY error\n");
+			i2c_error = 1;
+		}
 		} else {
 			i2c_error = 1;
 		}
 
 		if (!i2c_error) {
-			int err = 10;
+			int err = 1000;
 			outw(I2C_CON_EN, I2C_CON);
 			while (inw(I2C_STAT)
 			       || (inw(I2C_CON) & I2C_CON_MST)) {
-				udelay(10000);
 				outw(0xFFFF, I2C_STAT);
 				if (!err--) {
 					break;
@@ -314,6 +330,7 @@ static int i2c_read_byte(u8 devaddr, u8 regoffset, u8 * value)
 
 static int i2c_write_byte(u8 devaddr, u8 regoffset, u8 value)
 {
+	int eout;
 	int i2c_error = 0;
 	u16 status, stat;
 
@@ -349,7 +366,13 @@ static int i2c_write_byte(u8 devaddr, u8 regoffset, u8 value)
 		outw((value << 8) | regoffset, I2C_DATA);
 #endif
 		/* must have enough delay to allow BB bit to go low */
-		udelay(50000);
+		eout= 20000;
+		while (!(inw(I2C_STAT) & I2C_STAT_ARDY) && eout--)
+			;
+		if (eout <= 0)
+			printf("timed out in i2c_write_byte: I2C_STAT=%x\n",
+			       inw(I2C_STAT));
+
 		if (inw(I2C_STAT) & I2C_STAT_NACK) {
 			i2c_error = 1;
 		}
@@ -357,11 +380,10 @@ static int i2c_write_byte(u8 devaddr, u8 regoffset, u8 value)
 		i2c_error = 1;
 	}
 	if (!i2c_error) {
-		int eout = 200;
+		eout = 2000;
 
 		outw(I2C_CON_EN, I2C_CON);
 		while ((stat = inw(I2C_STAT)) || (inw(I2C_CON) & I2C_CON_MST)) {
-			udelay(1000);
 			/* have to read to clear intrrupt */
 			outw(0xFFFF, I2C_STAT);
 			if (--eout == 0)	/* better leave with error than hang */
@@ -390,7 +412,6 @@ static void flush_fifo(void)
 			inw(I2C_DATA);
 #endif
 			outw(I2C_STAT_RRDY, I2C_STAT);
-			udelay(1000);
 		} else
 			break;
 	}
@@ -485,13 +506,12 @@ int i2c_write(uchar chip, uint addr, int alen, uchar * buffer, int len)
 
 static void wait_for_bb(void)
 {
-	int timeout = 10;
+	int timeout = 5000;
 	u16 stat;
 
 	outw(0xFFFF, I2C_STAT);	/* clear current interruts... */
 	while ((stat = inw(I2C_STAT) & I2C_STAT_BB) && timeout--) {
 		outw(stat, I2C_STAT);
-		udelay(50000);
 	}
 
 	if (timeout <= 0) {
@@ -504,10 +524,9 @@ static void wait_for_bb(void)
 static u16 wait_for_pin(void)
 {
 	u16 status;
-	int timeout = 10;
+	int timeout = 9000;
 
 	do {
-		udelay(1000);
 		status = inw(I2C_STAT);
 	} while (!(status &
 		   (I2C_STAT_ROVR | I2C_STAT_XUDF | I2C_STAT_XRDY |

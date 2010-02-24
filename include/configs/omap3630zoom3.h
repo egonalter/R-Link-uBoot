@@ -129,7 +129,7 @@
 #endif
 
 #if (CONFIG_COMMANDS & CFG_CMD_I2C)
-#define CFG_I2C_SPEED            100
+#define CFG_I2C_SPEED            400
 #define CFG_I2C_SLAVE            1
 #define CFG_I2C_BUS              0
 #define CFG_I2C_BUS_SELECT       1
