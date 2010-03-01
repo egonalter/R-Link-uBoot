@@ -827,7 +827,7 @@ void set_muxconf_regs(void)
 	MUX_VAL(CP(GPMC_nCS3),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS3 lab*/
 		/* Toggle Reset pin of TL16CP754C device */
 	MUX_VAL(CP(McBSP4_CLKX),    (IEN  | PTU | EN  | M4)) /*gpio_152 lab*/
-	udelay (10);
+	delay(10);
 	MUX_VAL(CP(McBSP4_CLKX),    (IEN  | PTD | EN  | M4)) /*gpio_152 lab*/
 	MUX_VAL(CP(sdrc_cke1),      (IDIS | PTU | EN  | M0)) /*sdrc_cke1 */
 
