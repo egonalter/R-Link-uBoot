@@ -39,7 +39,7 @@ extern void omap3_zoom2_led_green_off(void);
 #if defined(CONFIG_3630ZOOM3)
 #define OMAP3_LED_ERROR_ON() omap3_zoom2_led_green_on()
 #define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_green_off()
-#else if defined(CONFIG_3430ZOOM2) & !defined(CONFIG_3630ZOOM3)
+#elif defined(CONFIG_3430ZOOM2) & !defined(CONFIG_3630ZOOM3)
 #define OMAP3_LED_ERROR_ON() omap3_zoom2_led_red_on ()
 #define OMAP3_LED_ERROR_OFF() omap3_zoom2_led_red_off()
 #endif
