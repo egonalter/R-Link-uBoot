@@ -364,6 +364,18 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 				opts.quiet      = quiet;
 				ret = nand_write_opts(nand, &opts);
 			}
+		} else if (s != NULL && (!strcmp(s, ".raw"))) {
+			if (read) {
+				/* read */
+				nand_read_options_t opts;
+				memset(&opts, 0, sizeof(opts));
+				opts.buffer	= (u_char *) addr;
+				opts.length	= size;
+				opts.offset	= off;
+				opts.quiet	= quiet;
+				opts.readoob	= 1;
+				ret = nand_read_opts(nand, &opts);
+			}
 		}
 #ifdef CFG_NAND_YAFFS_WRITE
 		else if (!read && s != NULL &&
@@ -501,7 +513,9 @@ U_BOOT_CMD(nand, 5, 1, do_nand,
        "nand write[.yaffs[1]] - addr off|partition size - write `size' byte yaffs image\n"
        "    starting at offset `off' from memory address `addr' (.yaffs1 for 512+16 NAND)\n"
 #endif
-
+	"nand read.raw          - addr off|partition size\n"
+	"    at offset `off' from memory address `addr'\n"
+	"    buffer include normal data and oob data 	\n"
 	"nand erase [clean] [off size] - erase `size' bytes from\n"
 	"    offset `off' (entire device if not specified)\n"
 	"nand bad - show bad blocks\n"
