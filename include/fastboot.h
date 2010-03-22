@@ -277,6 +277,15 @@ extern int fastboot_fifo_size(void);
    Returns 1 on failure */
 extern int fastboot_tx_status(const char *buffer, unsigned int buffer_size);
 
+/*
+ * Send some data to the client app
+ * buffer does not have to be null terminated.
+ * buffer_size can be larger than what is returned by
+ * fastboot_fifo_size
+ * Returns number of bytes written
+ */
+extern int fastboot_tx(unsigned char *buffer, unsigned int buffer_size);
+
 /* A board specific variable handler. 
    The size of the buffers is governed by the fastboot spec. 
    rx_buffer is at most 57 bytes 
@@ -316,6 +325,7 @@ extern int fastboot_flash_write(fastboot_ptentry *ptn, unsigned extra_per_page,
 #define fastboot_fifo_size() 0
 #define fastboot_tx_status(a, b) 1
 #define fastboot_getvar(a,b) 1
+#define fastboot_tx(a, b) 1
 
 #define fastboot_flash_add_ptn(a) 
 #define fastboot_flash_find_ptn(a) NULL

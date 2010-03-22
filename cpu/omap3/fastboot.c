@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2008 - 2009
- * Windriver, <www.windriver.com>
+ * Copyright 2008 - 2009 (C) Wind River Systems, Inc.
  * Tom Rix <Tom.Rix@windriver.com>
  *
  * This program is free software; you can redistribute it and/or
@@ -1081,6 +1080,34 @@ int fastboot_tx_status(const char *buffer, unsigned int buffer_size)
 	TX_LAST();
 
 	ret = 0;
+
+	return ret;
+}
+
+int fastboot_tx(unsigned char *buffer, unsigned int buffer_size)
+{
+	int ret = 0;
+
+	if (*peri_txcsr & MUSB_TXCSR_TXPKTRDY) {
+		/* Small delay if fifo is in use */
+		udelay(1);
+	} else {
+		unsigned int i;
+
+		/* fastboot client only reads back at most 64 */
+		unsigned int transfer_size =
+			MIN(fastboot_fifo_size(), buffer_size);
+
+		for (i = 0; i < transfer_size; i++)
+			write_bulk_fifo_8(buffer[i]);
+
+		*peri_txcsr |= MUSB_TXCSR_TXPKTRDY;
+
+		ret = transfer_size;
+
+		/* Send an empty packet to signal that we are done */
+		TX_LAST();
+	}
 
 	return ret;
 }

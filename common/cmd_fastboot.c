@@ -73,6 +73,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 int do_go (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
 /* Forward decl */
+static int tx_handler(void);
 static int rx_handler (const unsigned char *buffer, unsigned int buffer_size);
 static void reset_handler (void);
 
@@ -92,6 +93,9 @@ static unsigned int download_bytes;
 static unsigned int download_bytes_unpadded;
 static unsigned int download_error;
 static unsigned int continue_booting;
+static unsigned int upload_size;
+static unsigned int upload_bytes;
+static unsigned int upload_error;
 
 /* To support the Android-style naming of flash */
 #define MAX_PTN 16
@@ -255,6 +259,9 @@ static void reset_handler ()
 	download_bytes_unpadded = 0;
 	download_error = 0;
 	continue_booting = 0;
+	upload_size = 0;
+	upload_bytes = 0;
+	upload_error = 0;
 }
 
 /* When save = 0, just parse.  The input is unchanged
@@ -445,18 +452,39 @@ static int saveenv_to_ptn(struct fastboot_ptentry *ptn, char *err_string)
 	return ret;
 }
 
+static void set_ptn_ecc(struct fastboot_ptentry *ptn)
+{
+	char ecc_type[32];
+	char *ecc[4] = {"nand", "ecc", NULL, NULL, };
+
+	/* Some flashing requires the nand's ecc to be set */
+	ecc[2] = ecc_type;
+	if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) &&
+	    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC)) {
+		/* Both can not be true */
+		printf("Warning can not do hw and sw ecc for partition '%s'\n",
+		       ptn->name);
+		printf("Ignoring these flags\n");
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) {
+		sprintf(ecc_type, "hw");
+		do_nand(NULL, 0, 3, ecc);
+	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC) {
+		sprintf(ecc_type, "sw");
+		do_nand(NULL, 0, 3, ecc);
+	}
+}
+
 static int write_to_ptn(struct fastboot_ptentry *ptn)
 {
 	int ret = 1;
 	char start[32], length[32];
 	char wstart[32], wlength[32], addr[32];
-	char ecc_type[32], write_type[32];
+	char write_type[32];
 	int repeat, repeat_max;
 
 	char *lock[5]   = { "nand", "lock",   NULL, NULL, NULL, };
 	char *unlock[5] = { "nand", "unlock", NULL, NULL, NULL,	};
 	char *write[6]  = { "nand", "write",  NULL, NULL, NULL, NULL, };
-	char *ecc[4]    = { "nand", "ecc",    NULL, NULL, };
 	char *erase[5]  = { "nand", "erase",  NULL, NULL, NULL, };
 
 	lock[2] = unlock[2] = erase[2] = start;
@@ -479,22 +507,7 @@ static int write_to_ptn(struct fastboot_ptentry *ptn)
 	else
 		sprintf(write_type, "write");
 
-
-	/* Some flashing requires the nand's ecc to be set */
-	ecc[2] = ecc_type;
-	if ((ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) &&
-	    (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC)) {
-		/* Both can not be true */
-		printf("Warning can not do hw and sw ecc for partition '%s'\n",
-		       ptn->name);
-		printf("Ignoring these flags\n");
-	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC) {
-		sprintf(ecc_type, "hw");
-		do_nand(NULL, 0, 3, ecc);
-	} else if (ptn->flags & FASTBOOT_PTENTRY_FLAGS_WRITE_SW_ECC) {
-		sprintf(ecc_type, "sw");
-		do_nand(NULL, 0, 3, ecc);
-	}
+	set_ptn_ecc(ptn);
 
 	/* Some flashing requires writing the same data in multiple,
 	   consecutive flash partitions */
@@ -671,6 +684,30 @@ static int write_to_ptn(struct fastboot_ptentry *ptn)
 	}
 
 	return ret;
+}
+
+static int tx_handler(void)
+{
+	if (upload_size) {
+
+		int bytes_written;
+		bytes_written = fastboot_tx(interface.transfer_buffer +
+					    upload_bytes, upload_size -
+					    upload_bytes);
+		if (bytes_written > 0) {
+
+			upload_bytes += bytes_written;
+			/* Check if this is the last */
+			if (upload_bytes == upload_size) {
+
+				/* Reset upload */
+				upload_size = 0;
+				upload_bytes = 0;
+				upload_error = 0;
+			}
+		}
+	}
+	return upload_error;
 }
 
 static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
@@ -1075,6 +1112,150 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			ret = 0;
 		}
 
+		/* upload
+		   Upload just the data in a partition */
+		if ((memcmp(cmdbuf, "upload:", 7) == 0) ||
+		    (memcmp(cmdbuf, "uploadraw:", 10) == 0)) {
+
+			unsigned int adv, delim_index, len;
+			struct fastboot_ptentry *ptn;
+			unsigned int is_raw = 0;
+
+			/* Is this a raw read ? */
+			if (memcmp(cmdbuf, "uploadraw:", 10) == 0) {
+				is_raw = 1;
+				adv = 10;
+			} else {
+				adv = 7;
+			}
+
+			/* Scan to the next ':' to find when the size starts */
+			len = strlen(cmdbuf);
+			for (delim_index = adv;
+			     delim_index < len; delim_index++) {
+				if (cmdbuf[delim_index] == ':') {
+					/* WARNING, cmdbuf is being modified. */
+					*((char *) &cmdbuf[delim_index]) = 0;
+					break;
+				}
+			}
+
+			ptn = fastboot_flash_find_ptn(cmdbuf + adv);
+			if (ptn == 0) {
+				sprintf(response,
+					"FAILpartition does not exist");
+			} else {
+				/* This is how much the user is expecting */
+				unsigned int user_size;
+				/*
+				 * This is the maximum size needed for
+				 * this partition
+				 */
+				unsigned int size;
+				/* This is the length of the data */
+				unsigned int length;
+				/*
+				 * Used to check previous write of
+				 * the parition
+				 */
+				char env_ptn_length_var[128];
+				char *env_ptn_length_val;
+
+				user_size = 0;
+				if (delim_index < len)
+					user_size =
+					  simple_strtoul(cmdbuf + delim_index +
+							 1, NULL, 16);
+
+				/* Make sure output is padded to block size */
+				length = ptn->length;
+				sprintf(env_ptn_length_var,
+					"%s_nand_size", ptn->name);
+				env_ptn_length_val = getenv(env_ptn_length_var);
+				if (env_ptn_length_val) {
+					length =
+					  simple_strtoul(env_ptn_length_val,
+							 NULL, 16);
+					/* Catch possible problems */
+					if (!length)
+						length = ptn->length;
+				}
+
+				size = length / interface.nand_block_size;
+				size *= interface.nand_block_size;
+				if (length % interface.nand_block_size)
+					size += interface.nand_block_size;
+
+				if (is_raw)
+					size += (size /
+						 interface.nand_block_size) *
+						interface.nand_oob_size;
+
+				if (size > interface.transfer_buffer_size) {
+
+					sprintf(response, "FAILdata too large");
+
+				} else if (user_size == 0) {
+
+					/* Send the data response */
+					sprintf(response, "DATA%08x", size);
+
+				} else if (user_size != size) {
+					/* This is the wrong size */
+					sprintf(response, "FAIL");
+				} else {
+					/*
+					 * This is where the transfer
+					 * buffer is populated
+					 */
+					unsigned char *buf =
+					  interface.transfer_buffer;
+					char start[32], length[32], type[32],
+					  addr[32];
+					char *read[6] = { "nand", NULL, NULL,
+							  NULL, NULL, NULL, };
+
+					/*
+					 * Setting upload_size causes
+					 * transfer to happen in main loop
+					 */
+					upload_size = size;
+					upload_bytes = 0;
+					upload_error = 0;
+
+					/*
+					 * Poison the transfer buffer, 0xff
+					 * is erase value of nand
+					 */
+					memset(buf, 0xff, upload_size);
+
+					/* Which flavor of read to use */
+					if (is_raw)
+						sprintf(type, "read.raw");
+					else
+						sprintf(type, "read.i");
+
+					sprintf(addr, "0x%x",
+						interface.transfer_buffer);
+					sprintf(start, "0x%x", ptn->start);
+					sprintf(length, "0x%x", upload_size);
+
+					read[1] = type;
+					read[2] = addr;
+					read[3] = start;
+					read[4] = length;
+
+					set_ptn_ecc(ptn);
+
+					do_nand(NULL, 0, 5, read);
+
+					/* Send the data response */
+					sprintf(response, "DATA%08x", size);
+				}
+			}
+			ret = 0;
+		}
+
 		fastboot_tx_status(response, strlen(response));
 
 	} /* End of command */
@@ -1382,6 +1563,9 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 					printf("Fastboot ended by client\n");
 					break;
 				}
+
+				/* Check if there is something to upload */
+				tx_handler();
 			}
 		}
 
