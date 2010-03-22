@@ -183,7 +183,7 @@
 "autoboot=if mmc init 0; then" 			\
 		" run loaduimage;"              \
 		" run mmcboot;"                 \
-	" else nandboot;"                       \
+	" else run nandboot;"                       \
 	" fi;\0"
 
 #define CONFIG_BOOTCOMMAND "run autoboot"
