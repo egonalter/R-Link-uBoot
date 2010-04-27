@@ -254,6 +254,10 @@ void setup_auxcr(int device_type, int boot_type)
 		__asm__ __volatile__("mrc p15, 0, r0, c1, c0, 1");
 		/* Enabling IBE. ASA is disabled following recommendation from ARM */
 		__asm__ __volatile__("orr r0, r0, #0x40");
+		if (get_cortex_a8_rev() == 0x32) {
+			/* if cortex a8 r3p2 then make IBE = 0 */
+			__asm__ __volatile__("bic r0, r0, #0x40");
+		}
 		/* SMI instruction to call ROM Code API */
 		__asm__ __volatile__(".word 0xE1600070");
 
@@ -271,6 +275,18 @@ void setup_auxcr(int device_type, int boot_type)
 		__asm__ __volatile__("mov     	r2, #4");
 		__asm__ __volatile__("mov     	r6, #0xff");
 		__asm__ __volatile__("adr	r3, write_aux_control_params");
+
+		/* save register context before calling intermediate function */
+		 __asm__ __volatile__("stmfd     r13!, {r0-r12}");
+		if (get_cortex_a8_rev() == 0x32) {
+			/* if cortex a8 r3p2 then make IBE = 0 */
+			__asm__ __volatile__("mrc p15, 0, r10, c1, c0, 1");
+			__asm__ __volatile__("bic r10, r10, #0x40");
+			__asm__ __volatile__("str r10, [r3, #4]");
+		}
+		/* restore register context */
+		__asm__ __volatile__("ldmfd     r13!, {r0-r12}");
+
 		__asm__ __volatile__("mcr	p15, 0, r0, c7, c5, 4");
 		__asm__ __volatile__("mcr     	p15, 0, r0, c7, c10, 5");
 		__asm__ __volatile__(".word	0xE1600071");
