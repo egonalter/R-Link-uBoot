@@ -67,7 +67,7 @@ typedef enum {
 #elif defined(CONFIG_3430ZOOM2_512M) ||\
 			defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
-#elif defined(CONFIG_3630SDP_1G)
+#elif defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03590099)	 /* Hynix MCP ddr module */
 #else
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
@@ -201,7 +201,7 @@ typedef enum {
 
 #elif defined(CONFIG_3430ZOOM2_512M) ||\
 		defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)\
-	|| defined(CONFIG_3630SDP_1G)
+	|| defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G)
 
 /* Hynix part of 3430 Zoom2 (166MHz optimized) 6.02ns
  *     ACTIMA
