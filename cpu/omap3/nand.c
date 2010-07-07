@@ -519,20 +519,20 @@ void board_nand_init(struct nand_chip *nand)
 		{
 			.name   = "system",
 			.start  = 0x2000000,
-			.length = 0xA000000, /* 160M */
+			.length = 0xB400000, /* 180M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "userdata",
-			.start  = 0xC000000,
+			.start  = 0xD400000,
 			.length = 0x2000000, /* 32M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},
 		{
 			.name   = "cache",
-			.start  = 0xE000000,
+			.start  = 0xF400000,
 			.length = 0x2000000, /* 32M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
