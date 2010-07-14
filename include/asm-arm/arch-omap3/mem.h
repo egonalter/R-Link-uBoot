@@ -68,7 +68,19 @@ typedef enum {
 			defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
 #elif defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G)
-#define SDP_SDRC_MDCFG_0_DDR	(0x03590099)	 /* Hynix MCP ddr module */
+/*
+ * LOCKSTATUS 	 - Set to 0b0;
+ * RASWIDTH	 - Set to 0x3    For the row address a0-a13
+ * CASWIDTH	 - Set to 0x6	 For the column address a0-a9,a11
+ * ADDRMUXLEGACY - Set to 0b1;	 Enabled the Legacy Addresssing
+ * RAMSIZE	 - Set to 0x100; Set this to 512MB for each CS
+ * BANKALLOCATION - Set to 0x2;  Row-bank-column
+ * B32NOT16	 - Set to 0b1;	 External SDRAM device is x32 bit.
+ * DEEPPD	 - Set to 0b1;	 The memory supports deep-power-down mode
+ * DDRTYPE	 - Set to 0b0;	 Mobile DDR
+ * RAMTYPE	 - Set to 0x1;	 DDR-SDRAM (double data rate)
+ */
+#define SDP_SDRC_MDCFG_0_DDR	(0x03690099)	 /* Hynix MCP ddr module */
 #else
 #define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
 #endif
