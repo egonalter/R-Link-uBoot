@@ -440,7 +440,10 @@ int do_mem_cp ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 #endif
 
-#if (CONFIG_COMMANDS & CFG_CMD_MMC)
+#if 0
+/* TODO */
+/*#if (CONFIG_COMMANDS & CFG_CMD_MMC)*/
+
 	if (mmc2info(dest)) {
 		int rc;
 

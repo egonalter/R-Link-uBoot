@@ -164,14 +164,17 @@
 #define CLK_MISC		2
 
 typedef struct {
-	unsigned int slot;              /* hsmmc# */
-	unsigned int base;              /* hsmmc base address */
 	unsigned int card_type;
 	unsigned int version;
 	unsigned int mode;
 	unsigned int size;
 	unsigned int RCA;
 } mmc_card_data;
+
+typedef struct {
+	unsigned int slot;
+	unsigned int base;
+ } mmc_controller_data;
 
 #define mmc_reg_out(addr, mask, val) \
 	(addr) = (((addr)) & (~(mask)) ) | ( (val) & (mask));

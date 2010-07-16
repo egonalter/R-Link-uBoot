@@ -27,156 +27,90 @@
 #if (CONFIG_COMMANDS & CFG_CMD_MMC)
 
 #include <mmc.h>
-
-static inline int str2long(char *p, unsigned int *num)
-{
-	char *endptr;
-
-	*num = simple_strtoul(p, &endptr, 16);
-	return (*p != '\0' && *endptr == '\0') ? 1 : 0;
-}
+int mmc_flag[2] = {0, 0} ;
 
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	int  ret = -1;
-	unsigned int dev_num, addr = 0, offset = 0, size = 0, total;
+	ulong src_addr, dst_addr, size;
+	char *cmd;
+	/*Default Setting to SLOT-0*/
+	int slot_no = 0, mmc_cont = 0;
 
-	switch (argc) {
-	case 2:
-	if ((strncmp(argv[0], "mmcinit", 7) == 0) &&
-					(argv[0][7] == '\0')) {
-		if (!(str2long(argv[1], &dev_num))) {
-			printf("'%s' is not a number\n", argv[1]);
-			goto usage;
-			}
-		if ((dev_num != 0) && (dev_num != 1))
-			goto usage;
-		ret = mmc_init(dev_num);
-		if (ret)
-			printf("No MMC card found!\n");
-		else
-			printf("MMC%d Initalization OK\n", dev_num+1);
-
-		return ret;
-		}
-		break;
-
-	default:
-	if ((strncmp(argv[0], "mmc", 3) == 0) && (argv[0][3] == '\0')) {
-
-		if ((strncmp(argv[1], "init", 4) == 0)
-					&& (argv[1][4] == '\0')) {
-			if (!(str2long(argv[2], &dev_num))) {
-				printf("'%s' is not a number\n", argv[2]);
-				goto usage;
-		}
-			if ((dev_num != 0) && (dev_num != 1))
-				goto usage;
-			ret = mmc_init(dev_num);
-			if (ret)
-				printf("No MMC card found!\n");
-			else
-				printf("MMC%d Initalization OK\n", dev_num+1);
-
-			return ret;
-		} else if (argc  == 6) {
-			total = 0;
-			/* validate the input */
-			if (!(str2long(argv[2], &dev_num))) {
-				printf("'%s' is not a number\n", argv[2]);
-				goto usage;
-			} else if (!(str2long(argv[3], &addr))) {
-				printf("'%s' is not a number\n", argv[3]);
-				goto usage;
-			} else if (!(str2long(argv[4], &offset))) {
-				printf("'%s' is not a number\n", argv[4]);
-				goto usage;
-			} else if (!(str2long(argv[5], &size))) {
-				printf("'%s' is not a number\n", argv[5]);
-				goto usage;
-			}
-
-			if (offset%4 != 0) {
-				printf("Offset is not WORD boundary\n");
-				goto usage;
-			}
-
-			/* validate the params */
-			if (((dev_num != 0) && (dev_num != 1)) || (size == 0))
-				ret = -1;
-			else
-				ret = 0;
-		}
-
-			if (ret)
-				goto usage;
-
-		if ((strncmp(argv[1], "write.i", 7) == 0)
-						&& (argv[1][7] == '\0')) {
-
-			printf("MMC%d Write: offset 0x%08x, size 0x%x\n",
-							dev_num, offset, size);
-			ret = mmc_write_opts(dev_num,
-				offset, size, (unsigned char *)addr, &total);
-			printf("%d bytes written: %s\n",
-				total, ret ? "OK" : "ERROR");
-		} else if ((strncmp(argv[1], "read.i", 6) == 0) &&
-						(argv[1][6] == '\0')) {
-
-			printf("MMC%d Read: offset 0x%08x, size 0x%x\n",
-							dev_num, offset, size);
-			ret = mmc_read_opts(dev_num, offset, size,
-				(unsigned char *)addr);
-			printf("%d bytes read: %s\n",
-				size, ret ? "OK" : "ERROR");
-		} else if ((strncmp(argv[1], "write", 5) == 0) &&
-				(argv[1][5] == '\0')) {
-
-			printf("MMC%d Write: offset 0x%08x, size 0x%x\n",
-							dev_num, offset, size);
-			ret = mmc_write_opts(dev_num, offset, size,
-						(unsigned char *)addr, &total);
-			printf("%d bytes written: %s\n",
-				total, ret ? "OK" : "ERROR");
-		} else if ((strncmp(argv[1], "read", 4) == 0) &&
-							(argv[1][4] == '\0')) {
-
-			printf("MMC%d Read: offset 0x%08x, size 0x%x\n",
-							dev_num, offset, size);
-			ret = mmc_read_opts(dev_num, offset, size,
-						(unsigned char *)addr);
-			printf("%d bytes read: %s\n",
-						size, ret ? "OK" : "ERROR");
+	if (argc < 2) {
+		goto mmc_cmd_usage;
+	} else if (argc == 2) {
+		if (strncmp(argv[0], "mmcinit", 7) != 0) {
+			goto mmc_cmd_usage;
 		} else {
-
-			goto usage;
+			slot_no = simple_strtoul(argv[1], NULL, 16);
+			if ((slot_no != 0) && (slot_no != 1))
+				goto mmc_cmd_usage;
+			if (mmc_init(slot_no) != 0) {
+				printf("No MMC card found\n");
+				return 1;
+			} else {
+				mmc_flag[slot_no] = 1;
+			}
 		}
-		/* status of the operation */
-		return ret;
+	} else {
+		mmc_cont = simple_strtoul(argv[1], NULL, 16);
+		if ((mmc_cont != 0) && (mmc_cont != 1))
+			goto mmc_cmd_usage;
+
+		if (!mmc_flag[mmc_cont]) {
+			printf("Try to do init First b4 read/write\n");
+			goto mmc_cmd_usage;
 		}
 
-		break;
+		cmd = argv[2];
+		if (strncmp(cmd, "read", 4) != 0 && strncmp(cmd, "write", 5) != 0
+					&& strncmp(cmd, "erase", 5) != 0)
+			goto mmc_cmd_usage;
+
+		if (strcmp(cmd, "erase") == 0) {
+			if (argc != 5) {
+				goto mmc_cmd_usage;
+			} else {
+				src_addr = simple_strtoul(argv[3], NULL, 16);
+				size = simple_strtoul(argv[4], NULL, 16);
+				mmc_erase(mmc_cont, src_addr, size);
+			}
+		}
+		if (strcmp(cmd, "read") == 0) {
+			if (argc != 6) {
+				goto mmc_cmd_usage;
+			} else {
+				src_addr = simple_strtoul(argv[3], NULL, 16);
+				dst_addr = simple_strtoul(argv[4], NULL, 16);
+				size = simple_strtoul(argv[5], NULL, 16);
+				mmc_read(mmc_cont, src_addr,
+					(unsigned char *)dst_addr, size);
+			}
+		}
+		if (strcmp(cmd, "write") == 0) {
+			if (argc != 6) {
+				goto mmc_cmd_usage;
+			} else {
+				src_addr = simple_strtoul(argv[3], NULL, 16);
+				dst_addr = simple_strtoul(argv[4], NULL, 16);
+				size = simple_strtoul(argv[5], NULL, 16);
+				mmc_write(mmc_cont, (unsigned char *)src_addr,
+							dst_addr, size);
+			}
+		}
 	}
+	return 0;
 
-usage:
+mmc_cmd_usage:
 	printf("Usage:\n%s\n", cmdtp->usage);
 	return 1;
 }
 
-U_BOOT_CMD(
-	mmc, 6, 1, do_mmc,
-	"mmc - MMC sub-system\n"
-	"mmc init <dev>\n"
-	"mmc read[.i]/write[.i] <dev> <addr> <offset> [size]\n",
-	"mmc init - device (0 for MMC1, 1 for MMC2)\n"
-	"mmc read[.i]/write[.i] device addr offset size - \n"
-	"--- write `size' starting at offset `offset' to/from device\n"
-	"device - 0/1 for MMC1/MMC2\n" "`addr' is memory location\n"
-);
-U_BOOT_CMD(
-	mmcinit, 2, 0, do_mmc,
-	"mmcinit <dev> - init mmc card (0 for MMC1, 1 for MMC2)\n",
-	NULL
-);
-
-#endif	/* CFG_CMD_MMC */
+U_BOOT_CMD(mmcinit, 6, 1, do_mmc,
+	"mmcinit - initialize mmc\n"
+	"mmc     - Read/write/Erase mmc\n",
+	" <controller[0/1]>\n"
+	"mmc <controller[0/1]> read <src> <dst> <size>\n"
+	"mmc <controller[0/1]> write <src> <dst> <size>\n"
+	"mmc <controller[0/1]> erase <start> <size>\n");
+#endif  /* CFG_CMD_MMC */
