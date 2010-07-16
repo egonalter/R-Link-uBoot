@@ -40,6 +40,26 @@ void l2cache_enable(void);
 void setup_auxcr(int, int);
 void eth_init(void *);
 
+#ifdef CONFIG_STORAGE_EMMC
+#include <environment.h>
+
+extern uchar(*boot_env_get_char_spec) (int index);
+extern int (*boot_env_init) (void);
+extern int (*boot_saveenv) (void);
+extern void (*boot_env_relocate_spec) (void);
+
+/* EMMC */
+extern uchar mmc_env_get_char_spec(int index);
+extern int mmc_env_init(void);
+extern int mmc_saveenv(void);
+extern void mmc_env_relocate_spec(void);
+extern char *mmc_env_name_spec;
+
+char *env_name_spec;
+/* update these elsewhere */
+env_t *env_ptr;
+#endif
+
 
 /*******************************************************
  * Routine: delay
@@ -58,6 +78,16 @@ static inline void delay(unsigned long loops)
 int board_init(void)
 {
 	DECLARE_GLOBAL_DATA_PTR;
+
+#ifdef CONFIG_STORAGE_EMMC
+	/* Intializing env functional pointers with eMMC */
+	boot_env_get_char_spec = mmc_env_get_char_spec;
+	boot_env_init = mmc_env_init;
+	boot_saveenv = mmc_saveenv;
+	boot_env_relocate_spec = mmc_env_relocate_spec;
+	env_ptr = (env_t *) (CFG_FLASH_BASE + CFG_ENV_OFFSET);
+	env_name_spec = mmc_env_name_spec;
+#endif
 
 	gpmc_init();		/* in SRAM or SDRAM, finish GPMC */
 

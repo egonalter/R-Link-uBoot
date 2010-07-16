@@ -81,6 +81,15 @@
 # endif
 #endif /* CFG_ENV_IS_IN_NAND */
 
+#if defined(CFG_ENV_IS_IN_EMMC)
+# ifndef CFG_ENV_OFFSET
+#  error "Need to define CFG_ENV_OFFSET when using CFG_ENV_IS_IN_EMMC"
+# endif
+# ifndef CFG_ENV_SECT_SIZE
+#  error "Need to define CFG_ENV_SECT_SIZE when using CFG_ENV_IS_IN_EMMC"
+# endif
+#endif /* CFG_ENV_IS_IN_EMMC */
+
 
 #ifdef CFG_REDUNDAND_ENVIRONMENT
 # define ENV_HEADER_SIZE	(sizeof(unsigned long) + 1)

@@ -90,8 +90,10 @@ u8 is_flash = 0;
 u8 is_onenand = 0;
 #endif
 
+#ifndef CONFIG_STORAGE_EMMC
 char *env_name_spec = 0;
 env_t *env_ptr = 0;
+#endif
 
 #if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_FLASH)) == (CFG_CMD_ENV|CFG_CMD_FLASH))
 extern env_t *flash_addr;
