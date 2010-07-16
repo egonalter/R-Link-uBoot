@@ -40,6 +40,9 @@
 #define CONFIG_TWL4030_KEYPAD   1    /* Use the keypad */
 #define CONFIG_TWL4030_USB      1    /* Initialize twl usb */
 #define CONFIG_BOARD_REVISION   1    /* Board revision */
+#if !defined(CONFIG_STORAGE_EMMC)
+#define CONFIG_STORAGE_NAND     1    /* Flash to NAND using Fastboot */
+#endif
 
 //#define CONFIG_3430_AS_3410	1    /* true for 3430 in 3410 mode */
 
@@ -111,9 +114,14 @@
 #endif
 
 /* Config CMD*/
+#if defined(CONFIG_STORAGE_NAND)
 #define CONFIG_COMMANDS		((CFG_CMD_I2C | CONFIG_CMD_DFL | CFG_CMD_DHCP |\
 				  CFG_CMD_FAT | CFG_CMD_MMC |\
 				  CFG_CMD_NAND) & ~(C_MSK))
+#elif defined(CONFIG_STORAGE_EMMC)
+#define CONFIG_COMMANDS		((CFG_CMD_I2C | CONFIG_CMD_DFL | CFG_CMD_DHCP |\
+				  CFG_CMD_FAT | CFG_CMD_MMC) & ~(C_MSK))
+#endif
 
 #define CONFIG_BOOTP_MASK        CONFIG_BOOTP_DEFAULT
 
@@ -136,6 +144,7 @@
 #define CONFIG_DRIVER_OMAP34XX_I2C 1
 #endif
 
+#if defined(CONFIG_STORAGE_NAND)
 /*
  *  Board NAND Info.
  */
@@ -157,9 +166,11 @@
 
 #define NAND_ChipID_UNKNOWN      0x00
 #define NAND_MAX_FLOORS          1
-#define NAND_MAX_CHIPS           1
 #define NAND_NO_RB               1
 #define CFG_NAND_WP
+#endif
+
+#define NAND_MAX_CHIPS           1
 
 #define CONFIG_BOOTDELAY         3
 
@@ -280,6 +291,7 @@
 #define PHYS_FLASH_SIZE_SDPV2	SZ_128M
 #define PHYS_FLASH_SIZE		SZ_32M
 
+#if defined(CONFIG_STORAGE_NAND)
 #define CFG_FLASH_BASE		boot_flash_base
 #define PHYS_FLASH_SECT_SIZE	boot_flash_sec
 /* Dummy declaration of flash banks to get compilation right */
@@ -303,8 +315,20 @@
 #define CFG_ENV_SECT_SIZE	boot_flash_sec
 #define CFG_ENV_OFFSET		boot_flash_off
 #define CFG_ENV_ADDR		boot_flash_env_addr
+#endif
 
+#if defined(CONFIG_STORAGE_EMMC)
+#define CFG_MONITOR_BASE       CFG_FLASH_BASE /* Monitor at start of flash */
 
+/* eMMC Variables */
+#define CFG_ENV_IS_IN_EMMC     1
+#define CFG_FLASH_BASE         0x0
+#define CFG_ENV_SECT_SIZE      SZ_128K
+#define CFG_ENV_OFFSET	       0x700
+#define CFG_ENV_ADDR           0x700
+
+#define ENV_IS_VARIABLE	       1
+#endif
 /*-----------------------------------------------------------------------
  * CFI FLASH driver setup
  */
@@ -343,6 +367,7 @@ extern unsigned int boot_flash_sec;
 extern unsigned int boot_flash_type;
 #endif
 
+#if defined(CONFIG_STORAGE_NAND)
 #define WRITE_NAND_COMMAND(d, adr) __raw_writew(d, (nand_cs_base + GPMC_NAND_CMD))
 #define WRITE_NAND_ADDRESS(d, adr) __raw_writew(d, (nand_cs_base + GPMC_NAND_ADR))
 #define WRITE_NAND(d, adr) __raw_writew(d, (nand_cs_base + GPMC_NAND_DAT))
@@ -354,10 +379,12 @@ extern unsigned int boot_flash_type;
 #define NAND_DISABLE_CE(nand)
 #define NAND_ENABLE_CE(nand)
 #define NAND_WAIT_READY(nand)	udelay(10)
+#endif
 
 /* Fastboot variables */
+#define CFG_FASTBOOT_MMC_NO               1    /* Use eMMC */
 #define CFG_FASTBOOT_TRANSFER_BUFFER (PHYS_SDRAM_1 + SZ_16M)
-#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_256M - SZ_16M)
+#define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_512M - SZ_16M)
 #define CFG_FASTBOOT_PREBOOT_KEYS         1
 #define CFG_FASTBOOT_PREBOOT_KEY1         0x37 /* 'ok' */
 #define CFG_FASTBOOT_PREBOOT_KEY2         0x00 /* unused */
@@ -365,8 +392,10 @@ extern unsigned int boot_flash_type;
 #define CFG_FASTBOOT_PREBOOT_LOOP_MAXIMUM (1)
 #define CFG_FASTBOOT_PREBOOT_LOOP_WAIT    (0)
 
+#if defined(CONFIG_STORAGE_NAND)
 /* Yaffs variables */
 #define CFG_NAND_YAFFS_WRITE
+#endif
 
 /* Zoom2 Battery charging enable */
 #define CFG_BATTERY_CHARGING

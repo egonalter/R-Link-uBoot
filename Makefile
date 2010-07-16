@@ -1833,6 +1833,14 @@ omap3430zoom2_config :    unconfig
 omap3630zoom3_config :    unconfig
 	@./mkconfig $(@:_config=) arm omap3 omap3630zoom3
 
+omap3630zoom3_emmc_config :    unconfig
+	@./mkconfig $(@:_config=) arm omap3 omap3630zoom3
+	echo "#define CONFIG_STORAGE_EMMC 1" > ./include/config-tmp.h; \
+        cat ./include/config.h >> ./include/config-tmp.h; \
+        mv ./include/config-tmp.h ./include/config.h; \
+        sed -i -e 's/omap3630zoom3_emmc/omap3630zoom3/' ./include/config.h
+
+
 omap3630sdp_config :    unconfig
 	@./mkconfig $(@:_config=) arm omap3 omap3630sdp
 
