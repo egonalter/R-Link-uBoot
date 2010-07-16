@@ -26,6 +26,7 @@ LIB	= lib$(BOARD).a
 
 OBJS	:= \
 	omap3630zoom3.o \
+	mmc.o \
 	sys_info.o
 
 $(LIB):	$(OBJS)
