@@ -64,7 +64,9 @@
 /* Use do_reset for fastboot's 'reboot' command */
 extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 /* Use do_nand for fastboot's flash commands */
+#if defined(CONFIG_STORAGE_NAND)
 extern int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[]);
+#endif
 /* Use do_setenv and do_saveenv to permenantly save data */
 int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 int do_setenv ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
@@ -758,6 +760,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				printf ("\ndownloading of %d bytes finished\n",
 					download_bytes);
 
+#if defined(CONFIG_STORAGE_NAND)
 				/* Pad to block length
 				   In most cases, padding the download to be
 				   block aligned is correct. The exception is
@@ -787,6 +790,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 						}
 					}
 				}
+#endif
 			}
 
 			/* Provide some feedback */
@@ -878,6 +882,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 		   Board has to set up flash partitions */
 
 		if(memcmp(cmdbuf, "erase:", 6) == 0){
+#if defined(CONFIG_STORAGE_NAND)
 			struct fastboot_ptentry *ptn;
 
 			ptn = fastboot_flash_find_ptn(cmdbuf + 6);
@@ -927,6 +932,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				}
 			
 			}
+#endif
 			ret = 0;
 		}
 
@@ -1058,7 +1064,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 		   Flash what was downloaded */
 
 		if(memcmp(cmdbuf, "flash:", 6) == 0) {
-
+#if defined(CONFIG_STORAGE_NAND)
 			if (download_bytes) 
 			{
 				struct fastboot_ptentry *ptn;
@@ -1100,7 +1106,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 			{
 				sprintf(response, "FAILno image downloaded");
 			}
-
+#endif
 			ret = 0;
 		}
 
@@ -1116,7 +1122,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 		   Upload just the data in a partition */
 		if ((memcmp(cmdbuf, "upload:", 7) == 0) ||
 		    (memcmp(cmdbuf, "uploadraw:", 10) == 0)) {
-
+#if defined(CONFIG_STORAGE_NAND)
 			unsigned int adv, delim_index, len;
 			struct fastboot_ptentry *ptn;
 			unsigned int is_raw = 0;
@@ -1253,6 +1259,7 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 					sprintf(response, "DATA%08x", size);
 				}
 			}
+#endif
 			ret = 0;
 		}
 
