@@ -575,7 +575,8 @@ unsigned char omap_mmc_erase_sect(unsigned int start,
 	unsigned int resp[4];
 	unsigned int mmc_stat;
 
-	if (start > mmc_c->size || (start + size) > mmc_c->size) {
+	if ((start / MMCSD_SECTOR_SIZE) > mmc_c->size ||
+			((start + size) / MMCSD_SECTOR_SIZE) > mmc_c->size) {
 		printf("mmc erase: erase to Sector is\n"
 			"out of card range\n");
 		return 1;
