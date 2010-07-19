@@ -205,11 +205,28 @@ u32 get_board_rev(void)
  *********************************************************************/
 void display_board_info(u32 btype)
 {
-	char *bootmode[] = {
-		"NOR",
-		"ONND",
-		"NAND",
+	u32 boot_device = 0;
+	char boot_dev_name[8];
+
+	/* Read boot device from saved scratch pad */
+	boot_device = __raw_readl(0x480029c0) & 0xff;
+
+	switch(boot_device) {
+		case 0x03:
+			strcpy(boot_dev_name, "ONENAND");
+			break;
+		case 0x02:
+		default:
+			strcpy(boot_dev_name, "NAND");
+			break;
+		case 0x05:
+			strcpy(boot_dev_name, "EMMC");
+			break;
+		case 0x06:
+			strcpy(boot_dev_name, "MMC/SD1");
+			break;
 	};
+
 	u32 brev = get_board_rev();
 	char cpu_3430s[] = "3630";
 	char db_ver[] = "0.0";	 /* board type */
@@ -282,14 +299,14 @@ void display_board_info(u32 btype)
 
 	printf("OMAP%s-%s rev %d, CPU-OPP%s L3-%sMHz\n", cpu_s, sec_s, rev,
 		p_cpu, p_l3);
-	printf("OMAP3630Zoom3 %s Version + %s (Boot %s)\n", db_s,
-		mem_s, bootmode[2]);
+	printf("OMAP3630Zoom3 %s Version + %s (Boot from %s)\n", db_s,
+		mem_s, boot_dev_name);
 #ifdef CONFIG_LED_INFO
 	/* Format: 0123456789ABCDEF
 	 *         3430C GP L3-100 NAND
 	 */
-	sprintf(led_string, "%5s%3s%3s %4s", cpu_s, sec_s, p_l3,
-		bootmode[2]);
+	sprintf(led_string, "%5s%3s%3s %s", cpu_s, sec_s, p_l3,
+		boot_dev_name);
 	/* reuse sec */
 	for (sec = 0; sec < CONFIG_LED_LEN; sec += 2) {
 		/* invert byte loc */
