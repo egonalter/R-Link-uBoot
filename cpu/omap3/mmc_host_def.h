@@ -87,6 +87,8 @@
 #define DDIR_WRITE		(0x0 << 4)
 #define DDIR_READ		(0x1 << 4)
 #define MSBS_SGLEBLK		(0x0 << 5)
+#define MSBS			(0x1 << 5)
+#define BCE			(0x1 << 1)
 #define RSP_TYPE_OFFSET		(16)
 #define RSP_TYPE_MASK		(0x3 << 16)
 #define RSP_TYPE_NORSP		(0x0 << 16)
