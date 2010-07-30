@@ -24,7 +24,7 @@
 
 /* To use, the board should define its own voltag_info function */
 void inline __voltage_info (void) {}
-void inline voltage_info (void) __attribute__((weak, alias("__voltage_info")));
+void voltage_info (void) __attribute__((weak, alias("__voltage_info")));
 
 int do_voltage (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
