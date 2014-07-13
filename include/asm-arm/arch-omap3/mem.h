@@ -25,6 +25,32 @@
 #ifndef _OMAP34XX_MEM_H_
 #define _OMAP34XX_MEM_H_
 
+#define MCFG_RAMTYPE_POS	0
+#define MCFG_DDRTYPE_POS	2
+#define MCFG_DEEPPD_POS		3
+#define MCFG_B32NOT16_POS	4
+#define MCFG_BANKALLOCATION_POS	6
+#define MCFG_RAMSIZE_POS	8
+#define MCFG_ADDRMUXLEGACY_POS	19
+#define MCFG_ADDRMUX_POS	20
+#define MCFG_CASWIDTH_POS	20
+#define MCFG_RASWIDTH_POS	24
+#define MCFG_LOCKSTATUS_POS	30
+
+#define ACTIM_CTRLA_TDAL_POS	0
+#define ACTIM_CTRLA_TDPL_POS	6
+#define ACTIM_CTRLA_TRRD_POS	9
+#define ACTIM_CTRLA_TRCD_POS	12
+#define ACTIM_CTRLA_TRP_POS	15
+#define ACTIM_CTRLA_TRAS_POS	18
+#define ACTIM_CTRLA_TRC_POS	22
+#define ACTIM_CTRLA_TRFC_POS	27
+
+#define ACTIM_CTRLB_TXSR_POS	0
+#define ACTIM_CTRLB_TXP_POS	8
+#define ACTIM_CTRLB_TCKE_POS	12
+#define ACTIM_CTRLB_TWTR_POS	16
+
 #define SDRC_CS0_OSET    0x0
 #define SDRC_CS1_OSET    0x30  /* mirror CS1 regs appear offset 0x30 from CS0 */
 
@@ -68,24 +94,45 @@ typedef enum {
 			defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)
 #define SDP_SDRC_MDCFG_0_DDR	(0x03588099)	 /* Hynix MCP ddr module */
 #elif defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G)
-/*
- * LOCKSTATUS 	 - Set to 0b0;
- * RASWIDTH	 - Set to 0x3    For the row address a0-a13
- * CASWIDTH	 - Set to 0x6	 For the column address a0-a9,a11
- * ADDRMUXLEGACY - Set to 0b1;	 Enabled the Legacy Addresssing
- * RAMSIZE	 - Set to 0x100; Set this to 512MB for each CS
- * BANKALLOCATION - Set to 0x2;  Row-bank-column
- * B32NOT16	 - Set to 0b1;	 External SDRAM device is x32 bit.
- * DEEPPD	 - Set to 0b1;	 The memory supports deep-power-down mode
- * DDRTYPE	 - Set to 0b0;	 Mobile DDR
- * RAMTYPE	 - Set to 0x1;	 DDR-SDRAM (double data rate)
- */
-#define SDP_SDRC_MDCFG_0_DDR	(0x03690099)	 /* Hynix MCP ddr module */
-#else
-#define SDP_SDRC_MDCFG_0_DDR	(0x02584099)	 /* Micron MCP ddr module */
+#define SDP_SDRC_MDCFG_0_DDR	(0x03590099)	 /* Hynix MCP ddr module */
+#elif defined (CONFIG_SANTIAGO) || defined(CONFIG_MONOPOLI) || \
+	defined(CONFIG_STRASBOURG)
+
+#if defined(__VARIANT_RENNES_B1)
+#define SDP_SDRC_CS_CFG		4
+/* MT46H128M16: 512MB = 2 x 32Meg x 16 x 4 banks */
+#define SDP_SDRC_MDCFG_0_DDR ((3   << MCFG_RASWIDTH_POS) |		/* RAS address width: 14 (A0-A13) */ \
+				(6   << MCFG_CASWIDTH_POS) |		/* CAS address width: 11 (A0-A9) (A11) */ \
+				(1   << MCFG_ADDRMUXLEGACY_POS) |	/* flexible address muxing */ \
+				(256 << MCFG_RAMSIZE_POS) |		/* 512MB */ \
+				(2   << MCFG_BANKALLOCATION_POS) |	/* row-bank-column */ \
+				(1   << MCFG_B32NOT16_POS) |		/* 32-bit RAM */ \
+				(1   << MCFG_DEEPPD_POS) |		/* deep-power-down supported */ \
+				(0   << MCFG_DDRTYPE_POS) |		/* mobile DDR */ \
+				(1   << MCFG_RAMTYPE_POS))		/* DDR-SDRAM */
+#else /* __VARIANT_RENNES_B1 */
+#define SDP_SDRC_CS_CFG		2
+/* same settings for santiago (with MT46H64M32), monopoli (with K4X2G323PB)
+   and Strasbourg (K4X2G323PB or MT46H64M32) */
+#define SDP_SDRC_MDCFG_0_DDR ((3   << MCFG_RASWIDTH_POS) |		/* RAS address width: 14 (A0-A13) */ \
+				(5   << MCFG_CASWIDTH_POS) |		/* CAS address width: 10 (A0-A9) */ \
+				(1   << MCFG_ADDRMUXLEGACY_POS) |	/* flexible address muxing */ \
+				(128 << MCFG_RAMSIZE_POS) |		/* 256MB */ \
+				(2   << MCFG_BANKALLOCATION_POS) |	/* row-bank-column */ \
+				(1   << MCFG_B32NOT16_POS) |		/* 32-bit RAM */ \
+				(1   << MCFG_DEEPPD_POS) |		/* deep-power-down supported */ \
+				(0   << MCFG_DDRTYPE_POS) |		/* mobile DDR */ \
+				(1   << MCFG_RAMTYPE_POS))		/* DDR-SDRAM */
+#endif /* __VARIANT_RENNES_B1 */
 #endif
 
 #define SDP_SDRC_MR_0_DDR		0x00000032
+
+#ifdef CONFIG_STRASBOURG
+#define SDP_SDRC_EMR2_0_DDR		0x00000020
+#else
+#define SDP_SDRC_EMR2_0_DDR		0x00000000
+#endif
 
 /* optimized timings good for current shipping parts */
 #define SDP_3430_SDRC_RFR_CTRL_100MHz   0x0002da01
@@ -213,7 +260,8 @@ typedef enum {
 
 #elif defined(CONFIG_3430ZOOM2_512M) ||\
 		defined(CONFIG_3630ZOOM3) || defined(CONFIG_3630SDP)\
-	|| defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G)
+	|| defined(CONFIG_3630SDP_1G) || defined(CONFIG_3630ZOOM3_1G) \
+	|| defined(CONFIG_3730OVERO) || (defined(CONFIG_STRASBOURG) && defined(DDR_MT46H64M32))
 
 /* Hynix part of 3430 Zoom2 (166MHz optimized) 6.02ns
  *     ACTIMA
@@ -253,6 +301,106 @@ typedef enum {
 /* TODO : Cleanup magic */
 #define V_ACTIMA_200 0xa2e1b4c6
 #define V_ACTIMB_200 0x0002131c
+
+#elif defined (DDR_MT46H64M32) || defined (DDR_MT46H128M16)
+
+#if defined(PRCM_CLK_CFG2_400MHZ)
+
+/* DDR running at 200MHz */
+
+#define SDP_SDRC_RFR_CTRL	0x0005e601 /* (7.8us / 5ns) - 50 */
+
+#define V_ACTIMA_200 ((6 << ACTIM_CTRLA_TDAL_POS) |	\
+			(3  << ACTIM_CTRLA_TDPL_POS) |	\
+			(2  << ACTIM_CTRLA_TRRD_POS) |	\
+			(3  << ACTIM_CTRLA_TRCD_POS) |	\
+			(3  << ACTIM_CTRLA_TRP_POS) |	\
+			(8  << ACTIM_CTRLA_TRAS_POS) |	\
+			(11 << ACTIM_CTRLA_TRC_POS) |	\
+			(15 << ACTIM_CTRLA_TRFC_POS))
+
+#define V_ACTIMB_200 ((23 << ACTIM_CTRLB_TXSR_POS) |	\
+			(2 << ACTIM_CTRLB_TXP_POS) |	\
+			(1 << ACTIM_CTRLB_TCKE_POS) |	\
+			(2 << ACTIM_CTRLB_TWTR_POS))
+#else
+/* DDR running at 166MHz */
+
+#define SDP_SDRC_RFR_CTRL	0x0004e201 /* (7.8us / 6ns) - 50 */
+
+#define V_ACTIMA_165 ((6 << ACTIM_CTRLA_TDAL_POS) |	\
+			(3  << ACTIM_CTRLA_TDPL_POS) |	\
+			(2  << ACTIM_CTRLA_TRRD_POS) |	\
+			(3  << ACTIM_CTRLA_TRCD_POS) |	\
+			(3  << ACTIM_CTRLA_TRP_POS) |	\
+			(7  << ACTIM_CTRLA_TRAS_POS) |	\
+			(10 << ACTIM_CTRLA_TRC_POS) |	\
+			(12 << ACTIM_CTRLA_TRFC_POS))
+
+#define V_ACTIMB_165 ((19 << ACTIM_CTRLB_TXSR_POS) |	\
+			(1 << ACTIM_CTRLB_TXP_POS) |	\
+			(1 << ACTIM_CTRLB_TCKE_POS) |	\
+			(1 << ACTIM_CTRLB_TWTR_POS))
+#endif
+
+#elif defined (DDR_K4X2G323PB)
+
+#if defined(PRCM_CLK_CFG2_332MHZ)
+/* DDR running at 166MHz */
+
+/* tREFI = (tREF / (2 ^ RASWIDTH)) = (64ms / (2 ^ 14)) = 3.906us */
+#define SDP_SDRC_RFR_CTRL	0x00025901 /* (3.906us / 6ns) - 50 */
+
+#define V_ACTIMA_165 ((6 << ACTIM_CTRLA_TDAL_POS) |	\
+			(3  << ACTIM_CTRLA_TDPL_POS) |	\
+			(2  << ACTIM_CTRLA_TRRD_POS) |	\
+			(3  << ACTIM_CTRLA_TRCD_POS) |	\
+			(3  << ACTIM_CTRLA_TRP_POS) |	\
+			(7  << ACTIM_CTRLA_TRAS_POS) |	\
+			(10 << ACTIM_CTRLA_TRC_POS) |	\
+			(12 << ACTIM_CTRLA_TRFC_POS))
+
+#define V_ACTIMB_165 ((19 << ACTIM_CTRLB_TXSR_POS) |	\
+			(1 << ACTIM_CTRLB_TXP_POS) |	\
+			(1 << ACTIM_CTRLB_TCKE_POS) |	\
+			(1 << ACTIM_CTRLB_TWTR_POS))
+#elif defined(PRCM_CLK_CFG2_400MHZ)
+/* DDR running at 200MHz */
+
+/* tREFI = (tREF / (2 ^ RASWIDTH)) = (64ms / (2 ^ 14)) = 3.906us */
+#define SDP_SDRC_RFR_CTRL	0x0002db01 /* (3.906us / 6ns) - 50 */
+
+/*     ACTIMA
+ *        -TDAL = Twr/Tck + Trp/tck = 12/5 + 15/5 = 2.4 + 3 = 5.4 -> 6
+ *        -TDPL (Twr)      = 12/5 = 2.4 -> 3
+ *        -TRRD = 10/5     = 2
+ *        -TRCD = 15/5     = 3
+ *        -TRP = 15/5      = 3
+ *        -TRAS = 40/5     = 8
+ *        -TRC = 55/5      = 11
+ *        -TRFC = 120/5    = 24
+ *     ACTIMB
+ *        -TWTR = 2 tCK
+ *        -TCKE = 2 tCK
+ *        -TXP = 2 tCK
+ *        -XSR = 120/5 = 24
+ */
+#define V_ACTIMA_200 ((6 << ACTIM_CTRLA_TDAL_POS) |	\
+			(3  << ACTIM_CTRLA_TDPL_POS) |	\
+			(2  << ACTIM_CTRLA_TRRD_POS) |	\
+			(3  << ACTIM_CTRLA_TRCD_POS) |	\
+			(3  << ACTIM_CTRLA_TRP_POS) |	\
+			(8  << ACTIM_CTRLA_TRAS_POS) |	\
+			(11 << ACTIM_CTRLA_TRC_POS) |	\
+			(24 << ACTIM_CTRLA_TRFC_POS))
+
+#define V_ACTIMB_200 ((24 << ACTIM_CTRLB_TXSR_POS) |	\
+			(2 << ACTIM_CTRLB_TXP_POS) |	\
+			(2 << ACTIM_CTRLB_TCKE_POS) |	\
+			(2 << ACTIM_CTRLB_TWTR_POS))
+#else
+#error not supported
+#endif
 
 #else /* sdp3430 */
 /* Infineon part of 3430SDP (166MHz optimized) 6.02ns
@@ -305,19 +453,27 @@ typedef enum {
 #if defined(L3_100MHZ)
 # define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_100
 # define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_100
-# define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_100MHz
+# if !defined(SDP_SDRC_RFR_CTRL)
+#  define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_100MHz
+# endif
 #elif defined(L3_133MHZ)
 # define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_133
 # define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_133
-# define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_133MHz
+# if !defined(SDP_SDRC_RFR_CTRL)
+#  define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_133MHz
+# endif
 #elif  defined(L3_165MHZ)
 # define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_165
 # define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_165
-# define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_165MHz
+# if !defined(SDP_SDRC_RFR_CTRL)
+#  define SDP_SDRC_RFR_CTRL          SDP_3430_SDRC_RFR_CTRL_165MHz
+# endif
 #elif defined(L3_200MHZ)
 # define SDP_SDRC_ACTIM_CTRLA_0     V_ACTIMA_200
 # define SDP_SDRC_ACTIM_CTRLB_0     V_ACTIMB_200
-# define SDP_SDRC_RFR_CTRL          ZOOM3_3630_RFR_CTRL_200MHz
+# if !defined(SDP_SDRC_RFR_CTRL)
+#  define SDP_SDRC_RFR_CTRL          ZOOM3_3630_RFR_CTRL_200MHz
+# endif
 #endif
 
 /*

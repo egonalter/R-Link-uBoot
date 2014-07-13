@@ -100,6 +100,8 @@ extern void cs8900_get_enetaddr (uchar * addr);
 extern void rtl8019_get_enetaddr (uchar * addr);
 #endif
 
+extern void tomtom_env_init(void);
+
 /*
  * Begin and End of memory area for malloc(), and current "brk"
  */
@@ -349,6 +351,9 @@ void start_armboot (void)
 	/* initialize environment */
 	env_relocate ();
 
+	/* set TomTom specific environment variables */
+	tomtom_env_init();
+
 #ifdef CONFIG_VFD
 	/* must do this after the framebuffer is allocated */
 	drv_vfd_init();
@@ -441,9 +446,14 @@ void start_armboot (void)
 	/* NOTREACHED - no way out of command loop except booting */
 }
 
+extern void epicfail(void);
+
 void hang (void)
 {
 	puts ("### ERROR ### Please RESET the board ###\n");
+#ifdef EPICFAIL_POWEROFF
+	epicfail();
+#endif
 	for (;;);
 }
 

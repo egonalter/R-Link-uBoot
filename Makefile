@@ -1844,6 +1844,25 @@ omap3630zoom3_emmc_config :    unconfig
 omap3630sdp_config :    unconfig
 	@./mkconfig $(@:_config=) arm omap3 omap3630sdp
 
+omap3530overo_config :    unconfig
+	@./mkconfig $(@:_config=) arm omap3 omap3530overo
+
+omap3730overo_config :    unconfig
+	@./mkconfig $(@:_config=) arm omap3 omap3730overo
+
+strasbourg_config \
+strasbourg-debug_config:    unconfig
+	@./mkconfig $(@:_config=) arm omap3 strasbourg
+
+strasbourg_a2_config \
+strasbourg_a2-debug_config: unconfig
+	@./mkconfig $(@:_config=) arm omap3 strasbourg
+
+santiago_config \
+santiago-debug_config:    unconfig
+	@./mkconfig $(@:_config=) arm omap3 santiago 
+
+
 #========================================================================
 # i386
 #========================================================================
@@ -2060,6 +2079,8 @@ clean:
 	rm -f board/cray/L1/bootscript.c board/cray/L1/bootscript.image
 	rm -f board/netstar/eeprom board/netstar/crcek
 	rm -f board/netstar/*.srec board/netstar/*.bin
+	rm -f board/strasbourg/*.image
+	rm -f board/santiago/*.image
 	rm -f board/trab/trab_fkt board/voiceblue/eeprom
 	rm -f board/integratorap/u-boot.lds board/integratorcp/u-boot.lds
 	rm -f include/bmp_logo.h

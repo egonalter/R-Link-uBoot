@@ -136,9 +136,10 @@ static boot_os_Fcn do_bootm_lynxkdi;
 extern void lynxkdi_boot( image_header_t * );
 #endif
 
-image_header_t header;
+ulong load_addr = CFG_LOAD_ADDR;	/* Default Load Address */
+ulong load_size = 0;
 
-ulong load_addr = CFG_LOAD_ADDR;		/* Default Load Address */
+image_header_t header;
 
 #ifndef CFG_BOOTM_LEN
 #define CFG_BOOTM_LEN	0x800000	/* use 8MByte as default max gunzip size */
@@ -798,6 +799,40 @@ do_bootm_linux (cmd_tbl_t *cmdtp, int flag,
 	(*kernel) (kbd, initrd_start, initrd_end, cmd_start, cmd_end);
 }
 #endif /* CONFIG_PPC */
+
+/*******************************************************************/
+/* altboot - boot alternative image */
+/*******************************************************************/
+#if defined(CONFIG_CMD_ALTBOOT)
+int do_altboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
+{
+	int rcode = 0;
+
+#ifndef __DONT_INTEGRATE_ME_TO_1_3_4__
+	/* Temporary hack for temporary update system. The correct behaviour is:
+		1) Try Movi
+		2) Try recovery on NOR
+		3) Kill power
+	*/
+#endif
+
+#ifndef CFG_HUSH_PARSER
+	if (run_command (getenv ("altbootcmd"), flag) < 0)
+		rcode = 1;
+#else
+	if (parse_string_outer (getenv ("altbootcmd"),
+			FLAG_PARSE_SEMICOLON | FLAG_EXIT_FROM_LOOP) != 0)
+		rcode = 1;
+#endif
+	return rcode;
+}
+
+U_BOOT_CMD(
+	altboot, 1,	1,	do_altboot,
+	"altboot - boot alternative, i.e., run 'altbootcmd'\n",
+	NULL
+);
+#endif /* CONFIG_CMD_ALTBOOT */
 
 static void
 do_bootm_netbsd (cmd_tbl_t *cmdtp, int flag,

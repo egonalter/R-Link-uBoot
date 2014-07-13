@@ -136,6 +136,8 @@ typedef struct ctrl_id {
 #define SDRC_MCFG_1		(OMAP34XX_SDRC_BASE+0x80 + 0x30)
 #define SDRC_MR_0		(OMAP34XX_SDRC_BASE+0x84)
 #define SDRC_MR_1		(OMAP34XX_SDRC_BASE+0x84 + 0x30)
+#define SDRC_EMR2_0		(OMAP34XX_SDRC_BASE+0x8C)
+#define SDRC_EMR2_1		(OMAP34XX_SDRC_BASE+0x8C + 0x30)
 #define SDRC_ACTIM_CTRLA_0	(OMAP34XX_SDRC_BASE+0x9C)
 #define SDRC_ACTIM_CTRLA_1	(OMAP34XX_SDRC_BASE+0x9C + 0x28)
 #define SDRC_ACTIM_CTRLB_0	(OMAP34XX_SDRC_BASE+0xA0)
@@ -179,6 +181,8 @@ typedef struct ctrl_id {
 /* Watchdog */
 #define WWPS			0x34     /* r */
 #define WSPR			0x48     /* rw */
+#define WLDR			0x2c     /* rw */
+#define WTGR			0x30     /* rw */
 #define WD_UNLOCK1		0xAAAA
 #define WD_UNLOCK2		0x5555
 
@@ -196,6 +200,7 @@ typedef struct ctrl_id {
 #define CM_ICLKEN1_CORE     0x48004a10
 #define CM_ICLKEN2_CORE     0x48004a14
 #define CM_IDLEST1_CORE     0x48004a20
+#define CM_AUTOIDLE1_CORE   0x48004a30
 #define CM_CLKSEL_CORE      0x48004a40
 #define CM_FCLKEN_GFX       0x48004b00
 #define CM_ICLKEN_GFX       0x48004b10

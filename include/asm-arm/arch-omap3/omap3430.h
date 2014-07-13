@@ -70,6 +70,7 @@
 #define OMAP34XX_UART1			(OMAP34XX_L4_IO_BASE+0x6a000)
 #define OMAP34XX_UART2			(OMAP34XX_L4_IO_BASE+0x6c000)
 #define OMAP34XX_UART3			(OMAP34XX_L4_PER+0x20000)
+#define OMAP34XX_UART4			(OMAP34XX_L4_PER+0x42000)
 
 /* General Purpose Timers */ 
 #define OMAP34XX_GPT1			0x48318000
@@ -101,6 +102,9 @@
 #define OMAP34XX_GPIO4_BASE		0x49054000
 #define OMAP34XX_GPIO5_BASE		0x49056000
 #define OMAP34XX_GPIO6_BASE		0x49058000
+#define OMAP34XX_GPIO_OE		0x34
+#define OMAP34XX_GPIO_DATAIN		0x38
+#define OMAP34XX_GPIO_DATAOUT		0x3C
 
 #ifndef __ASSEMBLY__
 typedef struct gpio {
@@ -166,6 +170,11 @@ typedef struct gpio {
 #define CLKEN_PER_EN_MCBSP3_BIT           1
 #define CLKEN_PER_EN_MCBSP2_BIT           0
 
+/* CM_FCLKEN_WKUP and CM_ICLKEN_WKUP */
+#define CLKEN_WKUP_EN_WDT2_BIT            5
+#define CLKEN_WKUP_EN_GPIO1_BIT           3
+#define CLKEN_WKUP_EN_GPT1_BIT            0
+
 /*
  * SDP3430 specific Section
  */
@@ -200,5 +209,13 @@ typedef struct gpio {
 # define EEPROM_MCAM_BRD			(DEBUG_BASE+0x10000+0x1B00)
 # define ENHANCED_UI_EE_NAME		"750-2075"
 #endif
+
+#define FLIP_FLOP_LOCATION (OMAP34XX_CTRL_BASE + 0x09FC)
+#define FLIP_FLOP_BIT 31
+#define EPICFAIL_BIT 30
+
+#define GLOBAL_COLD_RST		(1 << 0)
+#define GLOBAL_SW_RST		(1 << 1)
+#define MPU_WD_RST		(1 << 4)
 
 #endif  /* _OMAP3430_SYS_H_ */

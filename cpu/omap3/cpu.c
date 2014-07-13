@@ -36,6 +36,7 @@
 #if !defined(CONFIG_INTEGRATOR) && ! defined(CONFIG_ARCH_CINTEGRATOR)
 #include <asm/arch/cpu.h>
 #endif
+#include <asm/io.h>
 #include <asm/arch/sys_info.h>
 #include <asm/arch/rev.h>
 
@@ -143,6 +144,10 @@ int cleanup_before_linux (void)
 	/* mem barrier to sync up things */
 	asm ("mcr p15, 0, %0, c7, c10, 4": :"r" (i)); 
 }
+
+	/* Disable the NOR flash so the kernel reinitializes */
+	__raw_writel(0 , GPMC_CONFIG7 + GPMC_CONFIG_CS0);
+	sdelay(1000);
 
 	return(0);
 }

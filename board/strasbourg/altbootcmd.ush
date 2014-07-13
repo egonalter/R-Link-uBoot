@@ -1,0 +1,2 @@
+flipflop 1
+bootm ${kernel.rescue.addr}

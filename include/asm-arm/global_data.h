@@ -23,6 +23,9 @@
 
 #ifndef	__ASM_GBL_DATA_H
 #define __ASM_GBL_DATA_H
+
+#include <tomtom.h>
+
 /*
  * The following data structure is placed in some memory wich is
  * available very early after boot (like DPRAM on MPC8xx/MPC82xx, or
@@ -52,6 +55,8 @@ typedef	struct	global_data {
 	unsigned long	reset_status;	/* reset status register at boot */
 #endif
 	void		**jt;		/* jump table */
+
+	struct tomtom_global_data tomtom;	/* TomTom specific global variables */
 } gd_t;
 
 /*

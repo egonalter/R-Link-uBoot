@@ -29,6 +29,7 @@
 #ifdef CONFIG_HAS_DATAFLASH
 #include <dataflash.h>
 #endif
+#include <flipflop.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -267,6 +268,7 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
 
 	cleanup_before_linux ();
 
+	epicfail_reset();
 	theKernel (0, bd->bi_arch_number, bd->bi_boot_params);
 }
 

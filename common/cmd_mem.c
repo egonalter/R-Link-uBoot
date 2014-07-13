@@ -36,6 +36,8 @@
 #include <dataflash.h>
 #endif
 
+DECLARE_GLOBAL_DATA_PTR;
+
 #if (CONFIG_COMMANDS & (CFG_CMD_MEMORY	| \
 			CFG_CMD_I2C	| \
 			CFG_CMD_ITEST	| \

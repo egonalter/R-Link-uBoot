@@ -543,8 +543,8 @@ int dram_init(void)
 	MUX_VAL(CP(GPMC_nCS2),      (IDIS | PTU | EN  | M0)) /*GPMC_nCS2*/\
 	MUX_VAL(CP(GPMC_nCS3),      (IEN  | PTD | DIS | M4)) /*GPIO_54 lab*/\
 	MUX_VAL(CP(GPMC_nCS4),      (IDIS | PTD | DIS | M0)) /*GPMC_nCS4*/\
-	MUX_VAL(CP(GPMC_nCS5),      (IDIS | PTD | DIS | M4)) /*GPIO_56 */\
-	MUX_VAL(CP(GPMC_nCS6),      (IEN  | PTD | DIS | M4)) /*GPIO_57 */\
+	MUX_VAL(CP(GPMC_nCS5),      (IDIS | PTD | DIS | M4)) /*GPIO_56 lab*/\
+	MUX_VAL(CP(GPMC_nCS6),      (IEN  | PTD | DIS | M1)) /*sys_ndmareq1 lab*/\
 	MUX_VAL(CP(GPMC_nCS7),      (IEN  | PTU | EN  | M1)) /*GPMC_IO_DIR lab*/\
 	MUX_VAL(CP(GPMC_CLK),       (IDIS | PTD | DIS | M0)) /*GPMC_CLK*/\
 	MUX_VAL(CP(GPMC_nADV_ALE),  (IDIS | PTD | DIS | M0)) /*GPMC_nADV_ALE*/\

@@ -71,6 +71,20 @@ core_dpll_param:
 /* 38.4MHz */
 .word 375, 35, 0, 1
 
+#elif defined(PRCM_CLK_CFG2_332MHZ)
+
+core_dpll_param:
+/* 12MHz */
+.word 83, 2, 0, 1
+/* 13MHz */
+.word 332, 12, 0, 1
+/* 19.2MHz */
+.word 514, 23, 0, 1
+/* 26MHz */
+.word 166, 12, 0, 1
+/* 38.4MHz */
+.word 415, 47, 0, 1
+
 #else
 #error "Undefined memory speed"
 #endif /* PRCM_CLK_CFG2_* */

@@ -80,7 +80,7 @@ static block_dev_desc_t *get_dev (char* ifname, int dev)
 #if defined(CONFIG_MMC)
 	if (strncmp(ifname,"mmc",3)==0) {
 		extern block_dev_desc_t *  mmc_get_dev(int dev);
-		return((dev >= 1) ? NULL : mmc_get_dev(dev));
+		return((dev >= 2) ? NULL : mmc_get_dev(dev));
 	}
 #endif
 #if defined(CONFIG_SYSTEMACE)
@@ -209,6 +209,8 @@ int do_ext2load (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return(1);
 	}
 
+	setenv("filesize", 0);
+
 	dev = (int)simple_strtoul (argv[2], &ep, 16);
 	dev_desc=get_dev(argv[1],dev);
 	if (dev_desc==NULL) {
@@ -278,12 +280,13 @@ int do_ext2load (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	/* Loading ok, update default load address */
 	load_addr = addr;
+	load_size = filelen;
 
 	printf ("\n%ld bytes read\n", filelen);
 	sprintf(buf, "%lX", filelen);
 	setenv("filesize", buf);
 
-	return(filelen);
+	return 0;
 }
 
 U_BOOT_CMD(

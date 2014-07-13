@@ -447,6 +447,7 @@ void gpmc_init(void)
 	__raw_writel(0x0, GPMC_IRQENABLE);	/* isr's sources masked */
 	__raw_writel(0, GPMC_TIMEOUT_CONTROL);	/* timeout disable */
 
+#if (!defined(CONFIG_STRASBOURG) && !defined(CONFIG_SANTIAGO))
 	config = __raw_readl(GPMC_CONFIG);
 	config &= (~0xf00);
 	__raw_writel(config, GPMC_CONFIG);
@@ -606,4 +607,5 @@ void gpmc_init(void)
 		FLASH_BASE_SDPV1 + PHYS_FLASH_SIZE*i;
 	}
 #endif
+#endif /* CONFIG_STRASBOURG || CONFIG_SANTIAGO */
 }

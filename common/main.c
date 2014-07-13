@@ -305,7 +305,7 @@ void main_loop (void)
 #endif
 
 #if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
-	char *s;
+	char *s, *r;
 	int bootdelay;
 #endif
 #ifdef CONFIG_PREBOOT
@@ -401,12 +401,16 @@ void main_loop (void)
 # endif	/* CONFIG_BOOT_RETRY_TIME */
 
 #ifdef CONFIG_BOOTCOUNT_LIMIT
-	if (bootlimit && (bootcount > bootlimit)) {
+	if (bootlimit && (bootcount > bootlimit+1)) {
+		hang();
+	} else if (bootlimit && (bootcount > bootlimit)) {
 		printf ("Warning: Bootlimit (%u) exceeded. Using altbootcmd.\n",
 		        (unsigned)bootlimit);
 		s = getenv ("altbootcmd");
-	}
-	else
+	} else if ((r = getenv("force_altboot")) != NULL && r[0] == 'y') {
+		printf ("force_altboot set, using altbootcmd.\n");
+		s = getenv ("altbootcmd");
+	} else
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
 		s = getenv ("bootcmd");
 

@@ -35,8 +35,9 @@ COBJS	= main.o ACEX1K.o altera.o bedbug.o circbuf.o \
 	  cmd_console.o \
 	  cmd_date.o cmd_dcr.o cmd_diag.o cmd_display.o cmd_doc.o cmd_dtt.o \
 	  cmd_eeprom.o cmd_elf.o cmd_ext2.o \
-	  cmd_fastboot.o cmd_fat.o cmd_fdc.o cmd_fdos.o cmd_flash.o cmd_fpga.o \
+	  cmd_fastboot.o cmd_fat.o cmd_fdc.o cmd_fdos.o cmd_flash.o cmd_flipflop.o cmd_fpga.o \
 	  cmd_i2c.o cmd_ide.o cmd_immap.o cmd_itest.o cmd_jffs2.o \
+	  cmd_ignore.o \
 	  cmd_load.o cmd_log.o \
 	  cmd_mem.o cmd_mii.o cmd_misc.o cmd_mmc.o \
 	  cmd_nand.o cmd_net.o cmd_nvedit.o \

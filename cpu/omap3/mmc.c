@@ -43,10 +43,11 @@ static block_dev_desc_t mmc_blk_dev[2];
 
 block_dev_desc_t *mmc_get_dev(int dev)
 {
-	if ((dev == 0) || (dev == 1))
-		return (block_dev_desc_t *) &mmc_blk_dev[dev];
-	else
-		return NULL;
+	if ((dev == 0) || (dev == 1)) {
+		if (cur_card_data[dev].size)
+			return &mmc_blk_dev[dev];
+	}
+	return NULL;
 }
 
 #if CONFIG_DRIVER_OMAP34XX_I2C /* don't compile for x-loader */
@@ -63,9 +64,20 @@ static void twl4030_mmc_config(unsigned int slot)
 	} else {
 		data = 0x20;
 		i2c_write(0x4B, 0x86, 1, &data, 1);
+#if (defined(CONFIG_STRASBOURG) && defined(__VARIANT_A1))
+		/* Configure for 1.85 V on Strasbourg A1 - 
+                   this is what the SoC expects */
+		data = 0x6;
+#else
 		data = 0xB;
+#endif
 		i2c_write(0x4B, 0x89, 1, &data, 1);
 	}
+#if (defined(CONFIG_STRASBOURG) && defined(__VARIANT_A2))
+	/* Wait 20 ms to let the MoviNand power up */
+	udelay(20000);
+#endif
+
 	return;
 }
 #endif
@@ -74,8 +86,6 @@ unsigned char mmc_board_init(mmc_controller_data *mmc_cont_cur)
 {
 	unsigned char ret = 1;
 	unsigned int value = 0;
-	unsigned char data = 0;
-	unsigned char tmp = 0;
 
 #if CONFIG_DRIVER_OMAP34XX_I2C /* don't compile for x-loader */
 	twl4030_mmc_config(mmc_cont_cur->slot);
@@ -128,7 +138,7 @@ unsigned char mmc_clock_config(mmc_controller_data *mmc_cont_cur,
 
 	mmc_reg_out(OMAP_HSMMC_SYSCTL(mmc_cont_cur->base),
 			(ICE_MASK | DTO_MASK | CEN_MASK),
-			(ICE_STOP | DTO_15THDTO | CEN_DISABLE));
+		    (ICE_STOP | DTO_15THDTO | CEN_DISABLE));
 
 	switch (iclk) {
 	case CLK_INITSEQ:
@@ -192,7 +202,7 @@ unsigned char mmc_init_setup(mmc_controller_data *mmc_cont_cur)
 }
 
 unsigned char mmc_send_cmd(unsigned int base, unsigned int cmd,
-			unsigned int arg, unsigned int *response)
+				unsigned int arg, unsigned int *response)
 {
 	unsigned int mmc_stat;
 	unsigned int cmd_index = cmd >> 24;
@@ -204,7 +214,7 @@ unsigned char mmc_send_cmd(unsigned int base, unsigned int cmd,
 	OMAP_HSMMC_ARG(base) = arg;
 
 	if (cmd_index == 0x19) { /* CMD25: Multi block write */
-		OMAP_HSMMC_CMD(base) = cmd | CMD_TYPE_NORMAL | CICE_NOCHECK |
+	OMAP_HSMMC_CMD(base) = cmd | CMD_TYPE_NORMAL | CICE_NOCHECK |
 			CCCE_NOCHECK | MSBS | BCE | ACEN_DISABLE | DE_DISABLE;
 	} else {
 		OMAP_HSMMC_BLK(base) = BLEN_512BYTESLEN | NBLK_STPCNT;
@@ -277,6 +287,8 @@ unsigned char mmc_read_data(unsigned int base, unsigned int *output_buf)
 unsigned char mmc_write_data(unsigned int base, unsigned int *input_buf)
 {
 	unsigned int mmc_stat;
+
+	return 0;
 
 	/*
 	 * Start Polled Write
@@ -489,7 +501,7 @@ unsigned char mmc_read_cardsize(unsigned int base, mmc_card_data *mmc_dev_data,
 		if (mmc_dev_data->size == 0)
 			return 0;
 	}
-	return 1;
+			return 1;
 }
 
 unsigned char omap_mmc_read_sect(unsigned int start_sec, unsigned int num_bytes,
@@ -540,7 +552,7 @@ unsigned char omap_mmc_write_sect(unsigned int *input_buf,
 	unsigned int argument;
 	unsigned int resp[4];
 	unsigned int num_sec_val =
-		(num_bytes + (MMCSD_SECTOR_SIZE - 1)) / MMCSD_SECTOR_SIZE;
+	    (num_bytes + (MMCSD_SECTOR_SIZE - 1)) / MMCSD_SECTOR_SIZE;
 	unsigned int sec_inc_val;
 	unsigned int blk_cnt_current_tns;
 
@@ -594,7 +606,7 @@ unsigned char omap_mmc_write_sect(unsigned int *input_buf,
 
 	}
 	return 1;
-}
+	}
 
 unsigned char omap_mmc_erase_sect(unsigned int start,
 	mmc_controller_data *mmc_cont_cur, mmc_card_data *mmc_c, int size)
@@ -679,7 +691,7 @@ unsigned char omap_mmc_erase_sect(unsigned int start,
 		num_sec_val -= blk_cnt_current_tns;
 
 	}
-	return 1;
+		return 1;
 }
 
 
@@ -794,8 +806,8 @@ unsigned char configure_mmc(mmc_card_data *mmc_card_cur,
 	if (ret_val != 1)
 		return ret_val;
 
-	return 1;
-}
+		return 1;
+	}
 
 unsigned long mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 {
@@ -805,8 +817,8 @@ unsigned long mmc_bread(int dev_num, ulong blknr, ulong blkcnt, ulong *dst)
 				(blkcnt * MMCSD_SECTOR_SIZE),
 			&cur_controller_data[dev_num], &cur_card_data[dev_num],
 					(unsigned int *)dst);
-	return ret;
-}
+	return ret ? blkcnt : 0;
+	}
 
 int mmc_init(int slot)
 {
@@ -825,7 +837,8 @@ int mmc_init(int slot)
 		mmc_blk_dev[slot].lba = 0x10000;
 		mmc_blk_dev[slot].removable = 0;
 		mmc_blk_dev[slot].block_read = mmc_bread;
-		fat_register_device(&mmc_blk_dev[slot], 1);
+		if (fat_register_device(&mmc_blk_dev[slot], 1))
+			return -1;
 		break;
 	case 1:
 		configure_controller(&cur_controller_data[slot], slot);
@@ -841,13 +854,14 @@ int mmc_init(int slot)
 		mmc_blk_dev[slot].lba = 0x10000;
 		mmc_blk_dev[slot].removable = 0;
 		mmc_blk_dev[slot].block_read = mmc_bread;
-		fat_register_device(&mmc_blk_dev[slot], 1);
+		if (fat_register_device(&mmc_blk_dev[slot], 1))
+			return -1;
 		break;
 	default:
 		printf("mmc_init:mmc slot is not supported%d\n", slot);
-	}
-	return 0;
 }
+	return 0;
+		}
 
 int mmc_read(int mmc_cont, unsigned int src, unsigned char *dst, int size)
 {
@@ -856,7 +870,7 @@ int mmc_read(int mmc_cont, unsigned int src, unsigned char *dst, int size)
 	ret = omap_mmc_read_sect(src, size, &cur_controller_data[mmc_cont],
 				&cur_card_data[mmc_cont], (unsigned int *)dst);
 	return ret;
-}
+		}
 int mmc_write(int mmc_cont, unsigned char *src, unsigned long dst, int size)
 {
 	int ret;

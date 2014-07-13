@@ -112,7 +112,7 @@ reset:
 	orr	r0,r0,#0xd3
 	msr	cpsr,r0
 
-#if (CONFIG_OMAP34XX)
+#ifdef CONFIG_OMAP34XX
        /* Copy vectors to mask ROM indirect addr */
 	adr	r0, _start		/* r0 <- current position of code   */
         add     r0, r0, #4				/* skip reset vector			*/
@@ -401,7 +401,7 @@ fiq:
 
 #endif
 
-#if (CONFIG_OMAP34XX)
+#ifdef CONFIG_OMAP34XX
 /* Service ID from Primary Protected Application */
 #define PPA_L2_INVALIDATE	 40
 
@@ -429,7 +429,7 @@ arm_cache_flush:
 v7_flush_dcache_all:
 	stmfd	r13!, {r0-r12, r14}
 
-#if (CONFIG_OMAP34XX)
+#ifdef CONFIG_OMAP34XX
 	cmp	r0, #0x3			@ check if the device is GP
 	beq	gp_l2_inv
 	cmp	r1, #1				@ or if it is EMU/HS device

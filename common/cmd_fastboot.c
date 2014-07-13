@@ -56,11 +56,12 @@
 #include <asm/byteorder.h>
 #include <common.h>
 #include <command.h>
+
+#if (CONFIG_FASTBOOT)
+
 #include <nand.h>
 #include <fastboot.h>
 #include <environment.h>
-
-#if (CONFIG_FASTBOOT)
 
 /* Use do_reset for fastboot's 'reboot' command */
 extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);

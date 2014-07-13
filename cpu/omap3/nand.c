@@ -519,7 +519,6 @@ void board_nand_init(struct nand_chip *nand)
 		{
 			.name   = "system",
 			.start  = 0x2000000,
-			.length = 0xB400000, /* 180M */
 			.flags  = FASTBOOT_PTENTRY_FLAGS_WRITE_HW_ECC |
 			FASTBOOT_PTENTRY_FLAGS_WRITE_YAFFS,
 		},

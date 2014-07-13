@@ -205,6 +205,7 @@ int	autoscript (ulong addr);
 void	print_image_hdr (image_header_t *hdr);
 
 extern ulong load_addr;		/* Default Load Address */
+extern ulong load_size;		/* last loaded size */
 
 /* common/cmd_nvedit.c */
 int	env_init     (void);
@@ -602,5 +603,7 @@ void	show_boot_progress (int status);
 #error CONFIG_INIT_CRITICAL is depracted!
 #error Read section CONFIG_SKIP_LOWLEVEL_INIT in README.
 #endif
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #endif	/* __COMMON_H_ */
