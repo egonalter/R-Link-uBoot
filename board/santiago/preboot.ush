@@ -1,0 +1,19 @@
+run					preboot_plat
+setenv appletname			/preboot-app.bin
+setenv autoscript			no
+setenv bootfile				/uImage
+setenv conf.file			/uboot.conf
+setenv conf.maxsize			0x80
+setenv flash.part.bootfs		/dev/mmcblk${kernel.bootdev}p${flash.part.bootfs.num}
+setenv flash.part.rootfs		/dev/mmcblk${kernel.bootdev}p${flash.part.rootfs.num}
+setenv kernel.root.options		rootwait
+setenv kernel.console.options		${baudrate}
+setenv kernel.extrabootargs
+setenv timeout				2
+setenv verify				no
+setenv no_trybooty			no
+setenv bootargs				root=${flash.part.rootfs} ${kernel.root.options} console=${kernel.console},${kernel.console.options} ${kernel.extrabootargs} androidboot.console=${kernel.console} sysboot_mode=${sysboot_mode} init=/init omapfb.vram="0:4M" omapfb.rotate=1 omapfb.vrfb=y
+mmcinit ${bootdev}
+mw.w ${fdaddr} 0x00000000 ${conf.maxsize}
+ignore fatload ${bootdev.class} ${bootdev}:${flash.part.bootfs.num} ${fdaddr} /uboot.conf ${conf.maxsize}
+ignore bootconf ${fdaddr}

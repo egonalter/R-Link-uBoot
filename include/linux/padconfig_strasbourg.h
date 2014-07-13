@@ -1,0 +1,1 @@
+../../../../../kernel/android-2.6.32/arch/arm/mach-omap2/include/mach/padconfig_strasbourg.h

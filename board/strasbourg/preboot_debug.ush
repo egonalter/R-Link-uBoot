@@ -1,0 +1,8 @@
+run preboot.default
+setenv verify				yes
+setenv kernel.bricknum			0
+setenv kernel.bricknum.rescue		0
+setenv kernel.quiet
+mw.l ${fdaddr} 0xdeadbeef 0x80
+fatload ${bootdev.class} ${bootdev}:${flash.part.bootfs.num} ${fdaddr} /preboot.image
+autoscr ${fdaddr}

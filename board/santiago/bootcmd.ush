@@ -1,0 +1,4 @@
+mw.l ${loadaddr} 0xdeadbeef 0x80
+echo Reading kernel from ${bootdev.class} ${bootdev}:${flash.part.bootfs.num} ${bootfile}
+ext2load ${bootdev.class} ${bootdev}:${flash.part.bootfs.num} ${loadaddr} ${bootfile} ${kernel.maxsize}
+bootm

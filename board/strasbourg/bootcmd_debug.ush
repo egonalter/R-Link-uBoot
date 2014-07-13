@@ -1,0 +1,4 @@
+mw.l ${fdaddr} 0xdeadbeef 0x80
+ignore fatload ${bootdev.class} ${bootdev}:${flash.part.bootfs.num} ${fdaddr} /bootcmd.image
+ignore autoscr ${fdaddr}
+run bootcmd.default
